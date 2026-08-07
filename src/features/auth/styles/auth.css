@@ -561,3 +561,74 @@ a:focus-visible {
 .alert {
   border-radius: var(--tech-radius-sm);
 }
+
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.oauth-divider::before,
+.oauth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.google-button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--tech-radius-sm);
+  background: var(--input);
+  color: var(--heading);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.google-button:hover:not(:disabled) {
+  border-color: var(--primary);
+  box-shadow: var(--tech-ring);
+  transform: translateY(-1px);
+}
+
+.google-button:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.google-button svg {
+  flex-shrink: 0;
+}
+
+.email-check {
+  font-weight: 600;
+}
+
+.email-check--checking {
+  color: var(--muted);
+}
+
+.email-check--ok {
+  color: #16a34a;
+}
+
+.email-check--taken,
+.email-check--disposable {
+  color: var(--danger);
+}

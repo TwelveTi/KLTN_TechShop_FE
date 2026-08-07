@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import heroImg from '../../../assets/hero.png'
-import { login, register } from '../api/authApi'
+import { env } from '../../../config/env'
+import { checkEmail, login, register } from '../api/authApi'
 import { clearStoredAuth, readStoredAuth, storeAuth } from '../lib/authStorage'
 import type { AuthForm, AuthMode, AuthPayload, AuthResult, ThemeMode } from '../types'
 import '../styles/auth.css'
@@ -43,6 +44,67 @@ export function AuthPage({
   const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [authResult, setAuthResult] = useState<AuthResult | null>(() => readStoredAuth())
+  const [emailCheck, setEmailCheck] = useState<{
+    state: 'checking' | 'ok' | 'taken' | 'disposable'
+    message: string
+  } | null>(null)
+
+  // Live email check while registering: runs after the user pauses typing a
+  // well-formed email (debounced), before they click "Create account".
+  useEffect(() => {
+    if (mode !== 'register') {
+      setEmailCheck(null)
+      return
+    }
+
+    const email = form.email.trim()
+    if (!email || !emailPattern.test(email)) {
+      setEmailCheck(null)
+      return
+    }
+
+    let cancelled = false
+    setEmailCheck({ state: 'checking', message: 'Checking email…' })
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const result = await checkEmail(email)
+        if (cancelled) return
+
+        if (result.status === 'ok') {
+          setEmailCheck({ state: 'ok', message: 'Email is available.' })
+        } else if (result.status === 'taken' || result.status === 'disposable') {
+          setEmailCheck({ state: result.status, message: result.message })
+        } else {
+          setEmailCheck(null)
+        }
+      } catch {
+        if (!cancelled) setEmailCheck(null) // stay silent on network errors
+      }
+    }, 500)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [form.email, mode])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('oauth') === 'error') {
+      setError('Google sign-in failed or was cancelled. Please try again.')
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
+  const handleGoogleLogin = () => {
+    if (!env.apiBaseUrl) {
+      setError('Backend URL is not configured.')
+      return
+    }
+    // Full-page redirect: OAuth cannot run through fetch/XHR.
+    window.location.href = `${env.apiBaseUrl}/auth/google`
+  }
 
   const title = mode === 'login' ? 'Sign in to TechShop' : 'Create your TechShop account'
   const subtitle =
@@ -108,6 +170,10 @@ export function AuthPage({
       return 'Password must include uppercase, lowercase, number, special character, and at least 8 characters.'
     }
 
+    if (mode === 'register' && emailCheck && (emailCheck.state === 'taken' || emailCheck.state === 'disposable')) {
+      return emailCheck.message
+    }
+
     return ''
   }
 
@@ -133,16 +199,29 @@ export function AuthPage({
     setSuccess('')
 
     try {
-      const result = mode === 'login' ? await login(payload) : await register(payload)
+      if (mode === 'login') {
+        const result = await login(payload)
 
-      storeAuth(result)
-      setAuthResult(result)
-      setSuccess(mode === 'login' ? 'Signed in successfully.' : 'Account created successfully.')
-      onAuthenticated(result)
-      setForm((currentForm) => ({
-        ...currentForm,
-        password: '',
-      }))
+        storeAuth(result)
+        setAuthResult(result)
+        setSuccess('Signed in successfully.')
+        onAuthenticated(result)
+        setForm((currentForm) => ({
+          ...currentForm,
+          password: '',
+        }))
+      } else {
+        const { user } = await register(payload)
+
+        // Registration does not sign the user in. Move to the sign-in tab with
+        // the email prefilled and ask the user to verify their email first.
+        setMode('login')
+        setShowPassword(false)
+        setForm({ email: user.email, password: '', fullName: '', phone: '' })
+        setSuccess(
+          `Account created. We sent a verification email to ${user.email}. Please verify it, then sign in.`,
+        )
+      }
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -263,6 +342,12 @@ export function AuthPage({
                   {emailError}
                 </small>
               )}
+              {!emailError && mode === 'register' && emailCheck && (
+                <small className={`email-check email-check--${emailCheck.state}`}>
+                  {emailCheck.state === 'ok' && <span aria-hidden="true">✓ </span>}
+                  {emailCheck.message}
+                </small>
+              )}
             </label>
 
             <label className="field">
@@ -331,6 +416,37 @@ export function AuthPage({
               {isSubmitting ? 'Processing...' : mode === 'login' ? 'Sign in' : 'Create account'}
             </button>
           </form>
+
+          <div className="oauth-divider">
+            <span>or</span>
+          </div>
+
+          <button
+            type="button"
+            className="google-button"
+            onClick={handleGoogleLogin}
+            disabled={isSubmitting}
+          >
+            <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">
+              <path
+                fill="#EA4335"
+                d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+              />
+              <path
+                fill="#4285F4"
+                d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+              />
+              <path
+                fill="#34A853"
+                d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+              />
+            </svg>
+            Continue with Google
+          </button>
 
           {authResult && (
             <div className="account-summary">

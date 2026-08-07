@@ -34,3 +34,19 @@ export type AuthResult = {
   user: AuthUser
   accessToken: string
 }
+
+// Registration does not sign the user in, so it returns the created user only.
+export type RegisterResult = {
+  user: AuthUser
+}
+
+export type EmailCheckStatus = 'ok' | 'invalid' | 'taken' | 'disposable'
+
+export type EmailCheckResult = {
+  email: string
+  valid: boolean
+  available: boolean
+  disposable: boolean
+  status: EmailCheckStatus
+  message: string
+}

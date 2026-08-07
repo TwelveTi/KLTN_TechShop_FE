@@ -1,4 +1,7 @@
+import { useCallback, useEffect, useState } from 'react'
 import type { AuthResult } from '../../auth/types'
+import { Toast } from '../../../shared/components/Toast'
+import type { ToastType } from '../../../shared/components/Toast'
 import { ShopHeader } from '../components/ShopHeader'
 import '../styles/home.css'
 
@@ -13,6 +16,23 @@ type HomePageProps = {
 }
 
 const categories = ['Laptops', 'Phones', 'Keyboards', 'Mice', 'Headsets', 'Monitors']
+
+// Messages shown after the email verification link redirects back to the home
+// page with a ?verified=<status> query param (set by the backend).
+const verificationNotices: Record<string, { type: ToastType; message: string }> = {
+  success: {
+    type: 'success',
+    message: 'Your email has been verified and you are now signed in. Welcome to TechShop!',
+  },
+  already: {
+    type: 'info',
+    message: 'Your email was already verified. You are signed in.',
+  },
+  error: {
+    type: 'error',
+    message: 'This verification link is invalid or has expired. Please sign in and request a new one.',
+  },
+}
 
 const products = [
   {
@@ -68,8 +88,27 @@ export function HomePage({
   onOpenOrders,
   onLogout,
 }: HomePageProps) {
+  const [verifyNotice, setVerifyNotice] = useState<{ type: ToastType; message: string } | null>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const verified = params.get('verified')
+
+    if (verified && verificationNotices[verified]) {
+      setVerifyNotice(verificationNotices[verified])
+      // Drop the query param so a refresh does not re-trigger the toast.
+      window.history.replaceState({}, '', window.location.pathname + window.location.hash)
+    }
+  }, [])
+
+  const dismissVerifyNotice = useCallback(() => setVerifyNotice(null), [])
+
   return (
     <main className="home-page">
+      {verifyNotice && (
+        <Toast type={verifyNotice.type} message={verifyNotice.message} onClose={dismissVerifyNotice} />
+      )}
+
       <ShopHeader
         authResult={authResult}
         onSignIn={onSignIn}
