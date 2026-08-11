@@ -1,0 +1,169 @@
+/* -----------------------------------------------------------------
+ * TechShop — Shared App / User Layout Styles
+ * Governed by design-system.md (Design Tokens 1.0)
+ * ----------------------------------------------------------------- */
+
+.ts-user-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.ts-user-layout__content {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* =================================================================
+ * Global Header (Sticky, Tinted, Reactive Scroll Auto-Hide)
+ * ================================================================= */
+.ts-global-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background-color: var(--brand-50);
+  border-bottom: 1px solid var(--brand-100);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--dur-base) var(--ease-out);
+  will-change: transform;
+}
+
+.ts-global-header--hidden {
+  transform: translateY(-100%);
+}
+
+.ts-global-header .ts-navbar {
+  position: static;
+  background-color: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--brand-100);
+}
+
+[data-theme="dark"] .ts-global-header {
+  background-color: #141b2b;
+  border-bottom-color: #263043;
+}
+
+[data-theme="dark"] .ts-global-header .ts-navbar {
+  border-bottom-color: #263043;
+}
+
+/* =================================================================
+ * Department Quick-Nav Taskbar
+ * ================================================================= */
+.ts-dept-bar {
+  background-color: transparent;
+  border-bottom: 0;
+}
+
+.ts-dept-bar__container {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: var(--layout-max);
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .ts-dept-bar__container {
+    padding: var(--space-2) var(--space-6);
+  }
+}
+
+.ts-dept-bar__label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-faint);
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .ts-dept-bar__label {
+    display: none;
+  }
+}
+
+.ts-dept-bar__track {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 2px 0;
+}
+
+.ts-dept-bar__track::-webkit-scrollbar {
+  display: none;
+}
+
+.ts-dept-bar__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 7px 14px;
+  border-radius: var(--radius-pill);
+  background-color: transparent;
+  border: 1px solid var(--color-border);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+
+.ts-dept-bar__chip:hover {
+  border-color: var(--color-heading);
+  color: var(--color-heading);
+  background-color: var(--color-surface-sunken);
+}
+
+.ts-dept-bar__chip.is-active {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.ts-dept-bar__chip .ts-icon {
+  color: var(--color-muted);
+}
+
+.ts-dept-bar__chip.is-active .ts-icon {
+  color: var(--color-on-primary);
+}
+
+.ts-dept-bar__all {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-primary);
+  white-space: nowrap;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: gap var(--dur-fast) var(--ease-out);
+}
+
+.ts-dept-bar__all:hover {
+  gap: var(--space-2);
+}
+
+@media (max-width: 640px) {
+  .ts-dept-bar__all {
+    display: none;
+  }
+}

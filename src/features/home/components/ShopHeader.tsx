@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import type { AuthResult } from '../../auth/types'
+import { Navbar } from '../../../shared/components/Navbar'
 
 type ShopHeaderProps = {
   authResult: AuthResult | null
@@ -9,8 +9,12 @@ type ShopHeaderProps = {
   onOpenProfile: () => void
   onOpenOrders: () => void
   onLogout: () => void | Promise<void>
+  onSearch?: (query: string) => void
+  onOpenCart?: () => void
+  cartCount?: number
 }
 
+// Backwards compatibility export for HeaderIcon
 export function HeaderIcon({ name }: { name: 'bell' | 'cart' | 'user' | 'orders' }) {
   const commonProps = {
     width: 21,
@@ -70,91 +74,24 @@ export function ShopHeader({
   onOpenProfile,
   onOpenOrders,
   onLogout,
+  onSearch,
+  onOpenCart,
+  cartCount,
 }: ShopHeaderProps) {
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
-  const initials = authResult?.user.fullName
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-
   return (
-    <header className="shop-header">
-      <a className="shop-brand" href="/" aria-label="TechShop home">
-        <span>TS</span>
-        TechShop
-      </a>
-
-      <label className="shop-search">
-        <span>Search</span>
-        <input placeholder="Search laptops, phones, accessories..." />
-        <button type="button">Search</button>
-      </label>
-
-      <div className="shop-actions" aria-label="Shop shortcuts">
-        <button className="header-icon-button" type="button" aria-label="Open notifications">
-          <HeaderIcon name="bell" />
-          <span className="notification-dot" aria-hidden="true" />
-        </button>
-        <button className="header-icon-button" type="button" aria-label="Open cart">
-          <HeaderIcon name="cart" />
-          <span className="cart-count" aria-label="0 items in cart">
-            0
-          </span>
-        </button>
-      </div>
-
-      <div className="shop-account">
-        {authResult ? (
-          <div className="account-menu-wrap">
-            <button
-              className="avatar-button"
-              type="button"
-              onClick={() => setIsAccountMenuOpen((isOpen) => !isOpen)}
-              aria-expanded={isAccountMenuOpen}
-              aria-label="Open account menu"
-            >
-              <span>{initials}</span>
-              <div>
-                <small>Welcome</small>
-                <strong>{authResult.user.fullName}</strong>
-              </div>
-            </button>
-            {isAccountMenuOpen && (
-              <div className="account-menu">
-                <p>{authResult.user.email}</p>
-                <span>{authResult.user.role}</span>
-                <button type="button" onClick={onOpenProfile}>
-                  <HeaderIcon name="user" />
-                  My profile
-                </button>
-                <button type="button" onClick={onOpenOrders}>
-                  <HeaderIcon name="orders" />
-                  My orders
-                </button>
-                {authResult.user.role === 'ADMIN' && (
-                  <button type="button" onClick={onOpenAdmin}>
-                    Admin Center
-                  </button>
-                )}
-                <button type="button" onClick={onLogout}>
-                  Sign out
-                </button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <>
-            <button type="button" onClick={onSignIn}>
-              Sign in
-            </button>
-            <button className="primary" type="button" onClick={onRegister}>
-              Register
-            </button>
-          </>
-        )}
-      </div>
-    </header>
+    <Navbar
+      user={authResult?.user || null}
+      onSignIn={onSignIn}
+      onRegister={onRegister}
+      onOpenAdmin={onOpenAdmin}
+      onOpenProfile={onOpenProfile}
+      onOpenOrders={onOpenOrders}
+      onLogout={onLogout}
+      onSearch={onSearch}
+      onOpenCart={onOpenCart}
+      cartCount={cartCount}
+    />
   )
 }
+
+

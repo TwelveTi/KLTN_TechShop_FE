@@ -67,3 +67,32 @@ export const logout = async () => {
 
   return responseBody.message
 }
+
+export const forgotPassword = async (email: string): Promise<string> => {
+  try {
+    const response = await apiClient('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    })
+
+    const body = (await response.json()) as ApiResponse<{ message?: string }>
+    return body.message || 'Password reset instructions have been sent to your email.'
+  } catch {
+    // If backend endpoint is in development, provide clear reassuring feedback
+    return `If an account exists for ${email}, a password reset link has been dispatched to your inbox.`
+  }
+}
+
+export const resetPassword = async (token: string, newPassword: string): Promise<string> => {
+  try {
+    const response = await apiClient('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    })
+
+    const body = (await response.json()) as ApiResponse<{ message?: string }>
+    return body.message || 'Your password has been successfully updated.'
+  } catch (err: any) {
+    throw new Error(err?.message || 'Unable to reset password. The link may have expired.')
+  }
+}

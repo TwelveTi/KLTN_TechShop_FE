@@ -1,66 +1,284 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@600;700&display=swap');
+
 :root {
-  --tech-bg: #f8fafc;
-  --tech-surface: #ffffff;
-  --tech-surface-soft: #f1f5f9;
-  --tech-border: #e5e7eb;
-  --tech-heading: #111827;
-  --tech-text: #4b5563;
-  --tech-muted: #6b7280;
-  --tech-primary: #2563eb;
-  --tech-primary-strong: #164fd0;
-  --tech-accent: #06b6d4;
-  --tech-accent-strong: #0891b2;
-  --tech-danger: #ef4444;
-  --tech-warning: #f59e0b;
-  --tech-radius-sm: 12px;
-  --tech-radius-md: 14px;
-  --tech-radius-lg: 16px;
-  --tech-shadow-sm: 0 1px 2px rgba(17, 24, 39, 0.05);
-  --tech-shadow-md: 0 12px 30px rgba(17, 24, 39, 0.08);
-  --tech-shadow-lg: 0 24px 60px rgba(17, 24, 39, 0.12);
-  --tech-ring: 0 0 0 4px rgba(37, 99, 235, 0.14);
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  color: var(--tech-text);
-  background: var(--tech-bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* -----------------------------------------------------------------
+   * Design Tokens - TechShop Design System 1.0
+   * ----------------------------------------------------------------- */
+
+  /* Font primitives */
+  --font-display: 'Sora', "Segoe UI", system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  /* Font weights (hard cap: 700) */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Type scale */
+  --text-display: clamp(2.75rem, 5vw, 4rem);
+  --text-h1: clamp(2rem, 3.5vw, 2.5rem);
+  --text-h2: clamp(1.625rem, 2.5vw, 1.875rem);
+  --text-h3: clamp(1.3125rem, 2vw, 1.5rem);
+  --text-h4: 1.125rem;
+  --text-body-lg: 1.125rem;
+  --text-body: 1rem;
+  --text-body-sm: 0.875rem;
+  --text-caption: 0.8125rem;
+  --text-overline: 0.75rem;
+
+  /* Brand primitives (Cool Blue) */
+  --brand-50: #EFF5FF;
+  --brand-100: #DBE7FE;
+  --brand-200: #BFD3FE;
+  --brand-300: #93B4FD;
+  --brand-400: #5E8CFA;
+  --brand-500: #3B6EF3;
+  --brand-600: #2563EB;
+  --brand-700: #1D4FD0;
+  --brand-800: #1B44A8;
+  --brand-900: #1B3B85;
+
+  /* Accent primitives (Cyan) */
+  --accent-100: #CFF6FD;
+  --accent-500: #06B6D4;
+  --accent-600: #0891B2;
+
+  /* Neutral primitives (Cool Slate) */
+  --neutral-0: #FFFFFF;
+  --neutral-25: #FBFCFE;
+  --neutral-50: #F6F8FB;
+  --neutral-100: #EEF1F6;
+  --neutral-150: #E7EBF1;
+  --neutral-200: #E2E7EF;
+  --neutral-300: #CBD3DF;
+  --neutral-400: #9AA5B5;
+  --neutral-500: #6B7688;
+  --neutral-600: #4B5563;
+  --neutral-700: #374151;
+  --neutral-800: #1F2733;
+  --neutral-900: #111827;
+  --neutral-950: #0B0F17;
+
+  /* Semantic status primitives */
+  --success-soft: #DCFCE7;
+  --success-base: #16A34A;
+  --success-strong: #15803D;
+
+  --warning-soft: #FEF3C7;
+  --warning-base: #F59E0B;
+  --warning-strong: #B45309;
+
+  --danger-soft: #FEE2E2;
+  --danger-base: #EF4444;
+  --danger-strong: #DC2626;
+
+  /* Light Theme Semantic Tokens (Default) */
+  --color-bg: var(--neutral-50);
+  --color-surface: var(--neutral-0);
+  --color-surface-sunken: var(--neutral-50);
+  --color-surface-raised: var(--neutral-0);
+  --color-product-media: #E8EDF5;   /* product "stage" — distinct panel inside white cards */
+  --color-border: var(--neutral-200);
+  --color-border-strong: var(--neutral-300);
+  --color-heading: var(--neutral-900);
+  --color-text: var(--neutral-600);
+  --color-muted: var(--neutral-500);
+  --color-faint: var(--neutral-400);
+
+  --color-primary: var(--brand-600);
+  --color-primary-hover: var(--brand-700);
+  --color-on-primary: var(--neutral-0);
+  --color-primary-soft: var(--brand-50);
+  --color-accent: var(--accent-600);
+  --color-focus: var(--brand-500);
+
+  --color-success: var(--success-base);
+  --color-warning: var(--warning-base);
+  --color-danger: var(--danger-base);
+
+  /* Radius Tokens */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --radius-full: 50%;
+
+  /* Shadow & Elevation Tokens */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
+  --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.25);
+
+  --elevation-0: flat;
+  --elevation-1: var(--shadow-sm);
+  --elevation-2: var(--shadow-md);
+  --elevation-3: var(--shadow-lg);
+
+  /* Spacing Tokens (4px base) */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* Layout tokens */
+  --layout-max: 1200px;
+
+  /* Z-index Scale */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-sticky: 30;
+  --z-dropdown: 40;
+  --z-overlay: 50;
+  --z-modal: 60;
+  --z-toast: 70;
+  --z-tooltip: 80;
+
+  /* Motion Tokens */
+  --dur-instant: 0ms;
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Legacy alias compatibility fallback */
+  --tech-bg: var(--color-bg);
+  --tech-surface: var(--color-surface);
+  --tech-border: var(--color-border);
+  --tech-heading: var(--color-heading);
+  --tech-text: var(--color-text);
+  --tech-muted: var(--color-muted);
+  --tech-primary: var(--color-primary);
+  --tech-accent: var(--color-accent);
 }
 
-* {
+/* Dark Mode Token Mapping (Spec §4.2) */
+[data-theme="dark"] {
+  --color-bg: var(--neutral-950);
+  --color-surface: #121826;
+  --color-surface-sunken: #0E1420;
+  --color-surface-raised: #172032;
+  --color-border: #232C3B;
+  --color-border-strong: #33405A;
+  --color-heading: #F5F7FA;
+  --color-text: #C7D0DE;
+  --color-muted: #8A96A8;
+  --color-faint: #63708A;
+
+  --color-primary: var(--brand-400);
+  --color-primary-hover: var(--brand-300);
+  --color-on-primary: #0B0F17;
+  --color-primary-soft: #16223D;
+  --color-accent: var(--accent-500);
+  --color-focus: var(--brand-400);
+  --color-product-media: #1A2233;
+}
+
+/* Base resets & document settings */
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
 html {
   min-width: 320px;
-  overflow-x: hidden;
-  background: var(--tech-bg);
+  overflow-x: clip;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   min-width: 320px;
-  min-height: 100svh;
+  min-height: 100vh;
   margin: 0;
-  overflow-x: hidden;
+  padding: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  overflow-x: clip;
 }
 
-button,
-input {
-  letter-spacing: 0;
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--color-heading);
+  margin: 0;
+  line-height: 1.15;
 }
 
-button,
-a,
-input,
-select,
-textarea {
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    color 160ms ease,
-    transform 160ms ease,
-    opacity 160ms ease;
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Universal Tabular Numerals for prices & aligned data */
+.tabular-nums, .price-tag, .stat-value, .cart-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visually Hidden Utility for Screen Readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Instant Accessibility Focus Ring */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+  transition: outline var(--dur-instant);
+}
+
+/* Reduced Motion Compliance */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
