@@ -154,13 +154,15 @@ export function ProductCard({
         <div className="ts-product-card__meta">
           <span className="ts-product-card__category">{product.category}</span>
           {product.brand && <span className="ts-product-card__brand">· {product.brand}</span>}
-          {product.rating && (
+          {typeof product.rating === 'number' && product.rating > 0 ? (
             <span className="ts-product-card__rating">
               <Icon name="star" size={13} className="ts-product-card__star-icon" />
               <span className="tabular-nums">{product.rating.toFixed(1)}</span>
-              {product.reviewCount && <span className="ts-product-card__reviews">({product.reviewCount})</span>}
+              {typeof product.reviewCount === 'number' && product.reviewCount > 0 ? (
+                <span className="ts-product-card__reviews">({product.reviewCount})</span>
+              ) : null}
             </span>
-          )}
+          ) : null}
         </div>
 
         <h3 className="ts-product-card__name" title={product.name}>

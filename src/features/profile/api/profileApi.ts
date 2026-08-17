@@ -70,7 +70,7 @@ const readJson = async <T>(response: Response, fallbackMessage: string) => {
 }
 
 export const updateMyProfile = async (payload: ProfileUpdatePayload) => {
-  const response = await apiClient('/auth/me', {
+  const response = await apiClient('/users/me', {
     method: 'PUT',
     auth: true,
     body: JSON.stringify(payload),
@@ -83,7 +83,7 @@ export const uploadMyAvatar = async (file: File) => {
   const formData = new FormData()
   formData.append('avatar', file)
 
-  const response = await apiClient('/auth/me/avatar', {
+  const response = await apiClient('/users/me/avatar', {
     method: 'POST',
     auth: true,
     body: formData,

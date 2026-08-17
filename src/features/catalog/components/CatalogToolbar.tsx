@@ -165,7 +165,8 @@ export function CatalogToolbar({
                 aria-label="Remove price filter"
               >
                 <span>
-                  Price: ${filters.minPrice || 0} – ${filters.maxPrice || 'Any'}
+                  Price: {filters.minPrice !== undefined ? `${Number(filters.minPrice).toLocaleString('vi-VN')} ₫` : '0 ₫'} –{' '}
+                  {filters.maxPrice !== undefined ? `${Number(filters.maxPrice).toLocaleString('vi-VN')} ₫` : 'Any'}
                 </span>
                 <Icon name="x" size={13} />
               </button>

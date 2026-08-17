@@ -82,11 +82,18 @@ export interface ProductReview {
   id: string
   /** Reviewer display name. */
   user: string
+  /** Reviewer backend id — used to detect the current user's own review. */
+  userId?: string
+  /** Reviewer avatar url (server reviews only). */
+  avatarUrl?: string | null
   rating: number
+  /** Optional short headline for the review. */
+  title?: string | null
   comment: string
   verifiedPurchase: boolean
   /** ISO timestamp. */
   createdAt: string
+  updatedAt?: string
 }
 
 export interface ReviewDistributionBucket {

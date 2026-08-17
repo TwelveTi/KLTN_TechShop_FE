@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AuthResult } from '../../auth/types'
 import { adminApi } from '../api/adminApi'
 import { AdminHeader } from '../components/AdminHeader'
@@ -89,8 +89,13 @@ export function AdminPage({ authResult, onBackToShop, isRestoringSession = false
     }
   }, [notice])
 
+  // Guards against stale responses overwriting fresher ones when filters/search
+  // change in quick succession (last-write-wins).
+  const fetchSeq = useRef(0)
+
   // Initial Data Load
   const fetchAllData = useCallback(async () => {
+    const seq = ++fetchSeq.current
     setLoading(true)
     setError('')
     try {
@@ -132,6 +137,9 @@ export function AdminPage({ authResult, onBackToShop, isRestoringSession = false
         }),
       ])
 
+      // Drop this response if a newer request has since been issued.
+      if (seq !== fetchSeq.current) return
+
       setDashboardSummary(summaryRes)
       setDailyRevenue(revenueRes)
       setTopProducts(topProdRes)
@@ -144,9 +152,13 @@ export function AdminPage({ authResult, onBackToShop, isRestoringSession = false
       setOrdersTotal(orderRes.pagination.total)
       setUsers(userRes.items)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to synchronize admin data.')
+      if (seq === fetchSeq.current) {
+        setError(err instanceof Error ? err.message : 'Unable to synchronize admin data.')
+      }
     } finally {
-      setLoading(false)
+      if (seq === fetchSeq.current) {
+        setLoading(false)
+      }
     }
   }, [
     revenuePeriod,
@@ -164,10 +176,14 @@ export function AdminPage({ authResult, onBackToShop, isRestoringSession = false
     orderPageSize,
   ])
 
+  // Debounce so typing in a search box (which flows into fetchAllData deps)
+  // coalesces into a single request instead of firing one per keystroke.
   useEffect(() => {
-    if (isAdmin) {
+    if (!isAdmin) return
+    const timer = window.setTimeout(() => {
       void fetchAllData()
-    }
+    }, 300)
+    return () => window.clearTimeout(timer)
   }, [fetchAllData, isAdmin])
 
   // Products Handlers
@@ -367,20 +383,19 @@ export function AdminPage({ authResult, onBackToShop, isRestoringSession = false
         />
       )}
 
-      {/* Persistent Left Sidebar */}
-      <div className={isMobileSidebarOpen ? 'ts-admin-sidebar is-open' : 'ts-admin-sidebar'}>
-        <AdminSidebar
-          activeSection={activeSection}
-          onSelectSection={(sec) => {
-            setActiveSection(sec)
-            setGlobalSearchQuery('')
-          }}
-          onBackToShop={onBackToShop}
-          onCloseMobile={() => setIsMobileSidebarOpen(false)}
-          pendingOrdersCount={pendingOrdersCount}
-          lowStockCount={lowStockItems.length}
-        />
-      </div>
+      {/* Persistent Left Sidebar (single fixed element; drawer under md) */}
+      <AdminSidebar
+        activeSection={activeSection}
+        onSelectSection={(sec) => {
+          setActiveSection(sec)
+          setGlobalSearchQuery('')
+        }}
+        onBackToShop={onBackToShop}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        isMobileOpen={isMobileSidebarOpen}
+        pendingOrdersCount={pendingOrdersCount}
+        lowStockCount={lowStockItems.length}
+      />
 
       {/* Main Content Region */}
       <div className="ts-admin-main">

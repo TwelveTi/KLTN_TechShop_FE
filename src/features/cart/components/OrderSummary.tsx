@@ -31,7 +31,7 @@ export function OrderSummary({
         <div className="ts-order-summary__row">
           <span className="ts-order-summary__row-label">Selected Subtotal</span>
           <span className="ts-order-summary__row-val tabular-nums">
-            ${selectedSubtotal.toLocaleString()}
+            {Number(selectedSubtotal || 0).toLocaleString('vi-VN')} ₫
           </span>
         </div>
 
@@ -40,8 +40,8 @@ export function OrderSummary({
           <span className="ts-order-summary__row-val ts-order-summary__row-val--muted">
             {isZeroSelected
               ? '—'
-              : selectedSubtotal >= 100
-              ? 'Free Shipping'
+              : selectedSubtotal >= 1000000
+              ? 'Free Express Delivery'
               : 'Calculated at checkout'}
           </span>
         </div>
@@ -49,7 +49,7 @@ export function OrderSummary({
         <div className="ts-order-summary__row">
           <span className="ts-order-summary__row-label">Estimated Tax</span>
           <span className="ts-order-summary__row-val ts-order-summary__row-val--muted">
-            {isZeroSelected ? '—' : 'Calculated at checkout'}
+            {isZeroSelected ? '—' : 'VAT included in price'}
           </span>
         </div>
 
@@ -59,11 +59,11 @@ export function OrderSummary({
           <div className="ts-order-summary__total-text">
             <strong className="ts-order-summary__total-label">Total</strong>
             <span className="ts-order-summary__total-note">
-              {isZeroSelected ? 'No items selected' : 'Includes official warranty'}
+              {isZeroSelected ? 'No items selected' : 'Includes official warranty & VAT'}
             </span>
           </div>
           <span className="ts-order-summary__total-val tabular-nums">
-            ${selectedTotal.toLocaleString()}
+            {Number(selectedTotal || 0).toLocaleString('vi-VN')} ₫
           </span>
         </div>
       </div>
@@ -90,7 +90,7 @@ export function OrderSummary({
       <div className="ts-order-summary__trust-list">
         <div className="ts-order-summary__trust-item">
           <Icon name="truck" size={16} className="ts-order-summary__trust-icon" />
-          <span>Free delivery on orders over $100</span>
+          <span>Free delivery on orders over 1.000.000₫</span>
         </div>
         <div className="ts-order-summary__trust-item">
           <Icon name="shield-check" size={16} className="ts-order-summary__trust-icon" />

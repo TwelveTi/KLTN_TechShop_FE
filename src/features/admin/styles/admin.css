@@ -46,14 +46,17 @@
   color: var(--color-heading);
 }
 
+/* Matches the customer-facing .ts-brandmark__logo (near-black swatch, white
+ * "TS") so the brand reads as one product across storefront and admin. The
+ * blue brand accent is still used elsewhere in the console (nav, buttons). */
 .ts-admin-brand__logo {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 32px;
   height: 32px;
-  background: var(--brand-600);
-  color: var(--color-on-primary);
+  background-color: var(--color-heading);
+  color: var(--color-surface);
   border-radius: var(--radius-sm);
   font-family: var(--font-display);
   font-weight: var(--weight-bold);
@@ -2581,9 +2584,8 @@
 .ts-admin-sidebar-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.4);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  /* Plain scrim — no backdrop-filter (instant paint on drawer open). */
+  background-color: rgba(15, 23, 42, 0.5);
   z-index: var(--z-overlay);
 }
 

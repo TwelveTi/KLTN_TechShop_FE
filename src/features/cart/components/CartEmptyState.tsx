@@ -14,7 +14,7 @@ export function CartEmptyState({ onStartShopping }: CartEmptyStateProps) {
 
       <h2 className="ts-cart-empty__title">Your cart is empty</h2>
       <p className="ts-cart-empty__desc">
-        Explore our curated collection of ultrabooks, mechanical keyboards, flagship smartphones, and pro accessories.
+        Explore our curated collection of ultrabooks, mechanical keyboards, flagship smartphones, and pro hardware accessories.
       </p>
 
       <div className="ts-cart-empty__actions">

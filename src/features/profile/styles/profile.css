@@ -23,20 +23,8 @@
   --profile-border: rgba(255, 255, 255, 0.08);
 }
 
-/* Header container */
-.ts-profile-page .home-header {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  background-color: var(--brand-50);
-  border-bottom: 1px solid var(--brand-100);
-  box-shadow: var(--shadow-md);
-}
-
-[data-theme="dark"] .ts-profile-page .home-header {
-  background-color: #141b2b;
-  border-bottom-color: #263043;
-}
+/* The shared header is rendered by UserLayout → GlobalHeader
+ * (.ts-global-header); the old page-local .home-header override was dead. */
 
 /* =================================================================
  * Main Layout Container
@@ -1036,9 +1024,9 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
-  background-color: rgba(0, 0, 0, 0.6);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  /* Plain scrim — no backdrop-filter blur (paints instantly, no per-frame
+   * backdrop re-blur during the open animation). */
+  background-color: rgba(0, 0, 0, 0.62);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1302,4 +1290,48 @@
   50% {
     opacity: 0.3;
   }
+}
+
+/* ----------------------------------------------------------------- */
+/* Security tab — inline Change Password form                        */
+/* ----------------------------------------------------------------- */
+.ts-change-pw {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg, 14px);
+  background-color: var(--color-surface-sunken);
+}
+
+.ts-change-pw__reveal {
+  margin-top: -2px;
+}
+
+.ts-change-pw__rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ts-change-pw__rules li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.ts-change-pw__rules li.is-valid {
+  color: var(--success-strong, var(--color-primary));
+}
+
+.ts-change-pw__actions {
+  display: flex;
+  justify-content: flex-end;
 }

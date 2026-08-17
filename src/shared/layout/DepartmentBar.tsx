@@ -21,6 +21,23 @@ export interface DepartmentBarProps {
   className?: string
 }
 
+// Tolerant category comparison so a chip highlights whether the active category
+// arrived as the chip's own slug ("laptops"), the backend's real slug/name
+// ("laptop"), or a localized variant. Strips accents + a trailing plural "s".
+const normCategory = (value?: string): string =>
+  (value || '')
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/s$/, '')
+
+const departmentIsActive = (activeCategory?: string, slug?: string): boolean => {
+  const a = normCategory(activeCategory)
+  const b = normCategory(slug)
+  return Boolean(a) && Boolean(b) && (a === b || a.includes(b) || b.includes(a))
+}
+
 export function DepartmentBar({
   onSelectCategory,
   activeCategory,
@@ -32,7 +49,7 @@ export function DepartmentBar({
         <span className="ts-dept-bar__label">Shop</span>
         <div className="ts-dept-bar__track">
           {DEPARTMENTS.map((dept) => {
-            const isActive = activeCategory === dept.slug
+            const isActive = departmentIsActive(activeCategory, dept.slug)
             return (
               <button
                 type="button"

@@ -4,56 +4,43 @@ import type { CartItem } from '../types'
 const CART_STORAGE_KEY = 'techshop_cart'
 const CART_EVENT_NAME = 'techshop_cart_updated'
 
-// Seed cart with realistic initial items across two days so the
-// "grouped by added date" layout is demonstrable on a fresh visit.
-const DEFAULT_INITIAL_CART: CartItem[] = [
-  {
-    id: 'p-1',
-    name: 'AeroBook Pro 14 (M3 Max)',
-    category: 'Laptops',
-    brand: 'Apple',
-    price: '$1,899',
-    rawPrice: 1899,
-    quantity: 1,
-    specs: 'M3 Max 12-core, 32GB RAM, 1TB SSD',
-    specsList: ['M3 Max 12-core', '32GB RAM', '1TB SSD'],
-    maxStock: 8,
-    addedAt: '2026-08-10T09:15:00.000Z',
-  },
-  {
-    id: 'p-3',
-    name: 'Pulse Pro Wireless Mechanical Keyboard',
-    category: 'Keyboards',
-    brand: 'Keychron',
-    price: '$149',
-    rawPrice: 149,
-    quantity: 1,
-    specs: 'Hot-swappable, PBT keycaps, BT/2.4G',
-    specsList: ['Hot-swappable', 'PBT Keycaps', 'BT/2.4G'],
-    maxStock: 15,
-    addedAt: '2026-08-10T08:40:00.000Z',
-  },
-  {
-    id: 'p-6',
-    name: 'SonicPods Max ANC Studio Headset',
-    category: 'Audio',
-    brand: 'Sony',
-    price: '$179',
-    rawPrice: 179,
-    originalPrice: '$229',
-    rawOriginalPrice: 229,
-    quantity: 1,
-    specs: 'Hybrid ANC, Hi-Res LDAC, 40h battery',
-    specsList: ['Hybrid ANC', 'Hi-Res LDAC', '40h Battery'],
-    maxStock: 20,
-    addedAt: '2026-08-09T14:05:00.000Z',
-  },
-]
+const DEFAULT_INITIAL_CART: CartItem[] = []
+
+/**
+ * Filter out any old legacy mock products from previous development iterations
+ * (e.g. products with IDs 'p-1', '$' prices, or old placeholder mock names).
+ */
+function isLegacyMockItem(item: any): boolean {
+  if (!item || typeof item !== 'object') return true
+  const id = String(item.id || '')
+  const name = String(item.name || '')
+  const price = String(item.price || '')
+
+  // Legacy mock IDs were 'p-1', 'p-2', 'p-3', etc.
+  if (/^p-\d+$/i.test(id)) return true
+  if (price.startsWith('$')) return true
+
+  const mockKeywords = [
+    'aerobook',
+    'novaphone',
+    'pulse pro',
+    'glidemouse',
+    'beacon 4k',
+    'prostation',
+    'xps 15',
+    'focusview',
+    'sonicpods',
+    'viper v3',
+    'rog swift',
+  ]
+  if (mockKeywords.some((k) => name.toLowerCase().includes(k))) return true
+
+  return false
+}
 
 /**
  * Ensure every item has an `addedAt`. Older stored carts (written before this
- * field existed) are migrated in place so grouping never breaks. A real
- * backend response can be passed through the same normalizer.
+ * field existed) are migrated in place so grouping never breaks.
  */
 function normalizeCart(items: CartItem[]): CartItem[] {
   const fallback = new Date().toISOString()
@@ -63,7 +50,8 @@ function normalizeCart(items: CartItem[]): CartItem[] {
 export function parsePriceNumber(priceStr: string | number | undefined): number {
   if (typeof priceStr === 'number') return priceStr
   if (!priceStr) return 0
-  const cleaned = String(priceStr).replace(/[^0-9.]/g, '')
+  // Remove currency symbols, spaces, and thousand-separators (both dots and commas)
+  const cleaned = String(priceStr).replace(/[^0-9]/g, '')
   return Number(cleaned) || 0
 }
 
@@ -75,12 +63,19 @@ export function readStoredCart(): CartItem[] {
   try {
     const raw = localStorage.getItem(CART_STORAGE_KEY)
     if (!raw) {
-      // First visit: initialize with default initial cart
       localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(DEFAULT_INITIAL_CART))
       return DEFAULT_INITIAL_CART
     }
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? normalizeCart(parsed) : DEFAULT_INITIAL_CART
+    if (Array.isArray(parsed)) {
+      // Cleanse any legacy mock items from user's local storage
+      const cleanItems = parsed.filter((item) => !isLegacyMockItem(item))
+      if (cleanItems.length !== parsed.length) {
+        localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cleanItems))
+      }
+      return normalizeCart(cleanItems)
+    }
+    return DEFAULT_INITIAL_CART
   } catch {
     return DEFAULT_INITIAL_CART
   }
@@ -89,8 +84,9 @@ export function readStoredCart(): CartItem[] {
 export function writeStoredCart(items: CartItem[]) {
   if (typeof window === 'undefined') return
   try {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
-    window.dispatchEvent(new CustomEvent(CART_EVENT_NAME, { detail: items }))
+    const cleanItems = items.filter((item) => !isLegacyMockItem(item))
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cleanItems))
+    window.dispatchEvent(new CustomEvent(CART_EVENT_NAME, { detail: cleanItems }))
   } catch {
     // Ignore storage write errors
   }
@@ -108,13 +104,14 @@ export function createCartItemFromProduct(product: ProductItem, qty = 1): CartIt
   const rawPrice = parsePriceNumber(product.price)
   const rawOriginalPrice = product.originalPrice ? parsePriceNumber(product.originalPrice) : undefined
   const id = product.id || String(product.name)
+  const formattedPrice = product.price || `${rawPrice.toLocaleString('vi-VN')} ₫`
 
   return {
     id,
     name: product.name,
-    category: product.category || 'Hardware',
+    category: product.category || 'Technology',
     brand: product.brand,
-    price: product.price || `$${rawPrice.toLocaleString()}`,
+    price: formattedPrice,
     rawPrice,
     originalPrice: product.originalPrice,
     rawOriginalPrice,
@@ -131,7 +128,7 @@ export function createCartItemFromProduct(product: ProductItem, qty = 1): CartIt
 export interface CartDateGroup {
   /** Calendar day key (YYYY-MM-DD) used for stable grouping. */
   dateKey: string
-  /** Human-readable heading, e.g. "AUGUST 10, 2026". */
+  /** Human-readable heading, e.g. "TODAY" or "AUGUST 10, 2026". */
   label: string
   items: CartItem[]
 }
@@ -139,7 +136,6 @@ export interface CartDateGroup {
 const dateKeyOf = (iso: string): string => {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return 'unknown'
-  // Local calendar day (not UTC) so grouping matches what the user sees.
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
@@ -156,8 +152,6 @@ const formatDateHeading = (iso: string): string => {
 
 /**
  * Group cart items by the calendar day they were added, newest day first.
- * Order within a day preserves the incoming array order. Purely derived —
- * no state — so it works identically for local or backend-provided carts.
  */
 export function groupCartItemsByDate(items: CartItem[]): CartDateGroup[] {
   const groups = new Map<string, CartDateGroup>()

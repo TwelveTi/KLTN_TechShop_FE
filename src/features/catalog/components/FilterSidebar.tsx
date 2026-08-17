@@ -18,10 +18,10 @@ export interface FilterSidebarProps {
 }
 
 const PRICE_PRESETS = [
-  { label: 'Under $100', min: 0, max: 100 },
-  { label: '$100 – $500', min: 100, max: 500 },
-  { label: '$500 – $1,500', min: 500, max: 1500 },
-  { label: 'Over $1,500', min: 1500, max: 5000 },
+  { label: 'Under 5M', min: 0, max: 5000000 },
+  { label: '5M – 15M', min: 5000000, max: 15000000 },
+  { label: '15M – 25M', min: 15000000, max: 25000000 },
+  { label: 'Over 25M', min: 25000000, max: 100000000 },
 ]
 
 export function FilterSidebar({
@@ -141,7 +141,7 @@ export function FilterSidebar({
           {/* Custom Min / Max Inputs */}
           <form className="ts-facet-group__price-inputs" onSubmit={handleApplyCustomPrice}>
             <div className="ts-facet-group__price-field">
-              <span className="ts-facet-group__currency">$</span>
+              <span className="ts-facet-group__currency">₫</span>
               <input
                 type="number"
                 min="0"
@@ -149,12 +149,12 @@ export function FilterSidebar({
                 className="ts-facet-group__input tabular-nums"
                 value={customMin}
                 onChange={(e) => setCustomMin(e.target.value)}
-                aria-label="Minimum price in dollars"
+                aria-label="Minimum price in VND"
               />
             </div>
             <span className="ts-facet-group__price-sep">–</span>
             <div className="ts-facet-group__price-field">
-              <span className="ts-facet-group__currency">$</span>
+              <span className="ts-facet-group__currency">₫</span>
               <input
                 type="number"
                 min="0"
@@ -162,7 +162,7 @@ export function FilterSidebar({
                 className="ts-facet-group__input tabular-nums"
                 value={customMax}
                 onChange={(e) => setCustomMax(e.target.value)}
-                aria-label="Maximum price in dollars"
+                aria-label="Maximum price in VND"
               />
             </div>
             <Button type="submit" variant="secondary" size="sm" className="ts-facet-group__price-btn">

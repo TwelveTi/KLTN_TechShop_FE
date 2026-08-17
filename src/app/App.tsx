@@ -9,11 +9,15 @@ import { ProfilePage } from '../features/profile/pages/ProfilePage'
 import { CatalogPage } from '../features/catalog/pages/CatalogPage'
 import { CartPage } from '../features/cart/pages/CartPage'
 import { ProductDetailPage } from '../features/catalog/pages/ProductDetailPage'
+import { CheckoutPage } from '../features/checkout/pages/CheckoutPage'
+import { CheckoutResultPage } from '../features/checkout/pages/CheckoutResultPage'
+import { setCheckoutSelection } from '../features/checkout/lib/checkout'
 import { CartProvider } from '../features/cart/context/CartContext'
 import { UserLayout } from '../shared/layout'
+import { ToastProvider } from '../shared/components/Toast'
 import { refreshSession } from '../shared/api/apiClient'
 
-type Page = 'home' | 'auth' | 'admin' | 'profile' | 'catalog' | 'cart' | 'product-detail'
+type Page = 'home' | 'auth' | 'admin' | 'profile' | 'catalog' | 'cart' | 'product-detail' | 'checkout' | 'checkout-result'
 
 const getPageFromPath = (): Page => {
   const pathname = window.location.pathname
@@ -28,6 +32,15 @@ const getPageFromPath = (): Page => {
 
   if (pathname.startsWith('/profile')) {
     return 'profile'
+  }
+
+  // Gateway-return routes must be matched before the generic /checkout.
+  if (pathname.startsWith('/checkout/success') || pathname.startsWith('/checkout/failed')) {
+    return 'checkout-result'
+  }
+
+  if (pathname.startsWith('/checkout')) {
+    return 'checkout'
   }
 
   if (pathname.startsWith('/cart')) {
@@ -60,12 +73,20 @@ const getProductIdFromPath = (): string => {
   if (segments.length >= 2 && (segments[0] === 'product' || segments[0] === 'products')) {
     return decodeURIComponent(segments[1])
   }
-  return 'p-1'
+  return ''
 }
+
+const getCategoryFromUrl = (): string | undefined =>
+  new URLSearchParams(window.location.search).get('category') || undefined
+
+// Fired by App on every in-app navigation (pushState). The catalog listens so
+// its filters re-sync from the URL when a department chip changes the category.
+const NAV_EVENT = 'techshop:navigate'
 
 function App() {
   const [page, setPage] = useState<Page>(() => getPageFromPath())
   const [currentProductId, setCurrentProductId] = useState<string>(() => getProductIdFromPath())
+  const [activeCategory, setActiveCategory] = useState<string | undefined>(() => getCategoryFromUrl())
   const [authMode, setAuthMode] = useState<AuthMode>('login')
   const [authResult, setAuthResult] = useState<AuthResult | null>(() => readStoredAuth())
   const [isRestoringSession, setIsRestoringSession] = useState(true)
@@ -79,14 +100,18 @@ function App() {
     }
 
     setPage(nextPage)
+    setActiveCategory(getCategoryFromUrl())
+    window.dispatchEvent(new Event(NAV_EVENT))
   }
 
   const navigateToPath = (nextPath: string, nextPage: Page) => {
-    if (window.location.pathname !== nextPath) {
+    if (`${window.location.pathname}${window.location.search}` !== nextPath) {
       window.history.pushState({}, '', nextPath)
     }
 
     setPage(nextPage)
+    setActiveCategory(getCategoryFromUrl())
+    window.dispatchEvent(new Event(NAV_EVENT))
   }
 
   const handleOpenProduct = (idOrSlug: string) => {
@@ -95,13 +120,20 @@ function App() {
   }
 
   useEffect(() => {
-    const handlePopState = () => {
+    const syncFromLocation = () => {
       setPage(getPageFromPath())
       setCurrentProductId(getProductIdFromPath())
+      setActiveCategory(getCategoryFromUrl())
     }
 
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
+    window.addEventListener('popstate', syncFromLocation)
+    // The catalog page changes the category via its own filters + replaceState;
+    // it announces that here so the header's department bar stays in sync.
+    window.addEventListener('techshop:catalog-changed', syncFromLocation)
+    return () => {
+      window.removeEventListener('popstate', syncFromLocation)
+      window.removeEventListener('techshop:catalog-changed', syncFromLocation)
+    }
   }, [])
 
   useEffect(() => {
@@ -244,6 +276,7 @@ function App() {
           onOpenAdmin={() => navigateTo('admin')}
           onLogout={handleLogout}
           onProfileUpdated={handleProfileUpdated}
+          onNavigateHome={() => navigateTo('home')}
           isRestoringSession={isRestoringSession}
         />
       )
@@ -255,6 +288,32 @@ function App() {
           onNavigateHome={() => navigateTo('home')}
           onOpenCatalog={() => navigateToPath('/catalog', 'catalog')}
           onOpenProduct={handleOpenProduct}
+          onProceedToCheckout={(selectedItems) => {
+            setCheckoutSelection(selectedItems.map((item) => item.id))
+            navigateToPath('/checkout', 'checkout')
+          }}
+        />
+      )
+    }
+
+    if (page === 'checkout') {
+      return (
+        <CheckoutPage
+          authResult={authResult}
+          onOpenCatalog={() => navigateToPath('/catalog', 'catalog')}
+          onOpenCart={() => navigateToPath('/cart', 'cart')}
+          onOpenOrders={() => navigateToPath('/profile/orders', 'profile')}
+          onSignIn={() => openAuth('login')}
+        />
+      )
+    }
+
+    if (page === 'checkout-result') {
+      return (
+        <CheckoutResultPage
+          onOpenOrders={() => navigateToPath('/profile/orders', 'profile')}
+          onOpenCatalog={() => navigateToPath('/catalog', 'catalog')}
+          onRetryCheckout={() => navigateToPath('/checkout', 'checkout')}
         />
       )
     }
@@ -272,12 +331,14 @@ function App() {
       return (
         <ProductDetailPage
           productId={currentProductId}
+          authResult={authResult}
           onNavigateHome={() => navigateTo('home')}
           onOpenCatalog={(categorySlug?: string) =>
             navigateToPath(categorySlug ? `/catalog?category=${categorySlug}` : '/catalog', 'catalog')
           }
           onOpenCart={() => navigateToPath('/cart', 'cart')}
           onOpenProduct={handleOpenProduct}
+          onSignIn={() => openAuth('login')}
         />
       )
     }
@@ -318,10 +379,9 @@ function App() {
       )
     }
 
-    // Highlight the active department chip when browsing a category.
-    const activeCategory =
-      new URLSearchParams(window.location.search).get('category') || undefined
-
+    // `activeCategory` is state kept in sync with the URL (popstate +
+    // techshop:catalog-changed), so the department bar reflects the real
+    // current category even when it changed via the catalog's own filters.
     return (
       <UserLayout {...layoutProps} activeCategory={activeCategory}>
         {renderCustomerContent()}
@@ -329,7 +389,11 @@ function App() {
     )
   }
 
-  return <CartProvider>{renderPage()}</CartProvider>
+  return (
+    <ToastProvider>
+      <CartProvider isAuthenticated={Boolean(accessToken)}>{renderPage()}</CartProvider>
+    </ToastProvider>
+  )
 }
 
 export default App

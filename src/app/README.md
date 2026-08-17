@@ -8,7 +8,7 @@ It also owns top-level auth/session behavior:
 
 - Restores cached auth from local storage.
 - Attempts refresh-session flow on app start.
-- Updates stored user data after `GET /auth/me`.
+- Updates stored user data after `GET /users/me`.
 - Coordinates sign in, sign out, admin navigation, and profile navigation.
 
 When a router package is added later, this is where the router and shared providers should be mounted.

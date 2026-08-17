@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { ProductCard, type ProductItem } from '../../../shared/components/ProductCard'
 import { Pagination } from '../../../shared/components/Pagination'
 import { CatalogHeader } from '../components/CatalogHeader'
@@ -9,8 +9,9 @@ import { FilterDrawer } from '../components/FilterDrawer'
 import { CompareDrawer } from '../components/CompareDrawer'
 import { CatalogEmptyState } from '../components/CatalogEmptyState'
 import { CatalogSkeleton } from '../components/CatalogSkeleton'
-import { catalogApi, CATALOG_CATEGORIES } from '../api/catalogApi'
+import { catalogApi, CATALOG_CATEGORIES, categoryTokensMatch } from '../api/catalogApi'
 import { useCart } from '../../cart/context/CartContext'
+import { useToast } from '../../../shared/components/Toast'
 import type {
   CatalogFilters,
   CatalogResponse,
@@ -54,7 +55,7 @@ function parseFiltersFromUrl(): CatalogFilters {
     rating,
     sort,
     page,
-    limit: 24,
+    limit: 15,
     view,
   }
 }
@@ -113,6 +114,9 @@ function syncFiltersToUrl(filters: CatalogFilters) {
 
   if (`${window.location.pathname}${window.location.search}` !== newPath) {
     window.history.replaceState({}, '', newPath)
+    // Tell the app shell the category/filters changed so the header's
+    // department bar highlight re-syncs with the real current category.
+    window.dispatchEvent(new Event('techshop:catalog-changed'))
   }
 }
 
@@ -122,21 +126,26 @@ export function CatalogPage({
   onAddToCartSuccess,
 }: CatalogPageProps) {
   const { addToCart: addCartItem } = useCart()
+  const { showToast } = useToast()
   const [filters, setFilters] = useState<CatalogFilters>(() => parseFiltersFromUrl())
   const [catalogData, setCatalogData] = useState<CatalogResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [comparedItems, setComparedItems] = useState<ProductItem[]>([])
-  const [addedToast, setAddedToast] = useState<string | null>(null)
 
-  // Listen to browser Back/Forward popstate
+  // Re-parse filters from the URL on Back/Forward and on app-shell navigation
+  // (e.g. clicking a department chip in the header while already on the catalog).
   useEffect(() => {
-    const handlePopState = () => {
+    const handleLocation = () => {
       setFilters(parseFiltersFromUrl())
     }
-    window.addEventListener('popstate', handlePopState)
-    return () => window.removeEventListener('popstate', handlePopState)
+    window.addEventListener('popstate', handleLocation)
+    window.addEventListener('techshop:navigate', handleLocation)
+    return () => {
+      window.removeEventListener('popstate', handleLocation)
+      window.removeEventListener('techshop:navigate', handleLocation)
+    }
   }, [])
 
   // Sync filters to URL whenever state changes
@@ -144,20 +153,61 @@ export function CatalogPage({
     syncFiltersToUrl(filters)
   }, [filters])
 
-  // Fetch catalog data when filters change
+  // Fetch catalog data when the *query* filters change. `view` is a purely
+  // client-side concern, so it is deliberately excluded — toggling grid/list
+  // must never trigger a network round-trip.
+  const requestSeq = useRef(0)
   const fetchProducts = useCallback(async (currentFilters: CatalogFilters) => {
+    const seq = ++requestSeq.current
     setIsLoading(true)
     try {
       const data = await catalogApi.getCatalog(currentFilters)
-      setCatalogData(data)
+      // Last-write-wins: ignore a slow response superseded by a newer request.
+      if (seq === requestSeq.current) {
+        setCatalogData(data)
+      }
     } finally {
-      setIsLoading(false)
+      if (seq === requestSeq.current) {
+        setIsLoading(false)
+      }
     }
   }, [])
 
+  const fetchKey = useMemo(
+    () =>
+      JSON.stringify({
+        q: filters.q,
+        category: filters.category,
+        brands: filters.brands,
+        minPrice: filters.minPrice,
+        maxPrice: filters.maxPrice,
+        inStock: filters.inStock,
+        onSale: filters.onSale,
+        rating: filters.rating,
+        sort: filters.sort,
+        page: filters.page,
+        limit: filters.limit,
+      }),
+    [
+      filters.q,
+      filters.category,
+      filters.brands,
+      filters.minPrice,
+      filters.maxPrice,
+      filters.inStock,
+      filters.onSale,
+      filters.rating,
+      filters.sort,
+      filters.page,
+      filters.limit,
+    ],
+  )
+
   useEffect(() => {
     fetchProducts(filters)
-  }, [filters, fetchProducts])
+    // filters (incl. view) is intentionally read fresh; the query subset is in fetchKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchKey, fetchProducts])
 
   // Category selection handler
   const handleSelectCategory = (slug: string) => {
@@ -302,10 +352,7 @@ export function CatalogPage({
   const handleAddToCart = (product: ProductItem) => {
     addCartItem(product)
     onAddToCartSuccess?.(product)
-    setAddedToast(`Added ${product.name} to cart`)
-    setTimeout(() => {
-      setAddedToast(null)
-    }, 3000)
+    showToast(`Added ${product.name} to cart`, { variant: 'success' })
   }
 
   // Active filter count computation
@@ -324,7 +371,15 @@ export function CatalogPage({
   // Selected category object
   const selectedCategoryObj = useMemo(() => {
     const cats = catalogData?.categories || CATALOG_CATEGORIES
-    return cats.find((c) => c.slug === filters.category) || cats[0]
+    return (
+      cats.find((c) => c.slug === filters.category) ||
+      // Tolerant fallback so a plural/curated token (e.g. "laptops") still
+      // resolves to the real "Laptop" category for the title / active chip.
+      cats.find(
+        (c) => categoryTokensMatch(c.slug, filters.category) || categoryTokensMatch(c.name, filters.category),
+      ) ||
+      cats[0]
+    )
   }, [catalogData, filters.category])
 
   // Header Title & Subtitle computation
@@ -458,11 +513,6 @@ export function CatalogPage({
                   aria-label="Products Grid"
                 >
                   {products.map((product, index) => {
-                    const isFirstFeatured =
-                      filters.view === 'grid' &&
-                      index === 0 &&
-                      Boolean(product.isFeatured || (product.specsList && product.specsList.length > 2))
-
                     const isSaved = savedIds.has(product.id || product.name)
                     const isCompared = comparedItems.some(
                       (item) => (item.id || item.name) === (product.id || product.name)
@@ -472,11 +522,11 @@ export function CatalogPage({
                       <ProductCard
                         key={product.id || `${product.name}-${index}`}
                         product={product}
+                        // Uniform grid: every card is the same size. (The first-card
+                        // "featured" span made the grid look inconsistent.)
                         variant={
                           filters.view === 'list'
                             ? 'list'
-                            : isFirstFeatured
-                            ? 'featured'
                             : product.originalPrice
                             ? 'deal'
                             : 'default'
@@ -494,12 +544,13 @@ export function CatalogPage({
                   })}
                 </div>
 
-                {/* Accessible Pagination & Load More */}
+                {/* Accessible Pagination */}
                 <Pagination
-                  variant="loadMore+numbered"
+                  variant="numbered"
                   page={filters.page}
-                  pageSize={filters.limit}
+                  pageSize={filters.limit || 15}
                   total={totalItems}
+                  itemCount={products.length}
                   totalPages={catalogData?.pagination.totalPages}
                   onPageChange={handlePageChange}
                   onLoadMore={handleLoadMore}
@@ -539,34 +590,6 @@ export function CatalogPage({
         onAddToCart={handleAddToCart}
         onOpenProduct={onOpenProduct}
       />
-
-      {/* Toast Notification */}
-      {addedToast && (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            backgroundColor: 'var(--neutral-900)',
-            color: 'var(--neutral-0)',
-            padding: '12px 20px',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-lg)',
-            zIndex: 'var(--z-toast)',
-            fontSize: '0.875rem',
-            fontWeight: 'var(--weight-medium)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            animation: 'ts-rise 200ms ease-out both',
-          }}
-        >
-          <span>✓</span>
-          <span>{addedToast}</span>
-        </div>
-      )}
     </div>
   )
 }

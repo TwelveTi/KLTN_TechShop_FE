@@ -27,12 +27,6 @@
   background-color: var(--brand-50);
   border-bottom: 1px solid var(--brand-100);
   box-shadow: var(--shadow-md);
-  transition: transform var(--dur-base) var(--ease-out);
-  will-change: transform;
-}
-
-.ts-global-header--hidden {
-  transform: translateY(-100%);
 }
 
 .ts-global-header .ts-navbar {

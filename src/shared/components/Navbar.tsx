@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Icon } from './Icon'
 import { BrandMark } from './BrandMark'
 import { Avatar } from './Avatar'
@@ -38,7 +38,37 @@ export function Navbar({
   onOpenCart,
 }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const accountRef = useRef<HTMLDivElement>(null)
+  const notifRef = useRef<HTMLDivElement>(null)
+
+  // Close either popover on outside-click or Escape.
+  useEffect(() => {
+    if (!isMenuOpen && !isNotifOpen) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (accountRef.current && !accountRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false)
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setIsNotifOpen(false)
+      }
+    }
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMenuOpen(false)
+        setIsNotifOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isMenuOpen, isNotifOpen])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,38 +101,66 @@ export function Navbar({
         </form>
 
         <div className="ts-navbar__actions">
-          <button
-            type="button"
-            className="ts-navbar__icon-btn"
-            aria-label="Open notifications"
-          >
-            <Icon name="bell" size={20} />
-            {notificationCount > 0 && (
-              <span className="ts-navbar__badge-dot" aria-hidden="true" />
+          <div className="ts-navbar__dropdown-wrap" ref={notifRef}>
+            <button
+              type="button"
+              className="ts-navbar__icon-btn"
+              aria-label="Open notifications"
+              aria-expanded={isNotifOpen}
+              aria-haspopup="menu"
+              onClick={() => {
+                setIsNotifOpen((prev) => !prev)
+                setIsMenuOpen(false)
+              }}
+            >
+              <Icon name="bell" size={20} />
+              {notificationCount > 0 && (
+                <span className="ts-navbar__badge-dot" aria-hidden="true" />
+              )}
+            </button>
+
+            {isNotifOpen && (
+              <div className="ts-navbar__menu ts-navbar__notif" role="menu">
+                <div className="ts-navbar__menu-header">
+                  <strong>Notifications</strong>
+                </div>
+                <div className="ts-navbar__menu-divider" />
+                <div className="ts-navbar__notif-empty">
+                  <Icon name="bell" size={28} />
+                  <p>You’re all caught up</p>
+                  <small>Order updates and alerts will appear here.</small>
+                </div>
+              </div>
             )}
-          </button>
+          </div>
 
           <button
             type="button"
             className="ts-navbar__icon-btn"
             onClick={onOpenCart}
-            aria-label={`Open cart with ${cartCount} items`}
+            aria-label={`Open cart with ${cartCount} ${cartCount === 1 ? 'item' : 'items'}`}
           >
             <Icon name="cart" size={20} />
-            <span className="ts-navbar__cart-badge tabular-nums" aria-label={`${cartCount} items in cart`}>
-              {cartCount}
-            </span>
+            {cartCount > 0 && (
+              <span className="ts-navbar__cart-badge tabular-nums" aria-hidden="true">
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
           </button>
         </div>
 
-        <div className="ts-navbar__account">
+        <div className="ts-navbar__account" ref={accountRef}>
           {user ? (
             <div className="ts-navbar__dropdown-wrap">
               <button
                 type="button"
                 className="ts-navbar__avatar-btn"
-                onClick={() => setIsMenuOpen((prev) => !prev)}
+                onClick={() => {
+                  setIsMenuOpen((prev) => !prev)
+                  setIsNotifOpen(false)
+                }}
                 aria-expanded={isMenuOpen}
+                aria-haspopup="menu"
                 aria-label="Open account menu"
               >
                 <Avatar name={user.fullName} size="sm" />
@@ -122,6 +180,7 @@ export function Navbar({
                   <button
                     type="button"
                     className="ts-navbar__menu-item"
+                    role="menuitem"
                     onClick={() => {
                       setIsMenuOpen(false)
                       onOpenProfile()
@@ -133,6 +192,7 @@ export function Navbar({
                   <button
                     type="button"
                     className="ts-navbar__menu-item"
+                    role="menuitem"
                     onClick={() => {
                       setIsMenuOpen(false)
                       onOpenOrders()
@@ -145,6 +205,7 @@ export function Navbar({
                     <button
                       type="button"
                       className="ts-navbar__menu-item ts-navbar__menu-item--admin"
+                      role="menuitem"
                       onClick={() => {
                         setIsMenuOpen(false)
                         onOpenAdmin()
@@ -158,11 +219,13 @@ export function Navbar({
                   <button
                     type="button"
                     className="ts-navbar__menu-item ts-navbar__menu-item--danger"
+                    role="menuitem"
                     onClick={() => {
                       setIsMenuOpen(false)
                       onLogout()
                     }}
                   >
+                    <Icon name="log-out" size={16} />
                     Sign out
                   </button>
                 </div>

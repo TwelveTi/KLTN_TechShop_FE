@@ -34,9 +34,15 @@
 
 .ts-button--primary {
   background-color: var(--color-primary);
+  background-image: var(--gradient-primary);
   color: var(--color-on-primary);
+  box-shadow: var(--shadow-sm);
 }
-.ts-button--primary:hover:not(:disabled) { background-color: var(--color-primary-hover); }
+.ts-button--primary:hover:not(:disabled) {
+  background-color: var(--color-primary-hover);
+  filter: brightness(1.05);
+  box-shadow: var(--shadow-md);
+}
 
 .ts-button--secondary {
   background-color: var(--color-surface);
@@ -206,7 +212,23 @@
 }
 
 .ts-navbar__account { position: relative; }
+.ts-navbar__dropdown-wrap { position: relative; }
 .ts-navbar__auth-btns { display: flex; align-items: center; gap: var(--space-2); }
+
+/* Notification popover (anchored to the bell) */
+.ts-navbar__notif { width: 300px; }
+.ts-navbar__notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: var(--space-6) var(--space-4);
+  color: var(--color-muted);
+}
+.ts-navbar__notif-empty .ts-icon { color: var(--color-faint); margin-bottom: var(--space-1); }
+.ts-navbar__notif-empty p { color: var(--color-heading); font-weight: var(--weight-semibold); font-size: var(--text-body-sm); }
+.ts-navbar__notif-empty small { color: var(--color-muted); font-size: var(--text-caption); line-height: 1.5; }
 .ts-navbar__avatar-btn {
   display: flex; align-items: center; gap: var(--space-2);
   padding: 4px 10px 4px 4px; border-radius: var(--radius-pill);
@@ -430,6 +452,7 @@
 .ts-product-card {
   display: flex;
   flex-direction: column;
+  height: 100%;
   border-radius: var(--radius-lg);
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -569,7 +592,8 @@
   padding: var(--space-4) var(--space-5) var(--space-5);
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .ts-product-card__meta {
@@ -622,6 +646,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: anywhere;
+  min-height: 2.7em;
   transition: color var(--dur-fast) var(--ease-out);
 }
 .ts-product-card__name:hover {
@@ -660,26 +685,57 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: var(--space-2);
   margin-top: auto;
-  padding-top: var(--space-4);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--color-border);
+  min-height: 48px;
 }
 .ts-product-card__pricing {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex: 1 1 0%;
+  overflow: hidden;
 }
 .ts-product-card__price {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: var(--weight-bold);
   color: var(--color-heading);
   letter-spacing: -0.01em;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ts-product-card__original-price {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--color-faint);
   text-decoration: line-through;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.ts-product-card__footer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.ts-product-card__add-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 96px;
+  padding: 0 10px;
+  font-size: 0.8125rem;
+  font-weight: var(--weight-semibold);
+  height: 34px;
 }
 
 /* Featured variant */
@@ -708,6 +764,19 @@
   .ts-product-card--featured .ts-product-card__name {
     font-size: 1.5rem;
     -webkit-line-clamp: 3;
+    min-height: unset;
+  }
+  .ts-product-card--featured .ts-product-card__pricing {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+  .ts-product-card--featured .ts-product-card__price {
+    font-size: 1.5rem;
+  }
+  .ts-product-card--featured .ts-product-card__original-price {
+    font-size: 0.875rem;
+    margin-top: 0;
   }
 }
 
@@ -738,6 +807,19 @@
 }
 .ts-product-card--list .ts-product-card__name {
   font-size: 1.125rem;
+  min-height: unset;
+}
+.ts-product-card--list .ts-product-card__pricing {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.ts-product-card--list .ts-product-card__price {
+  font-size: 1.25rem;
+}
+.ts-product-card--list .ts-product-card__original-price {
+  font-size: 0.8125rem;
+  margin-top: 0;
 }
 
 
@@ -784,9 +866,12 @@
   position: fixed;
   inset: 0;
   z-index: var(--z-modal, 60);
-  background-color: rgba(15, 23, 42, 0.55);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  /* A plain scrim (no backdrop-filter): blurring the whole page behind the
+   * dialog forces the compositor to snapshot + blur the entire backdrop and
+   * re-blur it on every fade frame, which is what made modals appear after a
+   * visible beat on content-heavy pages (admin tables). A solid dim paints
+   * instantly and keeps the same focus-the-dialog effect. */
+  background-color: rgba(15, 23, 42, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -908,6 +993,99 @@
   }
   .ts-modal-footer {
     padding: var(--space-3) var(--space-4);
+  }
+}
+
+/* =================================================================
+ * Toast (single system — replaces the per-page inline toasts)
+ * ================================================================= */
+.ts-toast-viewport {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-end;
+  max-width: min(360px, calc(100vw - 2 * var(--space-4)));
+  pointer-events: none;
+}
+
+.ts-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  color: var(--color-text);
+  font-size: var(--text-body-sm);
+  animation: ts-toast-rise var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes ts-toast-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ts-toast__icon { display: inline-flex; flex-shrink: 0; }
+.ts-toast__message {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-heading);
+  font-weight: var(--weight-medium);
+  line-height: 1.45;
+}
+.ts-toast--success { border-left-color: var(--color-success); }
+.ts-toast--success .ts-toast__icon { color: var(--color-success); }
+.ts-toast--error   { border-left-color: var(--color-danger); }
+.ts-toast--error   .ts-toast__icon { color: var(--color-danger); }
+.ts-toast--info    { border-left-color: var(--color-primary); }
+.ts-toast--info    .ts-toast__icon { color: var(--color-primary); }
+.ts-toast--warning { border-left-color: var(--color-warning); }
+.ts-toast--warning .ts-toast__icon { color: var(--color-warning); }
+
+.ts-toast__action {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  border: 1px solid var(--color-border-strong);
+  color: var(--color-primary);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.ts-toast__action:hover { background-color: var(--color-primary-soft); border-color: var(--color-primary); }
+
+.ts-toast__close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  color: var(--color-faint);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+.ts-toast__close:hover { background-color: var(--color-surface-sunken); color: var(--color-heading); }
+
+@media (max-width: 560px) {
+  .ts-toast-viewport {
+    left: var(--space-4);
+    right: var(--space-4);
+    bottom: var(--space-4);
+    max-width: none;
+    align-items: stretch;
   }
 }
 

@@ -8,6 +8,7 @@ export interface PaginationProps {
   page: number
   pageSize?: number
   total: number
+  itemCount?: number
   totalPages?: number
   onPageChange?: (page: number) => void
   onLoadMore?: () => void
@@ -16,19 +17,21 @@ export interface PaginationProps {
 }
 
 export function Pagination({
-  variant = 'loadMore',
+  variant = 'numbered',
   page = 1,
-  pageSize = 24,
+  pageSize = 15,
   total = 0,
+  itemCount,
   totalPages: propTotalPages,
   onPageChange,
   onLoadMore,
   isLoading = false,
   className = '',
 }: PaginationProps) {
-  const calculatedTotalPages = propTotalPages || Math.max(1, Math.ceil(total / pageSize))
+  const calculatedTotalPages = propTotalPages !== undefined ? propTotalPages : Math.max(1, Math.ceil(total / pageSize))
   const hasMore = page < calculatedTotalPages
-  const currentCount = Math.min(total, page * pageSize)
+  const displayedCount = itemCount !== undefined ? itemCount : Math.min(total, page * pageSize)
+  const progressCount = Math.min(total, (page - 1) * pageSize + displayedCount)
 
   // Generate numbered pages window with ellipses
   const getPageNumbers = () => {
@@ -73,12 +76,18 @@ export function Pagination({
       {/* Progress counter */}
       <div className="ts-pagination__progress" aria-live="polite">
         <span className="ts-pagination__count tabular-nums">
-          Showing <strong>{currentCount}</strong> of <strong>{total}</strong> products
+          Showing <strong>{displayedCount}</strong> of <strong>{total}</strong> products
         </span>
-        <div className="ts-pagination__bar" role="progressbar" aria-valuenow={currentCount} aria-valuemin={0} aria-valuemax={total}>
+        <div
+          className="ts-pagination__bar"
+          role="progressbar"
+          aria-valuenow={progressCount}
+          aria-valuemin={0}
+          aria-valuemax={total}
+        >
           <div
             className="ts-pagination__bar-fill"
-            style={{ width: `${total > 0 ? (currentCount / total) * 100 : 0}%` }}
+            style={{ width: `${total > 0 ? (progressCount / total) * 100 : 0}%` }}
           />
         </div>
       </div>
@@ -94,7 +103,7 @@ export function Pagination({
             disabled={isLoading}
             className="ts-pagination__load-more-btn"
             trailingIcon={<Icon name="chevron-down" size={18} />}
-            aria-label={`Load more products, showing ${currentCount} of ${total}`}
+            aria-label={`Load more products, showing ${displayedCount} of ${total}`}
           >
             {isLoading ? 'Loading more products…' : 'Load more products'}
           </Button>

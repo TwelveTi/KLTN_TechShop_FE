@@ -46,7 +46,7 @@ export function ProductBuyBox({
         </div>
 
         {/* Rating row */}
-        {product.rating && (
+        {typeof product.rating === 'number' && product.rating > 0 ? (
           <div className="ts-pdp-buybox__rating" aria-label={`Rated ${product.rating} out of 5 stars`}>
             <div className="ts-pdp-buybox__stars">
               {[1, 2, 3, 4, 5].map((star) => (
@@ -54,14 +54,14 @@ export function ProductBuyBox({
                   key={star}
                   name="star"
                   size={15}
-                  className={`ts-pdp-buybox__star ${star <= Math.round(product.rating) ? 'is-filled' : ''}`}
+                  className={`ts-pdp-buybox__star ${star <= Math.round(product.rating || 0) ? 'is-filled' : ''}`}
                 />
               ))}
             </div>
             <span className="ts-pdp-buybox__rating-val tabular-nums">{product.rating.toFixed(1)}</span>
-            <span className="ts-pdp-buybox__reviews">({product.reviewCount} reviews)</span>
+            <span className="ts-pdp-buybox__reviews">({product.reviewCount || 0} reviews)</span>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Title */}
@@ -197,7 +197,7 @@ export function ProductBuyBox({
           <Icon name="truck" size={18} className="ts-pdp-buybox__perk-icon" />
           <div className="ts-pdp-buybox__perk-text">
             <strong>Free Express Shipping</strong>
-            <span>On all hardware orders over $100</span>
+            <span>On all hardware orders over 1.000.000₫</span>
           </div>
         </div>
 

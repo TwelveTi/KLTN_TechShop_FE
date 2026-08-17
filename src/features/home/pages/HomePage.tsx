@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AuthResult } from '../../auth/types'
 import { ProductCard, type ProductItem } from '../../../shared/components/ProductCard'
 import { Icon, type IconName } from '../../../shared/components/Icon'
 import { Button } from '../../../shared/components/Button'
 import { Badge } from '../../../shared/components/Badge'
 import { useCart } from '../../cart/context/CartContext'
+import { useToast } from '../../../shared/components/Toast'
+import { apiClient } from '../../../shared/api/apiClient'
+import type { ApiResponse } from '../../../shared/types/api'
+import { formatCurrency } from '../../catalog/api/catalogApi'
 import '../styles/home.css'
 
 type HomePageProps = {
@@ -16,105 +20,10 @@ type HomePageProps = {
 }
 
 const serviceHighlights: Array<{ icon: IconName; title: string; desc: string }> = [
-  { icon: 'truck', title: 'Fast, free shipping', desc: 'On every order over $100' },
-  { icon: 'rotate-ccw', title: '30-day returns', desc: 'No-questions-asked refunds' },
-  { icon: 'shield-check', title: '2-year warranty', desc: 'Official coverage included' },
+  { icon: 'truck', title: 'Fast, free shipping', desc: 'On all orders over 1.000.000₫' },
+  { icon: 'rotate-ccw', title: '30-day returns', desc: 'Manufacturer replacement warranty' },
+  { icon: 'shield-check', title: '2-year warranty', desc: '100% genuine guaranteed' },
   { icon: 'lock', title: 'Secure checkout', desc: 'SSL & VNPay protected' },
-]
-
-const featuredProducts: ProductItem[] = [
-  {
-    id: '1',
-    name: 'AeroBook Pro 14',
-    category: 'Laptops',
-    price: '$1,899',
-    specs: 'M3 Max 12-core, 32GB RAM, 1TB SSD, Liquid Retina XDR',
-  },
-  {
-    id: '2',
-    name: 'NovaPhone X2 Ultra 5G',
-    category: 'Smartphones',
-    price: '$899',
-    originalPrice: '$999',
-    badge: '10% off',
-    specs: 'OLED 120Hz, 50MP AI triple camera, 5000mAh battery',
-  },
-  {
-    id: '3',
-    name: 'Pulse Pro Wireless Mechanical Keyboard',
-    category: 'Keyboards',
-    price: '$149',
-    badge: 'New',
-    specs: 'Hot-swappable switches, PBT keycaps, tri-mode',
-  },
-  {
-    id: '4',
-    name: 'FocusView 27Q QHD 165Hz',
-    category: 'Monitors',
-    price: '$329',
-    originalPrice: '$399',
-    specs: '27-inch QHD, 99% sRGB, height adjustable',
-  },
-  {
-    id: '5',
-    name: 'SonicPods Max ANC Headset',
-    category: 'Audio',
-    price: '$179',
-    specs: 'Active noise cancellation, 40h battery',
-  },
-  {
-    id: '6',
-    name: 'GlideMouse S Ultra-light',
-    category: 'Mice',
-    price: '$69',
-    specs: '58g chassis, 26K DPI optical sensor',
-  },
-  {
-    id: '7',
-    name: 'Beacon 4K Pro Webcam',
-    category: 'Accessories',
-    price: '$129',
-    specs: 'Sony sensor, HDR, AI auto-framing',
-  },
-]
-
-const dealProducts: ProductItem[] = [
-  {
-    id: 'deal-1',
-    name: 'ProStation Workstation Tower',
-    category: 'PCs',
-    price: '$1,499',
-    originalPrice: '$1,999',
-    badge: 'Save $500',
-    specs: 'Core i9, RTX 4080, 64GB DDR5',
-  },
-  {
-    id: 'deal-2',
-    name: 'ClearSound Studio Headphones',
-    category: 'Audio',
-    price: '$119',
-    originalPrice: '$159',
-    badge: 'Save 25%',
-    specs: 'Hi-Res audio, neutral EQ tuning',
-  },
-  {
-    id: 'deal-3',
-    name: 'FlexiDesk Dual Monitor Arm',
-    category: 'Accessories',
-    price: '$49',
-    originalPrice: '$79',
-    badge: 'Save $30',
-    specs: 'Gas spring, 360° rotation',
-  },
-  {
-    id: 'deal-4',
-    name: 'VoltCharge 100W GaN Charger',
-    category: 'Accessories',
-    price: '$39',
-    originalPrice: '$59',
-    badge: 'Save $20',
-    specs: '4-port, foldable pins, PD 3.1',
-  },
 ]
 
 const scrollToId = (id: string) => {
@@ -129,15 +38,72 @@ export function HomePage({
   onOpenProduct,
 }: HomePageProps) {
   const { addToCart } = useCart()
+  const { showToast } = useToast()
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
-  const [addedToast, setAddedToast] = useState<string | null>(null)
+  const [featuredProducts, setFeaturedProducts] = useState<ProductItem[]>([])
+  const [dealProducts, setDealProducts] = useState<ProductItem[]>([])
+
+  useEffect(() => {
+    let isMounted = true
+
+    apiClient('/products?limit=24&onlyActive=true')
+      .then(async (res) => {
+        if (!res.ok) return
+        const body = (await res.json()) as ApiResponse<{ items: any[] }>
+        if (!body.data?.items || !isMounted) return
+
+        const items: ProductItem[] = body.data.items.map((prod: any) => {
+          const basePrice = Number(prod.basePrice || 0)
+          const salePrice = prod.salePrice ? Number(prod.salePrice) : null
+          const displayPrice = salePrice || basePrice
+
+          const primaryImg =
+            prod.images?.find((i: any) => i.isPrimary)?.imageUrl ||
+            prod.images?.[0]?.imageUrl ||
+            'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&auto=format&fit=crop&q=80'
+
+          const specs = Array.isArray(prod.variants) && prod.variants.length > 0
+            ? prod.variants.map((v: any) => v.variantName).slice(0, 3).join(', ')
+            : prod.shortDescription || 'TechShop Verified'
+
+          return {
+            id: String(prod.id),
+            name: prod.name,
+            category: prod.category?.name || 'Technology',
+            brand: prod.brand?.name,
+            price: formatCurrency(displayPrice),
+            originalPrice: salePrice ? formatCurrency(basePrice) : undefined,
+            badge: prod.isFeatured ? 'Featured' : salePrice ? 'Hot Deal' : undefined,
+            imageUrl: primaryImg,
+            outOfStock: prod.status === 'OUT_OF_STOCK' || Number(prod.stockQuantity) <= 0,
+            shortDescription: prod.shortDescription,
+            rating: Number(prod.averageRating || 0),
+            reviewCount: Number(prod.reviewCount || 0),
+            stockQuantity: Number(prod.stockQuantity || 0),
+            specs,
+          }
+        })
+
+        // Featured: items marked isFeatured or top items
+        const featured = items.filter((p) => p.badge === 'Featured').concat(items).slice(0, 8)
+        // Deals: items with sale price
+        const deals = items.filter((p) => Boolean(p.originalPrice)).concat(items.slice(4)).slice(0, 6)
+
+        setFeaturedProducts(featured)
+        setDealProducts(deals)
+      })
+      .catch(() => {
+        // Fallback to empty on network failure
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleAddToCart = (product: ProductItem) => {
     addToCart(product)
-    setAddedToast(`Added ${product.name} to cart`)
-    setTimeout(() => {
-      setAddedToast(null)
-    }, 3000)
+    showToast(`Added ${product.name} to cart`, { variant: 'success' })
   }
 
   const toggleSave = (id: string) => {
@@ -152,7 +118,13 @@ export function HomePage({
     })
   }
 
-  const heroProduct = featuredProducts[0]
+  const heroProduct = featuredProducts[0] || {
+    id: '',
+    name: 'Explore the collection',
+    category: 'Flagship Technology',
+    price: 'Best pricing',
+    specs: '100% Genuine, 24-Month Warranty, 0% Installment',
+  }
   const gridProducts = featuredProducts.slice(1)
   const heroSpecs = heroProduct.specs ? heroProduct.specs.split(', ') : []
 
@@ -170,8 +142,8 @@ export function HomePage({
                 <em>ready to ship.</em>
               </h1>
               <p className="hero__lead">
-                Laptops, phones, and pro accessories — curated, warrantied, and delivered fast.
-                Browse freely; sign in when you want to save.
+                Laptops, phones, and pro accessories — curated, warrantied for 24 months, and
+                delivered fast nationwide. Browse freely; sign in when you want to save.
               </p>
               <div className="hero__actions">
                 <Button
@@ -180,19 +152,19 @@ export function HomePage({
                   trailingIcon={<Icon name="arrow-right" size={18} />}
                   onClick={() => (onOpenCatalog ? onOpenCatalog() : scrollToId('featured'))}
                 >
-                  Explore the collection
+                  Explore collection
                 </Button>
                 <Button
                   variant="secondary"
                   size="lg"
                   onClick={() => (onOpenCatalog ? onOpenCatalog() : scrollToId('deals'))}
                 >
-                  See the deals
+                  See today's deals
                 </Button>
               </div>
               <div className="hero__trust">
                 <span>
-                  <Icon name="truck" size={16} /> Free shipping over $100
+                  <Icon name="truck" size={16} /> Free shipping from 1M
                 </span>
                 <span>
                   <Icon name="shield-check" size={16} /> 2-year warranty
@@ -203,51 +175,61 @@ export function HomePage({
               </div>
             </div>
 
-            <aside
-              className="hero__showcase reveal reveal--delay"
-              aria-label={`Featured: ${heroProduct.name}`}
-              style={{ cursor: 'pointer' }}
-              onClick={() =>
-                onOpenProduct ? onOpenProduct(heroProduct.id || 'p-1') : onOpenCatalog?.('laptops')
-              }
-            >
-              <div className="hero__sc-visual">
-                <Badge variant="accent" className="hero__sc-tag">
-                  Featured
-                </Badge>
-                <Icon name="laptop" size={112} />
-              </div>
-              <div className="hero__sc-info">
-                <span className="hero__sc-cat">{heroProduct.category}</span>
-                <span className="hero__sc-name">{heroProduct.name}</span>
-                <div className="hero__sc-specs">
-                  {heroSpecs.map((spec) => (
-                    <span className="hero__sc-spec" key={spec}>
-                      {spec}
-                    </span>
-                  ))}
+            {heroProduct.id && (
+              <aside
+                className="hero__showcase reveal reveal--delay"
+                aria-label={`Featured: ${heroProduct.name}`}
+                style={{ cursor: 'pointer' }}
+                onClick={() =>
+                  onOpenProduct ? onOpenProduct(heroProduct.id || '') : onOpenCatalog?.('laptops')
+                }
+              >
+                <div className="hero__sc-visual">
+                  <Badge variant="accent" className="hero__sc-tag">
+                    Featured
+                  </Badge>
+                  {heroProduct.imageUrl ? (
+                    <img
+                      src={heroProduct.imageUrl}
+                      alt={heroProduct.name}
+                      style={{ maxWidth: '180px', maxHeight: '180px', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <Icon name="laptop" size={112} />
+                  )}
                 </div>
-                <div className="hero__sc-foot">
-                  <div className="hero__sc-priceblock">
-                    <span className="hero__sc-price tabular-nums">{heroProduct.price}</span>
-                    <span className="hero__sc-note">Ships free · 2-year warranty</span>
+                <div className="hero__sc-info">
+                  <span className="hero__sc-cat">{heroProduct.category}</span>
+                  <span className="hero__sc-name">{heroProduct.name}</span>
+                  <div className="hero__sc-specs">
+                    {heroSpecs.map((spec) => (
+                      <span className="hero__sc-spec" key={spec}>
+                        {spec}
+                      </span>
+                    ))}
                   </div>
-                  <Button
-                    variant="primary"
-                    size="md"
-                    trailingIcon={<Icon name="arrow-right" size={16} />}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      if (onOpenProduct) onOpenProduct(heroProduct.id || 'p-1')
-                      else if (onOpenCatalog) onOpenCatalog('laptops')
-                      else scrollToId('featured')
-                    }}
-                  >
-                    View details
-                  </Button>
+                  <div className="hero__sc-foot">
+                    <div className="hero__sc-priceblock">
+                      <span className="hero__sc-price tabular-nums">{heroProduct.price}</span>
+                      <span className="hero__sc-note">Ships free · 2-year warranty</span>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="md"
+                      trailingIcon={<Icon name="arrow-right" size={16} />}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (onOpenProduct) onOpenProduct(heroProduct.id || '')
+                        else if (onOpenCatalog) onOpenCatalog('laptops')
+                        else scrollToId('featured')
+                      }}
+                    >
+                      View details
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </aside>
+              </aside>
+            )}
           </div>
         </section>
 
@@ -294,33 +276,35 @@ export function HomePage({
         </section>
 
         {/* Deals — a distinct horizontal rail */}
-        <section className="deals" id="deals" aria-labelledby="deals-heading">
-          <div className="section-head">
-            <h2 className="section-head__title" id="deals-heading">
-              This week&rsquo;s deals
-            </h2>
-            <button
-              type="button"
-              className="section-head__link"
-              onClick={() => (onOpenCatalog ? onOpenCatalog() : scrollToId('deals'))}
-            >
-              All deals <Icon name="arrow-right" size={16} />
-            </button>
-          </div>
-          <div className="deals__track">
-            {dealProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                variant="deal"
-                isSaved={savedIds.has(product.id || '')}
-                onToggleSave={() => toggleSave(product.id || '')}
-                onOpen={() => onOpenProduct?.(product.id || product.name)}
-                onAddToCart={() => handleAddToCart(product)}
-              />
-            ))}
-          </div>
-        </section>
+        {dealProducts.length > 0 && (
+          <section className="deals" id="deals" aria-labelledby="deals-heading">
+            <div className="section-head">
+              <h2 className="section-head__title" id="deals-heading">
+                Top Deals
+              </h2>
+              <button
+                type="button"
+                className="section-head__link"
+                onClick={() => (onOpenCatalog ? onOpenCatalog() : scrollToId('deals'))}
+              >
+                All deals <Icon name="arrow-right" size={16} />
+              </button>
+            </div>
+            <div className="deals__track">
+              {dealProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  variant="deal"
+                  isSaved={savedIds.has(product.id || '')}
+                  onToggleSave={() => toggleSave(product.id || '')}
+                  onOpen={() => onOpenProduct?.(product.id || product.name)}
+                  onAddToCart={() => handleAddToCart(product)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Join — signed-out invitation */}
         {!authResult && (
@@ -328,8 +312,8 @@ export function HomePage({
             <div className="join__text">
               <h2 className="join__title">Save your cart. Sync everywhere.</h2>
               <p>
-                Create a free account to keep wishlists, track orders, and get recommendations tuned
-                to what you browse.
+                Create a free account to keep wishlists, track orders, and receive exclusive
+                recommendations tailored to your setup.
               </p>
             </div>
             <div className="join__actions">
@@ -343,34 +327,6 @@ export function HomePage({
           </section>
         )}
       </main>
-
-      {/* Add-to-cart toast */}
-      {addedToast && (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            backgroundColor: 'var(--neutral-900)',
-            color: 'var(--neutral-0)',
-            padding: '12px 20px',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-lg)',
-            zIndex: 'var(--z-toast)' as unknown as number,
-            fontSize: '0.875rem',
-            fontWeight: 'var(--weight-medium)' as unknown as number,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            animation: 'ts-rise 200ms ease-out both',
-          }}
-        >
-          <span>✓</span>
-          <span>{addedToast}</span>
-        </div>
-      )}
     </div>
   )
 }

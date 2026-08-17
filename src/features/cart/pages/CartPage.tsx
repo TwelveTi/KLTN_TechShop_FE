@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Breadcrumb } from '../../../shared/components/Breadcrumb'
-import { Icon } from '../../../shared/components/Icon'
+import { useToast } from '../../../shared/components/Toast'
 import { useCart } from '../context/CartContext'
 import { CartDateGroup } from '../components/CartDateGroup'
 import { OrderSummary } from '../components/OrderSummary'
@@ -23,9 +23,22 @@ export function CartPage({
   onProceedToCheckout,
 }: CartPageProps) {
   const { items, cartCount, updateQuantity, removeFromCart, restoreItem } = useCart()
+  const { showToast } = useToast()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set(items.map((i) => i.id)))
-  const [lastRemovedItem, setLastRemovedItem] = useState<CartItem | null>(null)
-  const [checkoutNotice, setCheckoutNotice] = useState<string | null>(null)
+
+  const knownIds = useRef<Set<string>>(new Set(items.map((i) => i.id)))
+  useEffect(() => {
+    const currentIds = new Set(items.map((i) => i.id))
+    setSelectedIds((prev) => {
+      const next = new Set<string>()
+      currentIds.forEach((id) => {
+        const isNew = !knownIds.current.has(id)
+        if (isNew || prev.has(id)) next.add(id)
+      })
+      return next
+    })
+    knownIds.current = currentIds
+  }, [items])
 
   const handleToggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -50,8 +63,6 @@ export function CartPage({
     }
   }
 
-  // Select / deselect every item within a single date group. Leaves the
-  // selection state of other groups untouched.
   const handleToggleGroup = (ids: string[], selectAll: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev)
@@ -60,10 +71,8 @@ export function CartPage({
     })
   }
 
-  // Items grouped by the date they were added, newest first.
   const dateGroups = useMemo(() => groupCartItemsByDate(items), [items])
 
-  // Selected items computation
   const selectedItems = useMemo(() => {
     return items.filter((item: CartItem) => selectedIds.has(item.id))
   }, [items, selectedIds])
@@ -77,26 +86,26 @@ export function CartPage({
 
   const handleRemove = (id: string) => {
     const itemToRemove = items.find((i) => i.id === id)
-    if (itemToRemove) {
-      setLastRemovedItem(itemToRemove)
-      setSelectedIds((prev) => {
-        const next = new Set(prev)
-        next.delete(id)
-        return next
-      })
-      removeFromCart(id)
-      setTimeout(() => {
-        setLastRemovedItem(null)
-      }, 7000)
-    }
-  }
+    if (!itemToRemove) return
 
-  const handleUndo = () => {
-    if (lastRemovedItem) {
-      restoreItem(lastRemovedItem)
-      setSelectedIds((prev) => new Set([...prev, lastRemovedItem.id]))
-      setLastRemovedItem(null)
-    }
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+    removeFromCart(id)
+
+    showToast(`Removed ${itemToRemove.name} from cart`, {
+      variant: 'info',
+      duration: 7000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          restoreItem(itemToRemove)
+          setSelectedIds((prev) => new Set([...prev, itemToRemove.id]))
+        },
+      },
+    })
   }
 
   const handleCheckoutClick = () => {
@@ -105,12 +114,9 @@ export function CartPage({
     if (onProceedToCheckout) {
       onProceedToCheckout(selectedItems)
     } else {
-      setCheckoutNotice(
-        `Checkout initiated for ${selectedItems.length} selected item(s) ($${selectedTotal.toLocaleString()}). Redirecting to payment…`
-      )
-      setTimeout(() => {
-        setCheckoutNotice(null)
-      }, 4000)
+      showToast('Checkout is currently in development.', {
+        variant: 'info',
+      })
     }
   }
 
@@ -139,9 +145,7 @@ export function CartPage({
           <CartEmptyState onStartShopping={onOpenCatalog} />
         ) : (
           <div className="ts-cart-layout">
-            {/* Line Items List Region */}
             <section className="ts-cart-items-section" aria-label="Cart Items List">
-              {/* Global Select All Action Bar */}
               <div className="ts-cart-select-bar">
                 <label className="ts-cart-select-bar__left">
                   <input
@@ -185,7 +189,6 @@ export function CartPage({
                 </div>
               </div>
 
-              {/* Date-grouped item lists */}
               <div className="ts-cart-groups">
                 {dateGroups.map((group) => (
                   <CartDateGroup
@@ -200,18 +203,8 @@ export function CartPage({
                   />
                 ))}
               </div>
-
-              <button
-                type="button"
-                className="ts-cart-continue-link"
-                onClick={onOpenCatalog}
-              >
-                <Icon name="arrow-left" size={16} />
-                <span>Continue browsing catalog</span>
-              </button>
             </section>
 
-            {/* Order Summary Region */}
             <OrderSummary
               selectedCount={selectedCount}
               selectedSubtotal={selectedSubtotal}
@@ -221,39 +214,6 @@ export function CartPage({
           </div>
         )}
       </main>
-
-      {/* Undo Toast */}
-      {lastRemovedItem && (
-        <div className="ts-undo-toast" role="status" aria-live="polite">
-          <span>Removed <strong>{lastRemovedItem.name}</strong> from cart.</span>
-          <button type="button" className="ts-undo-toast__btn" onClick={handleUndo}>
-            Undo
-          </button>
-        </div>
-      )}
-
-      {/* Checkout notice toast */}
-      {checkoutNotice && (
-        <div
-          role="status"
-          aria-live="polite"
-          style={{
-            position: 'fixed',
-            bottom: '24px',
-            right: '24px',
-            backgroundColor: 'var(--brand-600)',
-            color: 'white',
-            padding: '12px 20px',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-lg)',
-            zIndex: 'var(--z-toast)',
-            fontSize: '0.875rem',
-            fontWeight: 'var(--weight-semibold)',
-          }}
-        >
-          {checkoutNotice}
-        </div>
-      )}
     </div>
   )
 }

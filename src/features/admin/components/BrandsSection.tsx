@@ -308,9 +308,16 @@ export function BrandsSection({
           message={`Are you sure you want to delete brand "${selectedBrand.name}"?`}
           confirmLabel="Delete Brand"
           variant="danger"
+          isLoading={isSubmitting}
           onConfirm={async () => {
-            await onDeleteBrand(selectedBrand.id)
-            closeModal()
+            if (isSubmitting) return
+            setIsSubmitting(true)
+            try {
+              await onDeleteBrand(selectedBrand.id)
+              closeModal()
+            } finally {
+              setIsSubmitting(false)
+            }
           }}
           onCancel={closeModal}
         />

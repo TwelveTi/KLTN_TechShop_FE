@@ -111,7 +111,7 @@
 
 @media (min-width: 1024px) {
   .ts-auth-container {
-    grid-template-columns: 1.1fr 1fr;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
     gap: var(--space-12);
     align-items: start;
   }
@@ -121,6 +121,7 @@
  * Left Column: Brand & Ecosystem Showcase
  * ================================================================= */
 .ts-auth-showcase {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
@@ -255,7 +256,10 @@
  * Right Column: Authentication Form Workbench
  * ================================================================= */
 .ts-auth-workbench {
+  min-width: 0;
   width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
 }
 
 .ts-auth-card {
@@ -282,6 +286,85 @@
   border: 1px solid var(--color-border);
   margin-bottom: var(--space-6);
   gap: 4px;
+}
+
+/* Password Recovery Stepper */
+.ts-auth-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  gap: 4px;
+}
+
+.ts-auth-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ts-auth-step__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: var(--weight-bold);
+  background-color: var(--neutral-200);
+  color: var(--color-muted);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+[data-theme="dark"] .ts-auth-step__badge {
+  background-color: var(--neutral-800);
+  color: var(--color-muted);
+}
+
+.ts-auth-step__label {
+  font-size: 0.8125rem;
+  font-weight: var(--weight-medium);
+  color: var(--color-muted);
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.ts-auth-step.is-active .ts-auth-step__badge {
+  background-color: var(--color-primary);
+  color: #ffffff;
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.ts-auth-step.is-active .ts-auth-step__label {
+  color: var(--color-heading);
+  font-weight: var(--weight-semibold);
+}
+
+.ts-auth-step.is-completed .ts-auth-step__badge {
+  background-color: var(--success-base, #10b981);
+  color: #ffffff;
+}
+
+.ts-auth-step.is-completed .ts-auth-step__label {
+  color: var(--color-heading);
+}
+
+.ts-auth-step__line {
+  flex: 1 1 0;
+  height: 2px;
+  min-width: 12px;
+  background-color: var(--color-border);
+  border-radius: 1px;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.ts-auth-step__line.is-completed {
+  background-color: var(--success-base, #10b981);
 }
 
 .ts-auth-tab {
@@ -765,4 +848,113 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ----------------------------------------------------------------- */
+/* Password reset — OTP input, resend row & reset hint               */
+/* ----------------------------------------------------------------- */
+.ts-otp-input {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 380px;
+  margin: var(--space-2) auto var(--space-1);
+}
+
+.ts-otp-box {
+  flex: 1 1 0;
+  max-width: 52px;
+  min-width: 0;
+  height: 54px;
+  text-align: center;
+  font-family: var(--font-mono, monospace);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: normal;
+  color: var(--color-heading);
+  background-color: var(--color-surface-sunken);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.ts-otp-box:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+}
+
+.ts-otp-box:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  background-color: var(--color-surface);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+  transform: translateY(-1px);
+}
+
+.ts-otp-box:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ts-otp-input--error .ts-otp-box {
+  border-color: var(--danger-base);
+  background-color: var(--danger-soft);
+}
+
+@media (max-width: 420px) {
+  .ts-otp-input {
+    gap: 6px;
+    max-width: 100%;
+  }
+
+  .ts-otp-box {
+    max-width: 44px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+
+  .ts-auth-step__label {
+    display: none;
+  }
+}
+
+.ts-auth-resend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.ts-auth-resend__hint {
+  color: var(--color-muted);
+}
+
+.ts-auth-resend .ts-auth-link:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  text-decoration: none;
+  color: var(--color-muted);
+}
+
+.ts-auth-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--color-muted);
 }

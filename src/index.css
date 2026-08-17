@@ -12,6 +12,7 @@
 
   /* Font weights (hard cap: 700) */
   --weight-regular: 400;
+  --weight-normal: 400; /* alias of --weight-regular for legacy references */
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
@@ -75,11 +76,33 @@
   --danger-strong: #DC2626;
 
   /* Light Theme Semantic Tokens (Default) */
-  --color-bg: var(--neutral-50);
+  --color-bg: #E7EDF8;               /* soft cool-blue canvas (was flat near-white gray) */
   --color-surface: var(--neutral-0);
-  --color-surface-sunken: var(--neutral-50);
+  --color-surface-sunken: #EBF0F9;   /* tinted recess so nested panels read on white */
   --color-surface-raised: var(--neutral-0);
-  --color-product-media: #E8EDF5;   /* product "stage" — distinct panel inside white cards */
+  --color-product-media: #E3EAF6;    /* product "stage" — distinct panel inside white cards */
+
+  /* Warm + violet accents — used sparingly for sale/deal/featured moments and
+   * the ambient wash, so the otherwise all-cool palette gets points of life. */
+  --accent-warm-soft: #FFEAD5;
+  --accent-warm: #F97316;
+  --accent-warm-strong: #EA580C;
+  --accent-violet: #8B5CF6;
+
+  /* Ambient page wash — a persistent multi-hue glow (brand blue → cyan → violet)
+   * layered over a soft vertical gradient so the whole canvas has depth and
+   * colour that don't vanish below the fold, and white cards float above it. */
+  --page-wash:
+    radial-gradient(1250px 720px at 8% -220px, rgba(37, 99, 235, 0.16), transparent 60%),
+    radial-gradient(1050px 640px at 108% -40px, rgba(6, 182, 212, 0.12), transparent 58%),
+    radial-gradient(1000px 860px at 92% 116%, rgba(139, 92, 246, 0.10), transparent 60%),
+    linear-gradient(175deg, #EDF2FC 0%, #E7EDF8 46%, #EAEEF7 78%, #EEF0F7 100%);
+
+  /* Reusable brand gradients (hero panels, primary actions, accents) */
+  --gradient-brand: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-600) 55%, var(--brand-700) 100%);
+  --gradient-accent: linear-gradient(135deg, var(--accent-500) 0%, var(--brand-500) 100%);
+  /* Theme-aware primary-CTA fill (light: rich brand gradient with white text). */
+  --gradient-primary: var(--gradient-brand);
   --color-border: var(--neutral-200);
   --color-border-strong: var(--neutral-300);
   --color-heading: var(--neutral-900);
@@ -103,14 +126,19 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-xl: 20px; /* large surfaces: auth card, oversized modals */
   --radius-pill: 999px;
   --radius-full: 50%;
 
-  /* Shadow & Elevation Tokens */
-  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.06);
-  --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  /* Shadow & Elevation Tokens
+   * Layered (ambient + key) and tinted with the brand indigo (30 41 99) rather
+   * than flat slate, so white cards clearly float above the tinted canvas and
+   * shadows read cohesive instead of dirty-gray. */
+  --shadow-sm: 0 1px 2px rgba(30, 41, 99, 0.06), 0 1px 3px rgba(30, 41, 99, 0.05);
+  --shadow-md: 0 2px 6px -1px rgba(30, 41, 99, 0.07), 0 10px 24px -6px rgba(30, 41, 99, 0.13);
+  --shadow-lg: 0 6px 14px -3px rgba(30, 41, 99, 0.10), 0 22px 48px -12px rgba(30, 41, 99, 0.18);
+  --shadow-xl: 0 10px 24px -6px rgba(30, 41, 99, 0.14), 0 40px 80px -20px rgba(30, 41, 99, 0.26);
+  --shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.28);
 
   --elevation-0: flat;
   --elevation-1: var(--shadow-sm);
@@ -182,10 +210,27 @@
   --color-primary: var(--brand-400);
   --color-primary-hover: var(--brand-300);
   --color-on-primary: #0B0F17;
+  /* Dark: lighter gradient so the dark on-primary text keeps its contrast. */
+  --gradient-primary: linear-gradient(135deg, var(--brand-300) 0%, var(--brand-400) 100%);
   --color-primary-soft: #16223D;
   --color-accent: var(--accent-500);
   --color-focus: var(--brand-400);
   --color-product-media: #1A2233;
+
+  /* On the dark canvas, the light slate shadows are invisible — use deep,
+   * near-black layered shadows so raised surfaces and overlays still read. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-md: 0 2px 6px -1px rgba(0, 0, 0, 0.45), 0 12px 28px -8px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 8px 18px -4px rgba(0, 0, 0, 0.50), 0 28px 56px -14px rgba(0, 0, 0, 0.60);
+  --shadow-xl: 0 14px 30px -8px rgba(0, 0, 0, 0.55), 0 48px 96px -24px rgba(0, 0, 0, 0.70);
+  --shadow-focus: 0 0 0 3px rgba(94, 140, 250, 0.35);
+
+  /* Ambient wash tuned for the dark canvas — a deeper multi-hue glow. */
+  --page-wash:
+    radial-gradient(1250px 720px at 8% -240px, rgba(59, 110, 243, 0.24), transparent 60%),
+    radial-gradient(1050px 620px at 108% -40px, rgba(6, 182, 212, 0.12), transparent 58%),
+    radial-gradient(1000px 860px at 92% 116%, rgba(139, 92, 246, 0.14), transparent 60%),
+    linear-gradient(175deg, #0C111C 0%, var(--neutral-950) 55%, #0A0E18 100%);
 }
 
 /* Base resets & document settings */
@@ -211,6 +256,11 @@ body {
   margin: 0;
   padding: 0;
   background-color: var(--color-bg);
+  /* Fixed ambient wash gives the whole app depth and a subtle brand tint,
+   * replacing the flat white-gray canvas. */
+  background-image: var(--page-wash);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--color-text);
   overflow-x: clip;
 }

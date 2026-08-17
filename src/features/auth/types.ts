@@ -1,4 +1,4 @@
-export type AuthMode = 'login' | 'register' | 'forgot-password' | 'reset-password'
+export type AuthMode = 'login' | 'register' | 'forgot-password' | 'verify-otp' | 'reset-password'
 
 export type ThemeMode = 'light' | 'dark'
 

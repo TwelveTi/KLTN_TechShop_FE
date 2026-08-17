@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { FormEvent } from 'react'
 import type { AuthResult, AuthUser } from '../../auth/types'
 import { Breadcrumb } from '../../../shared/components/Breadcrumb'
 import { Avatar } from '../../../shared/components/Avatar'
 import { Badge } from '../../../shared/components/Badge'
 import { Button } from '../../../shared/components/Button'
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog'
 import { Icon } from '../../../shared/components/Icon'
 import {
   createMyAddress,
@@ -16,7 +18,16 @@ import {
   type CustomerOrder,
   type UserAddress,
 } from '../api/profileApi'
-import { loadVietnamLocations, NO_DISTRICT_LABEL, type ProvinceOption } from '../lib/vietnamLocations'
+import {
+  formatAddressParts,
+  loadVietnamLocations,
+  resolveDistrictName,
+  resolveWardsForProvince,
+  type ProvinceOption,
+} from '../lib/vietnamLocations'
+import { changePassword } from '../../auth/api/authApi'
+import { getPasswordChecklist, isPasswordSecure } from '../../auth/lib/passwordValidation'
+import { useToast } from '../../../shared/components/Toast'
 import '../styles/profile.css'
 
 export type ProfileTab = 'profile' | 'orders' | 'addresses' | 'notifications' | 'security'
@@ -29,6 +40,7 @@ export interface ProfilePageProps {
   onOpenAdmin: () => void
   onLogout: () => void | Promise<void>
   onProfileUpdated: (user: AuthUser) => void
+  onNavigateHome?: () => void
   isRestoringSession?: boolean
 }
 
@@ -106,11 +118,20 @@ export function ProfilePage({
   onOpenAdmin,
   onLogout,
   onProfileUpdated,
+  onNavigateHome,
   isRestoringSession = false,
 }: ProfilePageProps) {
+  const { showToast } = useToast()
   const [activeTab, setActiveTab] = useState<ProfileTab>(() => getTabFromPath())
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  // Change-password (Security tab) — self-contained so it never interferes with
+  // the profile form state above.
+  const [isChangePwOpen, setIsChangePwOpen] = useState(false)
+  const [isChangingPw, setIsChangingPw] = useState(false)
+  const [showPw, setShowPw] = useState(false)
+  const [pwError, setPwError] = useState('')
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
   const [isRequestingEmailVerification, setIsRequestingEmailVerification] = useState(false)
   const [orders, setOrders] = useState<CustomerOrder[]>([])
   const [orderFilter, setOrderFilter] = useState<OrderFilter>('ALL')
@@ -119,6 +140,8 @@ export function ProfilePage({
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
   const [isLoadingOrders, setIsLoadingOrders] = useState(false)
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
+  const [addressPendingDelete, setAddressPendingDelete] = useState<UserAddress | null>(null)
+  const [isDeletingAddress, setIsDeletingAddress] = useState(false)
   const [addresses, setAddresses] = useState<UserAddress[]>([])
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(false)
   const [locations, setLocations] = useState<ProvinceOption[]>([])
@@ -269,24 +292,25 @@ export function ProfilePage({
 
   // Location combobox helpers
   const selectedProvince = locations.find((province) => province.name === addressForm.province)
-  const selectedDistrict = selectedProvince?.districts.find((district) => district.name === addressForm.district)
   const normalizedProvinceSearch = normalizeSearchText(provinceSearch.trim())
   const normalizedWardSearch = normalizeSearchText(wardSearch.trim())
   const provinceOptions = locations
     .filter((province) => normalizeSearchText(province.name).includes(normalizedProvinceSearch))
     .slice(0, 60)
-  const wardOptions = (selectedDistrict?.wards || []).filter((ward) =>
-    normalizeSearchText(ward.name).includes(normalizedWardSearch),
-  ).slice(0, 80)
+  // Wards come straight off the province: since the 2025 reform there is no
+  // district to narrow them by, and keying off the stored placeholder district
+  // would leave the list empty whenever that value drifted.
+  const wardOptions = resolveWardsForProvince(selectedProvince)
+    .filter((ward) => normalizeSearchText(ward.name).includes(normalizedWardSearch))
+    .slice(0, 80)
 
-  const selectedLocationQuery = [
+  // Feeds the embedded map: the placeholder district would only confuse geocoding.
+  const selectedLocationQuery = formatAddressParts([
     addressForm.addressLine,
     addressForm.ward,
     addressForm.district,
     addressForm.province,
-  ]
-    .filter(Boolean)
-    .join(', ')
+  ])
 
   const mapQuery = selectedLocationQuery ? `${selectedLocationQuery}, Vietnam` : ''
 
@@ -311,6 +335,66 @@ export function ProfilePage({
     setNotice('')
     setError('')
     setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const pwChecklist = getPasswordChecklist(pwForm.next)
+
+  const closeChangePassword = () => {
+    setIsChangePwOpen(false)
+    setPwForm({ current: '', next: '', confirm: '' })
+    setPwError('')
+    setShowPw(false)
+  }
+
+  const updatePwField = (field: keyof typeof pwForm, value: string) => {
+    setPwError('')
+    setPwForm((current) => ({ ...current, [field]: value }))
+  }
+
+  const handleChangePassword = async (e: FormEvent) => {
+    e.preventDefault()
+    if (isChangingPw) return // guard double submit
+
+    const current = pwForm.current
+    const next = pwForm.next
+    const confirm = pwForm.confirm
+
+    // Client-side validation mirrors the shared password policy; the backend
+    // remains the source of truth (wrong current password, reuse, etc.).
+    if (!current) {
+      setPwError('Please enter your current password.')
+      return
+    }
+    if (!isPasswordSecure(next)) {
+      setPwError('Your new password does not satisfy all complexity requirements.')
+      return
+    }
+    if (next !== confirm) {
+      setPwError('The confirmation password does not match.')
+      return
+    }
+    if (next === current) {
+      setPwError('New password must be different from your current password.')
+      return
+    }
+
+    setIsChangingPw(true)
+    setPwError('')
+
+    try {
+      const result = await changePassword(current, next)
+      closeChangePassword()
+      setNotice(
+        result.revokedOtherSessions > 0
+          ? `${result.message} ${result.revokedOtherSessions} other session(s) were signed out.`
+          : result.message,
+      )
+      showToast('Password changed successfully.', { variant: 'success' })
+    } catch (err: any) {
+      setPwError(err?.message || 'Unable to change password. Please try again.')
+    } finally {
+      setIsChangingPw(false)
+    }
   }
 
   const saveProfile = async () => {
@@ -436,13 +520,18 @@ export function ProfilePage({
     }
   }
 
-  const removeAddress = async (id: string) => {
+  const confirmRemoveAddress = async () => {
+    if (!addressPendingDelete) return
+    setIsDeletingAddress(true)
     try {
-      await deleteMyAddress(id)
+      await deleteMyAddress(addressPendingDelete.id)
       await refreshAddresses()
       setNotice('Address removed from your account.')
+      setAddressPendingDelete(null)
     } catch (addressError) {
       setError(addressError instanceof Error ? addressError.message : 'Unable to delete address.')
+    } finally {
+      setIsDeletingAddress(false)
     }
   }
 
@@ -706,7 +795,7 @@ export function ProfilePage({
                   <p className="ts-address-card__lines">
                     {address.addressLine}
                     <br />
-                    {[address.ward, address.district, address.province].filter(Boolean).join(', ')}
+                    {formatAddressParts([address.ward, address.district, address.province])}
                   </p>
                 </div>
 
@@ -725,7 +814,7 @@ export function ProfilePage({
                       variant="ghost"
                       size="sm"
                       className="ts-btn-danger"
-                      onClick={() => removeAddress(address.id)}
+                      onClick={() => setAddressPendingDelete(address)}
                     >
                       Delete
                     </Button>
@@ -796,13 +885,115 @@ export function ProfilePage({
                   </div>
                   <div>
                     <strong>Account Password</strong>
-                    <span>Last updated recently. Ensure your password is at least 8 characters.</span>
+                    <span>Update your password. Other devices will be signed out for your security.</span>
                   </div>
                 </div>
-                <Button variant="secondary" size="sm">
-                  Change Password
-                </Button>
+                {!isChangePwOpen ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setIsChangePwOpen(true)
+                      setPwError('')
+                    }}
+                  >
+                    Change Password
+                  </Button>
+                ) : (
+                  <Button variant="ghost" size="sm" onClick={closeChangePassword} disabled={isChangingPw}>
+                    Cancel
+                  </Button>
+                )}
               </div>
+
+              {isChangePwOpen && (
+                <form className="ts-change-pw" onSubmit={handleChangePassword} noValidate>
+                  {pwError && (
+                    <div className="ts-profile-alert ts-profile-alert--error" role="alert">
+                      <Icon name="alert-circle" size={16} />
+                      <span>{pwError}</span>
+                    </div>
+                  )}
+
+                  <div className="ts-form-field">
+                    <label htmlFor="pw-current" className="ts-form-label">
+                      Current Password <span className="ts-form-required">*</span>
+                    </label>
+                    <input
+                      id="pw-current"
+                      type={showPw ? 'text' : 'password'}
+                      className="ts-form-input"
+                      autoComplete="current-password"
+                      value={pwForm.current}
+                      onChange={(e) => updatePwField('current', e.target.value)}
+                      disabled={isChangingPw}
+                    />
+                  </div>
+
+                  <div className="ts-form-field">
+                    <label htmlFor="pw-next" className="ts-form-label">
+                      New Password <span className="ts-form-required">*</span>
+                    </label>
+                    <input
+                      id="pw-next"
+                      type={showPw ? 'text' : 'password'}
+                      className="ts-form-input"
+                      autoComplete="new-password"
+                      value={pwForm.next}
+                      onChange={(e) => updatePwField('next', e.target.value)}
+                      disabled={isChangingPw}
+                    />
+                  </div>
+
+                  <div className="ts-form-field">
+                    <label htmlFor="pw-confirm" className="ts-form-label">
+                      Confirm New Password <span className="ts-form-required">*</span>
+                    </label>
+                    <input
+                      id="pw-confirm"
+                      type={showPw ? 'text' : 'password'}
+                      className={`ts-form-input ${
+                        pwForm.confirm && pwForm.confirm !== pwForm.next ? 'is-invalid' : ''
+                      }`}
+                      autoComplete="new-password"
+                      value={pwForm.confirm}
+                      onChange={(e) => updatePwField('confirm', e.target.value)}
+                      disabled={isChangingPw}
+                    />
+                    {pwForm.confirm && pwForm.confirm !== pwForm.next && (
+                      <span className="ts-form-error">Passwords do not match.</span>
+                    )}
+                  </div>
+
+                  <label className="ts-checkbox-label ts-change-pw__reveal">
+                    <input
+                      type="checkbox"
+                      className="ts-checkbox-input"
+                      checked={showPw}
+                      onChange={(e) => setShowPw(e.target.checked)}
+                    />
+                    <span className="ts-checkbox-box" aria-hidden="true">
+                      {showPw && <Icon name="check" size={12} />}
+                    </span>
+                    <span className="ts-checkbox-text">Show passwords</span>
+                  </label>
+
+                  <ul className="ts-change-pw__rules" aria-label="Password requirements">
+                    {pwChecklist.map((rule) => (
+                      <li key={rule.label} className={rule.isValid ? 'is-valid' : ''}>
+                        <Icon name={rule.isValid ? 'check' : 'alert-circle'} size={13} />
+                        <span>{rule.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  <div className="ts-change-pw__actions">
+                    <Button type="submit" variant="primary" size="sm" isLoading={isChangingPw}>
+                      {isChangingPw ? 'Updating…' : 'Update Password'}
+                    </Button>
+                  </div>
+                </form>
+              )}
 
               <div className="ts-security-card">
                 <div className="ts-security-card__info">
@@ -1017,8 +1208,8 @@ export function ProfilePage({
         <div className="ts-profile-breadcrumb">
           <Breadcrumb
             items={[
-              { label: 'Home', href: '/' },
-              { label: 'My Account', href: '/profile' },
+              { label: 'Home', onClick: onNavigateHome },
+              { label: 'My Account', onClick: () => openTab('profile') },
               ...(activeTab !== 'profile'
                 ? [{ label: tabLabels[activeTab].label }]
                 : [{ label: 'Personal Information' }]),
@@ -1220,11 +1411,10 @@ export function ProfilePage({
                           type="button"
                           className="ts-combobox-option"
                           onClick={() => {
-                            const nextDistrict = province.districts[0]?.name || NO_DISTRICT_LABEL
                             setAddressForm((prev) => ({
                               ...prev,
                               province: province.name,
-                              district: nextDistrict,
+                              district: resolveDistrictName(province),
                               ward: '',
                             }))
                             setProvinceSearch('')
@@ -1367,6 +1557,21 @@ export function ProfilePage({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={Boolean(addressPendingDelete)}
+        title="Delete address"
+        tone="danger"
+        confirmLabel="Delete address"
+        isLoading={isDeletingAddress}
+        message={
+          addressPendingDelete
+            ? `Remove “${addressPendingDelete.receiverName || 'this address'}” from your saved addresses? This can’t be undone.`
+            : ''
+        }
+        onConfirm={confirmRemoveAddress}
+        onCancel={() => setAddressPendingDelete(null)}
+      />
     </div>
   )
 }

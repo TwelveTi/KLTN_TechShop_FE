@@ -25,11 +25,11 @@ interface DashboardSectionProps {
 }
 
 const formatCurrency = (val: number) =>
-  new Intl.NumberFormat('en-US', {
+  new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'VND',
     maximumFractionDigits: 0,
-  }).format(val)
+  }).format(val || 0)
 
 export function DashboardSection({
   summary,
@@ -45,10 +45,10 @@ export function DashboardSection({
 }: DashboardSectionProps) {
   const [hoveredPoint, setHoveredPoint] = useState<RevenuePoint | null>(null)
 
-  const totalRev = summary?.totalRevenue || 297393
-  const totalOrd = summary?.totalOrders || 457
-  const totalProd = summary?.totalProducts || 9
-  const totalCust = summary?.totalCustomers || 1248
+  const totalRev = summary?.totalRevenue || 0
+  const totalOrd = summary?.totalOrders || 0
+  const totalProd = summary?.totalProducts || 0
+  const totalCust = summary?.totalCustomers || 0
 
   // Calculate SVG chart coordinates
   const maxRevenue = Math.max(...revenueSeries.map((d) => d.revenue), 1)

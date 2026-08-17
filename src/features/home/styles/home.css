@@ -18,26 +18,9 @@
   --home-panel: #0E1420;
 }
 
-/* The whole header — navbar + department bar — is pinned, tinted, and
- * hides on scroll-down / reveals on scroll-up (class toggled from HomePage). */
-.home-header {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  background-color: var(--color-surface);
-  box-shadow: var(--shadow-md);
-  transition: transform var(--dur-base) var(--ease-out);
-  will-change: transform;
-}
-.home-header--hidden { transform: translateY(-100%); }
-/* Solid white main header; a hairline divides it from the department sub-bar. */
-.home-header .ts-navbar {
-  position: static;
-  background-color: transparent;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  border-bottom: 1px solid var(--color-border);
-}
+/* The shared header + department bar are rendered by UserLayout →
+ * GlobalHeader (.ts-global-header / .ts-dept-bar); the old page-local
+ * .home-header / .dept-bar styles were dead and have been removed. */
 
 .home-content {
   flex: 1;
@@ -47,42 +30,6 @@
   padding: 0 var(--space-4);
 }
 @media (min-width: 768px) { .home-content { padding: 0 var(--space-6); } }
-
-/* -----------------------------------------------------------------
- * Department quick-nav strip (part of the top chrome layer)
- * ----------------------------------------------------------------- */
-/* Department bar is a transparent part of the tinted header (which handles
- * sticky + auto-hide as one block). */
-/* Department sub-bar — slimmer, tonally distinct grey strip below the white header. */
-.dept-bar { background-color: var(--color-surface-sunken); }
-.dept-bar__container {
-  display: flex; align-items: center; gap: var(--space-4);
-  max-width: var(--layout-max); margin: 0 auto; padding: var(--space-1) var(--space-4);
-}
-@media (min-width: 768px) { .dept-bar__container { padding: var(--space-1) var(--space-6); } }
-.dept-bar__all {
-  display: inline-flex; align-items: center; gap: 6px; margin-left: auto;
-  font-size: var(--text-body-sm); font-weight: var(--weight-semibold); color: var(--color-primary);
-  white-space: nowrap; transition: gap var(--dur-fast) var(--ease-out);
-}
-.dept-bar__all:hover { gap: var(--space-2); }
-@media (max-width: 640px) { .dept-bar__all { display: none; } }
-/* "SHOP" label removed — it added a mono micro-label without value. */
-.dept-bar__label { display: none; }
-.dept-bar__track {
-  display: flex; align-items: center; gap: var(--space-2);
-  overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding: 2px 0;
-}
-.dept-bar__track::-webkit-scrollbar { display: none; }
-.dept-bar__chip {
-  display: inline-flex; align-items: center; gap: var(--space-2);
-  padding: 6px 12px; border-radius: var(--radius-pill);
-  background-color: var(--color-surface); border: 1px solid var(--color-border);
-  font-size: var(--text-body-sm); font-weight: var(--weight-medium); color: var(--color-text);
-  white-space: nowrap; transition: border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
-}
-.dept-bar__chip:hover { border-color: var(--color-primary); color: var(--color-primary); background-color: var(--color-primary-soft); }
-.dept-bar__chip .ts-icon { color: var(--color-muted); }
 
 /* -----------------------------------------------------------------
  * Hero — asymmetric marquee, balanced with a tall dark product panel
@@ -217,7 +164,9 @@
   scrollbar-width: thin;
 }
 .deals__track .ts-product-card {
-  min-width: 248px; max-width: 288px; flex-shrink: 0; scroll-snap-align: start;
+  /* Fixed, uniform width so every deal card (and its 4/3 media) is identical —
+   * an auto width let long-titled cards grow to max and stagger the row. */
+  flex: 0 0 264px; width: 264px; scroll-snap-align: start;
 }
 
 /* -----------------------------------------------------------------

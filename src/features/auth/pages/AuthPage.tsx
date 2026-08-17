@@ -1,12 +1,22 @@
 import { useMemo, useState, useEffect } from 'react'
 import type { FormEvent } from 'react'
 import { env } from '../../../config/env'
-import { login, register, forgotPassword, resetPassword } from '../api/authApi'
+import {
+  login,
+  register,
+  forgotPassword,
+  verifyResetOtp,
+  resendResetOtp,
+  resetPassword,
+} from '../api/authApi'
 import { clearStoredAuth, readStoredAuth, storeAuth } from '../lib/authStorage'
+import { emailPattern, getPasswordChecklist, isPasswordSecure } from '../lib/passwordValidation'
 import type { AuthForm, AuthMode, AuthPayload, AuthResult, ThemeMode } from '../types'
 import { BrandMark } from '../../../shared/components/BrandMark'
 import { Button } from '../../../shared/components/Button'
 import { Icon } from '../../../shared/components/Icon'
+import { useToast } from '../../../shared/components/Toast'
+import { OtpInput } from '../components/OtpInput'
 import '../styles/auth.css'
 
 export interface AuthPageProps {
@@ -23,15 +33,11 @@ const initialForm: AuthForm = {
   phone: '',
 }
 
-const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
-
-const passwordRules = [
-  { label: 'Uppercase letter (A–Z)', test: (value: string) => /[A-Z]/.test(value) },
-  { label: 'Lowercase letter (a–z)', test: (value: string) => /[a-z]/.test(value) },
-  { label: 'Number (0–9)', test: (value: string) => /\d/.test(value) },
-  { label: 'Special character (@$!%*#?&)', test: (value: string) => /[^A-Za-z0-9]/.test(value) },
-  { label: 'At least 8 characters', test: (value: string) => value.length >= 8 },
-]
+const OTP_LENGTH = 6
+// Client-side resend cooldown that mirrors the backend cooldown. The backend is
+// still the source of truth (it replies 429 with a wait message if called too
+// soon); this is purely to keep the UX honest and the button disabled.
+const RESEND_COOLDOWN_SECONDS = 60
 
 export function AuthPage({
   initialMode = 'login',
@@ -39,29 +45,33 @@ export function AuthPage({
   onLocalLogout,
   onBrowseHome,
 }: AuthPageProps) {
+  const { showToast } = useToast()
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const [theme, setTheme] = useState<ThemeMode>(() => {
     return (document.documentElement.getAttribute('data-theme') as ThemeMode) || 'light'
   })
   const [form, setForm] = useState<AuthForm>(initialForm)
   const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [otp, setOtp] = useState('')
   const [resetToken, setResetToken] = useState('')
+  const [resetExpiryMinutes, setResetExpiryMinutes] = useState<number | null>(null)
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isResending, setIsResending] = useState(false)
+  const [resendCooldown, setResendCooldown] = useState(0)
   const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const [authResult, setAuthResult] = useState<AuthResult | null>(() => readStoredAuth())
 
-  // Check URL query parameters for reset token, oauth error, or email verification
+  // Check URL query parameters for oauth error or email verification result.
+  // (Password reset no longer uses an email link — it is a 6-digit OTP flow —
+  // so there is no ?token= handling here.)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const token = params.get('token')
-    if (token) {
-      setResetToken(token)
-      setMode('reset-password')
-    }
 
     if (params.get('oauth') === 'error') {
       setError('Google sign-in did not complete. Please try again or sign in with your email.')
@@ -81,21 +91,26 @@ export function AuthPage({
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
+  // Resend cooldown ticker.
+  useEffect(() => {
+    if (resendCooldown <= 0) return
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [resendCooldown])
+
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
   }
 
-  // Real-time password requirement checklist
+  // Real-time password requirement checklist (register + reset password).
   const passwordChecklist = useMemo(
-    () =>
-      passwordRules.map((rule) => ({
-        ...rule,
-        isValid: rule.test(mode === 'reset-password' ? newPassword : form.password),
-      })),
+    () => getPasswordChecklist(mode === 'reset-password' ? newPassword : form.password),
     [form.password, newPassword, mode]
   )
 
-  const isPasswordSecure = passwordChecklist.every((rule) => rule.isValid)
+  const isNewPasswordSecure = isPasswordSecure(newPassword)
 
   const emailError = useMemo(() => {
     if (!form.email.trim()) return ''
@@ -114,10 +129,25 @@ export function AuthPage({
     setSuccess('')
   }
 
+  // Resets all recovery-flow scratch state (OTP, token, passwords).
+  const resetRecoveryState = () => {
+    setOtp('')
+    setResetToken('')
+    setResetExpiryMinutes(null)
+    setNewPassword('')
+    setConfirmPassword('')
+    setResendCooldown(0)
+    setShowPassword(false)
+    setShowConfirmPassword(false)
+  }
+
   const switchMode = (nextMode: AuthMode) => {
     setMode(nextMode)
     setError('')
     setSuccess('')
+    if (nextMode === 'login' || nextMode === 'register' || nextMode === 'forgot-password') {
+      resetRecoveryState()
+    }
   }
 
   const validate = (): string | null => {
@@ -129,9 +159,15 @@ export function AuthPage({
       return null
     }
 
+    if (mode === 'verify-otp') {
+      if (otp.length !== OTP_LENGTH) return `Please enter the ${OTP_LENGTH}-digit code we emailed you.`
+      return null
+    }
+
     if (mode === 'reset-password') {
       if (!newPassword) return 'Please enter your new password.'
-      if (!isPasswordSecure) return 'Your new password does not satisfy all complexity requirements.'
+      if (!isNewPasswordSecure) return 'Your new password does not satisfy all complexity requirements.'
+      if (newPassword !== confirmPassword) return 'The confirmation password does not match.'
       return null
     }
 
@@ -148,7 +184,7 @@ export function AuthPage({
       if (form.fullName.trim().length < 2) {
         return 'Full name must be at least 2 characters.'
       }
-      if (!isPasswordSecure) {
+      if (!isPasswordSecure(form.password)) {
         return 'Password must satisfy all security requirements listed below.'
       }
     }
@@ -158,6 +194,9 @@ export function AuthPage({
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
+    // Guard against double-submit while a request is already in flight.
+    if (isSubmitting) return
 
     const validationMsg = validate()
     if (validationMsg) {
@@ -173,13 +212,24 @@ export function AuthPage({
       if (mode === 'forgot-password') {
         const msg = await forgotPassword(form.email.trim())
         setSuccess(msg)
+        showToast('Reset code sent. Check your email.', { variant: 'success' })
+        setOtp('')
+        setResendCooldown(RESEND_COOLDOWN_SECONDS)
+        setMode('verify-otp')
+      } else if (mode === 'verify-otp') {
+        const result = await verifyResetOtp(form.email.trim(), otp)
+        setResetToken(result.resetToken)
+        setResetExpiryMinutes(result.expiresInMinutes ?? null)
+        setSuccess('Code verified. Choose your new password.')
+        showToast('Code verified.', { variant: 'success' })
+        setMode('reset-password')
       } else if (mode === 'reset-password') {
         const msg = await resetPassword(resetToken, newPassword)
-        setSuccess(msg)
-        setTimeout(() => {
-          setMode('login')
-          setSuccess('Password updated. You may now sign in with your new credentials.')
-        }, 2000)
+        showToast(msg, { variant: 'success' })
+        resetRecoveryState()
+        setForm(initialForm)
+        setMode('login')
+        setSuccess('Password updated. You may now sign in with your new credentials.')
       } else if (mode === 'login') {
         const payload: AuthPayload = {
           email: form.email.trim(),
@@ -204,9 +254,39 @@ export function AuthPage({
         onAuthenticated(result)
       }
     } catch (err: any) {
-      setError(err?.message || 'Authentication request failed. Please check your details and try again.')
+      const message = err?.message || 'Authentication request failed. Please check your details and try again.'
+      setError(message)
+      // On the OTP step, surface failures as a toast too so it's obvious the
+      // code was wrong/expired even though focus stays on the OTP boxes.
+      if (mode === 'verify-otp') {
+        showToast(message, { variant: 'error' })
+      }
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || isResending) return
+
+    setIsResending(true)
+    setError('')
+
+    try {
+      const msg = await resendResetOtp(form.email.trim())
+      setOtp('')
+      setResendCooldown(RESEND_COOLDOWN_SECONDS)
+      showToast(msg || 'A new reset code is on its way.', { variant: 'success' })
+    } catch (err: any) {
+      const message = err?.message || 'Unable to resend the code right now.'
+      // Backend enforces its own cooldown (429). Reflect any wait time it reports.
+      const waitMatch = message.match(/(\d+)\s*second/i)
+      if (waitMatch) {
+        setResendCooldown(Number(waitMatch[1]))
+      }
+      showToast(message, { variant: 'error' })
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -228,6 +308,24 @@ export function AuthPage({
     setAuthResult(null)
     onLocalLogout()
     setSuccess('Local session cleared.')
+  }
+
+  const submitLabel = () => {
+    if (isSubmitting) return 'Please wait…'
+    switch (mode) {
+      case 'login':
+        return 'Sign in to TechShop'
+      case 'register':
+        return 'Create TechShop Account'
+      case 'forgot-password':
+        return 'Send reset code'
+      case 'verify-otp':
+        return 'Verify code'
+      case 'reset-password':
+        return 'Save new password'
+      default:
+        return 'Continue'
+    }
   }
 
   return (
@@ -275,6 +373,7 @@ export function AuthPage({
                 {mode === 'login' && 'High-performance hardware, secured access.'}
                 {mode === 'register' && 'Configure your TechShop workstation account.'}
                 {mode === 'forgot-password' && 'Verify and recover your credentials.'}
+                {mode === 'verify-otp' && 'Enter the code we just emailed you.'}
                 {mode === 'reset-password' && 'Create a new secure access key.'}
               </h1>
 
@@ -359,18 +458,72 @@ export function AuthPage({
                 </div>
               )}
 
+              {/* Password Recovery Step Progress */}
+              {(mode === 'forgot-password' || mode === 'verify-otp' || mode === 'reset-password') && (
+                <nav className="ts-auth-stepper" aria-label="Password recovery steps">
+                  <div
+                    className={`ts-auth-step ${
+                      mode === 'forgot-password'
+                        ? 'is-active'
+                        : 'is-completed'
+                    }`}
+                  >
+                    <span className="ts-auth-step__badge">
+                      {mode !== 'forgot-password' ? <Icon name="check" size={12} /> : '1'}
+                    </span>
+                    <span className="ts-auth-step__label">Email</span>
+                  </div>
+                  <div
+                    className={`ts-auth-step__line ${
+                      mode !== 'forgot-password' ? 'is-completed' : ''
+                    }`}
+                  />
+                  <div
+                    className={`ts-auth-step ${
+                      mode === 'verify-otp'
+                        ? 'is-active'
+                        : mode === 'reset-password'
+                        ? 'is-completed'
+                        : ''
+                    }`}
+                  >
+                    <span className="ts-auth-step__badge">
+                      {mode === 'reset-password' ? <Icon name="check" size={12} /> : '2'}
+                    </span>
+                    <span className="ts-auth-step__label">Verify OTP</span>
+                  </div>
+                  <div
+                    className={`ts-auth-step__line ${
+                      mode === 'reset-password' ? 'is-completed' : ''
+                    }`}
+                  />
+                  <div
+                    className={`ts-auth-step ${
+                      mode === 'reset-password' ? 'is-active' : ''
+                    }`}
+                  >
+                    <span className="ts-auth-step__badge">3</span>
+                    <span className="ts-auth-step__label">New Password</span>
+                  </div>
+                </nav>
+              )}
+
               {/* Form Title & Context */}
               <div className="ts-auth-card__header">
                 <h2 id="auth-form-title" className="ts-auth-card__title">
                   {mode === 'login' && 'Sign in to TechShop'}
                   {mode === 'register' && 'Create your account'}
                   {mode === 'forgot-password' && 'Reset your password'}
+                  {mode === 'verify-otp' && 'Enter verification code'}
                   {mode === 'reset-password' && 'Choose a new password'}
                 </h2>
                 <p className="ts-auth-card__subtitle">
                   {mode === 'login' && 'Enter your credentials to manage orders and saved hardware.'}
                   {mode === 'register' && 'Fill in your information to start building your gear profile.'}
-                  {mode === 'forgot-password' && 'We will send secure recovery instructions to your email.'}
+                  {mode === 'forgot-password' && 'Enter your account email and we will send a 6-digit reset code.'}
+                  {mode === 'verify-otp' && (
+                    <>We sent a 6-digit code to <strong>{form.email.trim()}</strong>. Enter it below to continue.</>
+                  )}
                   {mode === 'reset-password' && 'Ensure your new password satisfies the security checklist.'}
                 </p>
               </div>
@@ -415,13 +568,13 @@ export function AuthPage({
                 )}
 
                 {/* Email (Login, Register, Forgot Password) */}
-                {mode !== 'reset-password' && (
+                {(mode === 'login' || mode === 'register' || mode === 'forgot-password') && (
                   <div className="ts-form-field">
                     <label htmlFor="auth-email" className="ts-form-label">
                       Email Address <span className="ts-form-required">*</span>
                     </label>
                     <div className="ts-input-wrap">
-                      <Icon name="search" size={18} className="ts-input-icon" />
+                      <Icon name="mail" size={18} className="ts-input-icon" />
                       <input
                         id="auth-email"
                         type="email"
@@ -442,6 +595,41 @@ export function AuthPage({
                         {emailError}
                       </span>
                     )}
+                  </div>
+                )}
+
+                {/* OTP (Verify OTP step) */}
+                {mode === 'verify-otp' && (
+                  <div className="ts-form-field">
+                    <label className="ts-form-label">
+                      6-Digit Code <span className="ts-form-required">*</span>
+                    </label>
+                    <OtpInput
+                      value={otp}
+                      onChange={(next) => {
+                        setOtp(next)
+                        setError('')
+                      }}
+                      length={OTP_LENGTH}
+                      disabled={isSubmitting}
+                      hasError={Boolean(error)}
+                      autoFocus
+                    />
+                    <div className="ts-auth-resend">
+                      <span className="ts-auth-resend__hint">Didn’t receive the code?</span>
+                      <button
+                        type="button"
+                        className="ts-auth-link"
+                        onClick={handleResendOtp}
+                        disabled={resendCooldown > 0 || isResending || isSubmitting}
+                      >
+                        {isResending
+                          ? 'Sending…'
+                          : resendCooldown > 0
+                          ? `Resend in ${resendCooldown}s`
+                          : 'Resend code'}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -509,34 +697,82 @@ export function AuthPage({
                   </div>
                 )}
 
-                {/* New Password (Reset Password mode) */}
+                {/* New Password + Confirm (Reset Password mode) */}
                 {mode === 'reset-password' && (
-                  <div className="ts-form-field">
-                    <label htmlFor="auth-new-password" className="ts-form-label">
-                      New Password <span className="ts-form-required">*</span>
-                    </label>
-                    <div className="ts-input-wrap">
-                      <Icon name="lock" size={18} className="ts-input-icon" />
-                      <input
-                        id="auth-new-password"
-                        type={showPassword ? 'text' : 'password'}
-                        className="ts-form-input ts-form-input--with-icon ts-form-input--with-action"
-                        placeholder="Enter new password"
-                        autoComplete="new-password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        disabled={isSubmitting}
-                      />
-                      <button
-                        type="button"
-                        className="ts-input-action-btn"
-                        onClick={() => setShowPassword((prev) => !prev)}
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        <Icon name="eye" size={18} />
-                      </button>
+                  <>
+                    <div className="ts-form-field">
+                      <label htmlFor="auth-new-password" className="ts-form-label">
+                        New Password <span className="ts-form-required">*</span>
+                      </label>
+                      <div className="ts-input-wrap">
+                        <Icon name="lock" size={18} className="ts-input-icon" />
+                        <input
+                          id="auth-new-password"
+                          type={showPassword ? 'text' : 'password'}
+                          className="ts-form-input ts-form-input--with-icon ts-form-input--with-action"
+                          placeholder="Enter new password"
+                          autoComplete="new-password"
+                          value={newPassword}
+                          onChange={(e) => {
+                            setNewPassword(e.target.value)
+                            setError('')
+                          }}
+                          disabled={isSubmitting}
+                        />
+                        <button
+                          type="button"
+                          className="ts-input-action-btn"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                          <Icon name="eye" size={18} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
+
+                    <div className="ts-form-field">
+                      <label htmlFor="auth-confirm-password" className="ts-form-label">
+                        Confirm New Password <span className="ts-form-required">*</span>
+                      </label>
+                      <div className="ts-input-wrap">
+                        <Icon name="lock" size={18} className="ts-input-icon" />
+                        <input
+                          id="auth-confirm-password"
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          className={`ts-form-input ts-form-input--with-icon ts-form-input--with-action ${
+                            confirmPassword && confirmPassword !== newPassword ? 'is-invalid' : ''
+                          }`}
+                          placeholder="Re-enter new password"
+                          autoComplete="new-password"
+                          value={confirmPassword}
+                          onChange={(e) => {
+                            setConfirmPassword(e.target.value)
+                            setError('')
+                          }}
+                          disabled={isSubmitting}
+                        />
+                        <button
+                          type="button"
+                          className="ts-input-action-btn"
+                          onClick={() => setShowConfirmPassword((prev) => !prev)}
+                          aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                          title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                        >
+                          <Icon name="eye" size={18} />
+                        </button>
+                      </div>
+                      {confirmPassword && confirmPassword !== newPassword && (
+                        <span className="ts-form-error">Passwords do not match.</span>
+                      )}
+                    </div>
+
+                    {resetExpiryMinutes != null && (
+                      <p className="ts-auth-hint">
+                        <Icon name="clock" size={14} /> Complete within {resetExpiryMinutes} minute
+                        {resetExpiryMinutes === 1 ? '' : 's'} before this reset session expires.
+                      </p>
+                    )}
+                  </>
                 )}
 
                 {/* Password Requirements Checklist (Register & Reset Password) */}
@@ -586,22 +822,11 @@ export function AuthPage({
                     variant="primary"
                     size="lg"
                     disabled={isSubmitting || isGoogleLoading}
+                    isLoading={isSubmitting}
+                    fullWidth
                     className="ts-auth-submit-btn"
-                    leadingIcon={
-                      isSubmitting ? (
-                        <span className="ts-spinner" aria-hidden="true" />
-                      ) : undefined
-                    }
                   >
-                    {isSubmitting
-                      ? 'Authenticating…'
-                      : mode === 'login'
-                      ? 'Sign in to TechShop'
-                      : mode === 'register'
-                      ? 'Create TechShop Account'
-                      : mode === 'forgot-password'
-                      ? 'Send Recovery Link'
-                      : 'Save New Password'}
+                    {submitLabel()}
                   </Button>
                 </div>
 
@@ -659,6 +884,19 @@ export function AuthPage({
                       onClick={() => switchMode('login')}
                     >
                       Sign in
+                    </button>
+                  </p>
+                )}
+
+                {mode === 'verify-otp' && (
+                  <p className="ts-auth-switch-prompt">
+                    Entered the wrong email?{' '}
+                    <button
+                      type="button"
+                      className="ts-auth-switch-link"
+                      onClick={() => switchMode('forgot-password')}
+                    >
+                      Start over
                     </button>
                   </p>
                 )}

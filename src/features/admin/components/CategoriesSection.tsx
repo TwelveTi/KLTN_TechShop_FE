@@ -312,9 +312,16 @@ export function CategoriesSection({
           message={`Are you sure you want to delete the category "${selectedCategory.name}"? Products assigned to this category will become unassigned.`}
           confirmLabel="Delete Category"
           variant="danger"
+          isLoading={isSubmitting}
           onConfirm={async () => {
-            await onDeleteCategory(selectedCategory.id)
-            closeModal()
+            if (isSubmitting) return
+            setIsSubmitting(true)
+            try {
+              await onDeleteCategory(selectedCategory.id)
+              closeModal()
+            } finally {
+              setIsSubmitting(false)
+            }
           }}
           onCancel={closeModal}
         />

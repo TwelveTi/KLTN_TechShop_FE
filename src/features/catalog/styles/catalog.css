@@ -20,20 +20,6 @@
   --catalog-panel: #0E1420;
 }
 
-/* Header container */
-.ts-catalog-page .home-header {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky);
-  background-color: var(--brand-50);
-  border-bottom: 1px solid var(--brand-100);
-  box-shadow: var(--shadow-md);
-}
-[data-theme="dark"] .ts-catalog-page .home-header {
-  background-color: #141b2b;
-  border-bottom-color: #263043;
-}
-
 /* Main Container */
 .ts-catalog-content {
   flex: 1;
@@ -764,9 +750,8 @@
 .ts-filter-drawer__backdrop {
   position: absolute;
   inset: 0;
-  background-color: rgba(11, 15, 23, 0.6);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  /* Plain scrim — no backdrop-filter blur (instant paint on open). */
+  background-color: rgba(11, 15, 23, 0.68);
   animation: ts-fade-in var(--dur-base) var(--ease-out) both;
 }
 .ts-filter-drawer__sheet {
@@ -1022,9 +1007,8 @@
 .ts-compare-modal__backdrop {
   position: absolute;
   inset: 0;
-  background-color: rgba(11, 15, 23, 0.65);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  /* Plain scrim — no backdrop-filter blur (instant paint on open). */
+  background-color: rgba(11, 15, 23, 0.72);
   animation: ts-fade-in var(--dur-base) var(--ease-out) both;
 }
 .ts-compare-modal__sheet {

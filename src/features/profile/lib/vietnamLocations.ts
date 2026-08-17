@@ -27,7 +27,33 @@ type ApiProvince = {
   wards?: ApiWard[] | null
 }
 
+/**
+ * Vietnam removed the district level in the 2025 administrative reform: the API
+ * now returns 34 provinces whose wards hang directly off the province, with no
+ * `districts` array at all. The backend's `user_addresses.district` column is
+ * still NOT NULL, so a province without districts gets this placeholder stored
+ * in that column — it must never be shown to a shopper or offered as a choice.
+ */
 export const NO_DISTRICT_LABEL = 'Khong ap dung'
+
+/** True for a district value that only exists to satisfy the database. */
+export const isPlaceholderDistrict = (name?: string | null): boolean =>
+  !name || name.trim() === '' || name === NO_DISTRICT_LABEL
+
+/**
+ * The district to store for a province. Real districts are still honoured if
+ * the API ever serves them again; otherwise this is the placeholder.
+ */
+export const resolveDistrictName = (province?: ProvinceOption | null): string =>
+  province?.districts[0]?.name || NO_DISTRICT_LABEL
+
+/** Every ward selectable under a province, across all of its districts. */
+export const resolveWardsForProvince = (province?: ProvinceOption | null): WardOption[] =>
+  (province?.districts || []).flatMap((district) => district.wards)
+
+/** Drops empty parts and the placeholder district from a displayed address. */
+export const formatAddressParts = (parts: Array<string | null | undefined>): string =>
+  parts.filter((part) => part && !isPlaceholderDistrict(part)).join(', ')
 
 export const fallbackVietnamLocations: ProvinceOption[] = [
   {

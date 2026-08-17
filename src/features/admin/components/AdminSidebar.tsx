@@ -14,6 +14,7 @@ interface AdminSidebarProps {
   onSelectSection: (section: AdminSection) => void
   onBackToShop: () => void
   onCloseMobile?: () => void
+  isMobileOpen?: boolean
   pendingOrdersCount?: number
   lowStockCount?: number
 }
@@ -23,6 +24,7 @@ export function AdminSidebar({
   onSelectSection,
   onBackToShop,
   onCloseMobile,
+  isMobileOpen = false,
   pendingOrdersCount = 0,
   lowStockCount = 0,
 }: AdminSidebarProps) {
@@ -54,7 +56,7 @@ export function AdminSidebar({
   }
 
   return (
-    <aside className="ts-admin-sidebar">
+    <aside className={`ts-admin-sidebar${isMobileOpen ? ' is-open' : ''}`}>
       <div className="ts-admin-sidebar__header">
         <a
           href="/"

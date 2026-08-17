@@ -42,9 +42,9 @@ interface ProductsSectionProps {
 }
 
 const formatCurrency = (val: number | string | undefined) =>
-  new Intl.NumberFormat('en-US', {
+  new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'VND',
     maximumFractionDigits: 0,
   }).format(Number(val || 0))
 
@@ -620,7 +620,7 @@ export function ProductsSection({
             <div className="ts-admin-form-grid ts-admin-form-grid--3">
               <label className="ts-admin-field">
                 <span className="ts-admin-field__label">
-                  Base Price (USD) <span className="ts-admin-req">*</span>
+                  Base Price (VND) <span className="ts-admin-req">*</span>
                 </span>
                 <input
                   type="number"
@@ -839,9 +839,16 @@ export function ProductsSection({
           message={`Are you sure you want to permanently delete "${selectedProduct.name}"? This action cannot be undone.`}
           confirmLabel="Delete Product"
           variant="danger"
+          isLoading={isSubmitting}
           onConfirm={async () => {
-            await onDeleteProduct(selectedProduct.id)
-            closeModal()
+            if (isSubmitting) return
+            setIsSubmitting(true)
+            try {
+              await onDeleteProduct(selectedProduct.id)
+              closeModal()
+            } finally {
+              setIsSubmitting(false)
+            }
           }}
           onCancel={closeModal}
         />

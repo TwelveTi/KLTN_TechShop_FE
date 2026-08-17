@@ -31,9 +31,9 @@ interface OrdersSectionProps {
 }
 
 const formatCurrency = (val: number | string | undefined) =>
-  new Intl.NumberFormat('en-US', {
+  new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'VND',
     maximumFractionDigits: 0,
   }).format(Number(val || 0))
 

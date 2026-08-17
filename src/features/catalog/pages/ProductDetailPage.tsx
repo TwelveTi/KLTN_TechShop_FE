@@ -10,30 +10,36 @@ import { ProductReviews } from '../components/ProductReviews'
 import { StickyAddToCartBar } from '../components/StickyAddToCartBar'
 import { catalogApi } from '../api/catalogApi'
 import { useCart } from '../../cart/context/CartContext'
+import { useToast } from '../../../shared/components/Toast'
+import type { AuthResult } from '../../auth/types'
 import type { ProductDetailData, ProductVariant } from '../types'
 import '../styles/product-detail.css'
 
 export interface ProductDetailPageProps {
   productId: string
+  authResult?: AuthResult | null
   onNavigateHome: () => void
   onOpenCatalog: (category?: string) => void
   onOpenCart?: () => void
   onOpenProduct: (productId: string) => void
+  onSignIn?: () => void
 }
 
 export function ProductDetailPage({
   productId,
+  authResult,
   onNavigateHome,
   onOpenCatalog,
   onOpenCart,
   onOpenProduct,
+  onSignIn,
 }: ProductDetailPageProps) {
   const { addToCart } = useCart()
+  const { showToast } = useToast()
   const [product, setProduct] = useState<ProductDetailData | null>(null)
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   // Fetch product data on productId change
   useEffect(() => {
@@ -91,8 +97,8 @@ export function ProductDetailPage({
     []
   )
 
-  const handleAddToCart = (quantity = 1) => {
-    if (!product) return
+  const handleAddToCart = async (quantity = 1): Promise<boolean> => {
+    if (!product) return false
 
     const effectivePrice = selectedVariant?.price || product.price
     const itemToAdd: ProductItem = {
@@ -105,16 +111,23 @@ export function ProductDetailPage({
       badge: product.badge,
       imageUrl: product.galleryImages[0] || product.imageUrl,
       specs: product.specs,
+      stockQuantity: product.stockQuantity,
     }
 
-    addToCart(itemToAdd, quantity)
-    setToastMessage(`Added ${quantity} × ${product.name} to cart`)
-    setTimeout(() => setToastMessage(null), 3500)
+    // Pass the selected variant id so the backend cart tracks the exact variant.
+    const ok = await addToCart(itemToAdd, quantity, { variantId: selectedVariant?.id })
+    if (ok) {
+      showToast(`Added ${quantity} × ${product.name} to cart`, {
+        variant: 'success',
+        action: onOpenCart ? { label: 'View cart', onClick: onOpenCart } : undefined,
+      })
+    }
+    return ok
   }
 
-  const handleBuyNow = (quantity = 1) => {
-    handleAddToCart(quantity)
-    if (onOpenCart) {
+  const handleBuyNow = async (quantity = 1) => {
+    const ok = await handleAddToCart(quantity)
+    if (ok && onOpenCart) {
       onOpenCart()
     }
   }
@@ -135,21 +148,6 @@ export function ProductDetailPage({
     <div className="ts-pdp-page">
       <main className="ts-pdp-content" id="main-content">
         <Breadcrumb items={breadcrumbItems} />
-
-        {/* Toast confirmation */}
-        {toastMessage && (
-          <aside className="ts-cart-toast" role="status" aria-live="polite">
-            <div className="ts-cart-toast__content">
-              <Icon name="check" size={16} className="ts-cart-toast__icon" />
-              <span>{toastMessage}</span>
-            </div>
-            {onOpenCart && (
-              <button type="button" className="ts-cart-toast__undo" onClick={onOpenCart}>
-                View Cart
-              </button>
-            )}
-          </aside>
-        )}
 
         {/* Loading Skeleton */}
         {isLoading ? (
@@ -203,7 +201,7 @@ export function ProductDetailPage({
             <ProductSpecsTable product={product} />
 
             {/* Customer Reviews & Ratings */}
-            <ProductReviews product={product} />
+            <ProductReviews product={product} authResult={authResult} onSignIn={onSignIn} />
 
             {/* Related Hardware Rail */}
             {product.relatedProducts && product.relatedProducts.length > 0 && (

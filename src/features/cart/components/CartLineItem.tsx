@@ -48,7 +48,7 @@ export function CartLineItem({
       {/* Product Thumbnail */}
       <div
         className="ts-cart-line-item__media"
-        onClick={() => onOpenProduct?.(item.id)}
+        onClick={() => onOpenProduct?.(item.productId ?? item.id)}
         role="button"
         tabIndex={0}
         aria-label={`View ${item.name}`}
@@ -72,7 +72,7 @@ export function CartLineItem({
             </div>
             <h3
               className="ts-cart-line-item__name"
-              onClick={() => onOpenProduct?.(item.id)}
+              onClick={() => onOpenProduct?.(item.productId ?? item.id)}
             >
               {item.name}
             </h3>
@@ -131,7 +131,7 @@ export function CartLineItem({
           <div className="ts-cart-line-item__subtotal-block">
             <span className="ts-cart-line-item__subtotal-label">Item Total:</span>
             <span className="ts-cart-line-item__subtotal tabular-nums">
-              ${lineSubtotal.toLocaleString()}
+              {Number(lineSubtotal || 0).toLocaleString('vi-VN')} ₫
             </span>
           </div>
         </div>
