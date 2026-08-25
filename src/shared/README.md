@@ -1,10 +1,13 @@
-# Shared Layer
+# Shared Layer — Tầng 2
 
-Contains code reused across multiple features:
+Code dùng lại được ở **bất kỳ ứng dụng nào**, không biết gì về nghiệp vụ TechShop.
 
-- `components`: reusable UI components.
-- `hooks`: reusable hooks that do not belong to one business feature.
-- `types`: shared TypeScript types, such as API response shapes.
-- `utils`: pure helpers, formatters, and validators.
+- `ui/` — primitive trình bày (Button, Modal, Icon, Table…). Nhận mọi thứ qua props.
+- `hooks/` — hook phi nghiệp vụ (timing, DOM, selection, disclosure). *Được lấp ở GĐ2.*
+- `utils/` — hàm thuần: money, date, text, url, array. *Được lấp ở GĐ2.*
+- `styles/` — `tokens.css` (nơi DUY NHẤT khai báo token toàn cục) và `base.css` (reset).
 
-Business-specific logic should stay inside its feature module instead of being moved here too early.
+**Được import:** `@domain`, `@core`.
+**Cấm import:** `@features`, `@layouts`, `@routes`, `@app`.
+
+Nếu một thứ cần biết `Product`, `Order`, `useCart` hay URL — nó không thuộc về đây.

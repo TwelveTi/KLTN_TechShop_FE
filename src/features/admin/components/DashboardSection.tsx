@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { Badge } from '../../../shared/components/Badge'
-import { Button } from '../../../shared/components/Button'
-import { Icon } from '../../../shared/components/Icon'
+import { Badge } from '@shared/ui/Badge'
+import { Button } from '@shared/ui/Button'
+import { formatVnd } from '@shared/utils/money'
+import { formatCount } from '@shared/utils/number'
+import { Icon } from '@shared/ui/Icon'
 import type {
   AdminOrder,
   AdminSection,
@@ -24,12 +26,6 @@ interface DashboardSectionProps {
   onEditProductById?: (productId: string) => void
 }
 
-const formatCurrency = (val: number) =>
-  new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(val || 0)
 
 export function DashboardSection({
   summary,
@@ -45,17 +41,17 @@ export function DashboardSection({
 }: DashboardSectionProps) {
   const [hoveredPoint, setHoveredPoint] = useState<RevenuePoint | null>(null)
 
-  const totalRev = summary?.totalRevenue || 0
+  const totalRev = summary?.totalRevenueVnd || 0
   const totalOrd = summary?.totalOrders || 0
   const totalProd = summary?.totalProducts || 0
   const totalCust = summary?.totalCustomers || 0
 
   // Calculate SVG chart coordinates
-  const maxRevenue = Math.max(...revenueSeries.map((d) => d.revenue), 1)
+  const maxRevenue = Math.max(...revenueSeries.map((d) => d.revenueVnd), 1)
   const minRevenue = 0
   const points = revenueSeries.map((d, index) => {
     const x = revenueSeries.length <= 1 ? 50 : (index / (revenueSeries.length - 1)) * 100
-    const y = 90 - ((d.revenue - minRevenue) / (maxRevenue - minRevenue || 1)) * 75
+    const y = 90 - ((d.revenueVnd - minRevenue) / (maxRevenue - minRevenue || 1)) * 75
     return { x, y, data: d }
   })
 
@@ -89,7 +85,7 @@ export function DashboardSection({
               <Icon name="dollar-sign" size={18} />
             </div>
           </div>
-          <div className="ts-admin-kpi-card__value ts-tabular">{formatCurrency(totalRev)}</div>
+          <div className="ts-admin-kpi-card__value ts-tabular">{formatVnd(totalRev)}</div>
           <div className="ts-admin-kpi-card__footer">
             <span className="ts-admin-kpi-growth ts-admin-kpi-growth--up">
               <Icon name="trending-up" size={14} /> +{summary?.revenueGrowthPercent || 18.4}%
@@ -107,7 +103,7 @@ export function DashboardSection({
             </div>
           </div>
           <div className="ts-admin-kpi-card__value ts-tabular">
-            {totalOrd.toLocaleString()}
+            {formatCount(totalOrd)}
           </div>
           <div className="ts-admin-kpi-card__footer">
             <span className="ts-admin-kpi-growth ts-admin-kpi-growth--up">
@@ -148,7 +144,7 @@ export function DashboardSection({
               <Icon name="users" size={18} />
             </div>
           </div>
-          <div className="ts-admin-kpi-card__value ts-tabular">{totalCust.toLocaleString()}</div>
+          <div className="ts-admin-kpi-card__value ts-tabular">{formatCount(totalCust)}</div>
           <div className="ts-admin-kpi-card__footer">
             <span className="ts-admin-kpi-growth ts-admin-kpi-growth--up">
               +{summary?.newCustomersThisMonth || 142}
@@ -244,7 +240,7 @@ export function DashboardSection({
               <div className="ts-admin-chart-tooltip">
                 <span className="ts-admin-chart-tooltip__date">{hoveredPoint.date}</span>
                 <span className="ts-admin-chart-tooltip__rev ts-tabular">
-                  {formatCurrency(hoveredPoint.revenue)}
+                  {formatVnd(hoveredPoint.revenueVnd)}
                 </span>
                 <span className="ts-admin-chart-tooltip__orders">
                   {hoveredPoint.orders} order{hoveredPoint.orders !== 1 ? 's' : ''}
@@ -381,7 +377,7 @@ export function DashboardSection({
                     </td>
                     <td>
                       <span className="ts-tabular ts-admin-price-text">
-                        {formatCurrency(order.totalAmount)}
+                        {formatVnd(order.totalAmountVnd)}
                       </span>
                     </td>
                     <td>
@@ -389,7 +385,7 @@ export function DashboardSection({
                         variant={
                           order.paymentStatus === 'PAID'
                             ? 'success'
-                            : order.paymentStatus === 'PENDING'
+                            : order.paymentStatus === 'UNPAID'
                               ? 'warning'
                               : 'danger'
                         }
@@ -402,7 +398,7 @@ export function DashboardSection({
                         variant={
                           order.fulfilmentStatus === 'DELIVERED'
                             ? 'success'
-                            : order.fulfilmentStatus === 'SHIPPED'
+                            : order.fulfilmentStatus === 'SHIPPING'
                               ? 'info'
                               : order.fulfilmentStatus === 'PROCESSING'
                                 ? 'accent'
@@ -454,7 +450,7 @@ export function DashboardSection({
                 <div className="ts-admin-top-seller-info">
                   <span className="ts-admin-top-seller-name">{product.productName}</span>
                   <span className="ts-admin-top-seller-meta">
-                    {product.soldQuantity} sold · <span className="ts-tabular">{formatCurrency(product.revenue)}</span>
+                    {product.soldQuantity} sold · <span className="ts-tabular">{formatVnd(product.revenueVnd)}</span>
                   </span>
                 </div>
               </div>

@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Button } from '../../../shared/components/Button'
-import { Icon } from '../../../shared/components/Icon'
+import { Button } from '@shared/ui/Button'
+import { Icon } from '@shared/ui/Icon'
 import {
-  loadVietnamLocations,
   fallbackVietnamLocations,
   formatAddressParts,
+  loadVietnamLocations,
   resolveDistrictName,
   resolveWardsForProvince,
+  type CreateAddressPayload,
   type ProvinceOption,
-} from '../../profile/lib/vietnamLocations'
-import type { CreateAddressPayload, UserAddress } from '../../profile/api/profileApi'
+  type UserAddress,
+} from '@features/addresses'
+
 
 export interface AddressStepProps {
   addresses: UserAddress[]
@@ -24,12 +26,15 @@ const formatAddress = (a: UserAddress): string =>
   formatAddressParts([a.addressLine, a.ward, a.district, a.province])
 
 export function AddressStep({ addresses, selectedId, loading, creating, onSelect, onCreate }: AddressStepProps) {
-  const [showForm, setShowForm] = useState(false)
+  const [formRequested, setFormRequested] = useState(false)
 
-  // Show the form automatically when there are no saved addresses.
-  useEffect(() => {
-    if (!loading && addresses.length === 0) setShowForm(true)
-  }, [loading, addresses.length])
+  /**
+   * Form hiện khi người dùng bấm "thêm địa chỉ", HOẶC khi chưa có địa chỉ nào
+   * để chọn. Suy ra lúc render thay vì `setState` trong effect — không có
+   * khoảnh khắc nào danh sách rỗng mà form chưa kịp hiện.
+   */
+  const showForm = formRequested || (!loading && addresses.length === 0)
+  const setShowForm = setFormRequested
 
   if (loading) {
     return (

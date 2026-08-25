@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { OrderStatus, PaymentStatus } from '@domain/order'
 
 export type AdminSection =
   | 'dashboard'
@@ -13,8 +14,25 @@ export type ProductStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'OUT_OF_STOCK'
 export type UserRole = 'CUSTOMER' | 'ADMIN'
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'SUSPENDED'
 export type UserVerificationStatus = 'verified' | 'unverified'
-export type PaymentStatus = 'PAID' | 'PENDING' | 'FAILED' | 'REFUNDED'
-export type FulfilmentStatus = 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED'
+/**
+ * Trạng thái đơn dùng lại NGUYÊN VĂN enum của domain — không còn tập riêng
+ * của admin (v1 thiếu REFUNDED và gọi SHIPPING là SHIPPED, buộc adminApi phải
+ * map REFUNDED → CANCELLED và làm mất phân biệt đơn hoàn tiền).
+ */
+export type { OrderStatus, PaymentStatus }
+
+/**
+ * Hình dạng tối thiểu của một "taxonomy" phẳng. `AdminCategory` và `AdminBrand`
+ * đều thoả, nên `TaxonomySection<T>` phục vụ được cả hai.
+ */
+export interface AdminTaxonomyEntity {
+  id: string
+  name: string
+  slug: string
+  description?: string | null
+  isActive?: boolean
+  productCount?: number
+}
 
 export interface AdminCategory {
   id: string
@@ -99,11 +117,20 @@ export interface AdminUser {
   updatedAt?: string
   updated_at?: string
   totalOrders?: number
-  totalSpent?: number
+  totalSpentVnd?: number
   address?: string
 }
 
-export const isUserVerified = (user: AdminUser | Record<string, any> | null | undefined): boolean => {
+/**
+ * Backend trả trường này ở cả hai kiểu đặt tên tuỳ endpoint, nên hàm nhận
+ * shape tối thiểu chứa một trong hai — không cần `any`.
+ */
+type VerifiableUser = {
+  emailVerifiedAt?: string | null
+  email_verified_at?: string | null
+}
+
+export const isUserVerified = (user: VerifiableUser | null | undefined): boolean => {
   if (!user) return false
   const verifiedAt = user.emailVerifiedAt ?? user.email_verified_at
   return verifiedAt !== null && verifiedAt !== undefined && verifiedAt !== ''
@@ -115,13 +142,13 @@ export interface OrderItem {
   productName: string
   productSku?: string
   imageUrl?: string
-  unitPrice: number
+  unitPriceVnd: number
   quantity: number
-  totalPrice: number
+  totalPriceVnd: number
 }
 
 export interface OrderTimelineEvent {
-  status: FulfilmentStatus | PaymentStatus | 'CREATED'
+  status: OrderStatus | PaymentStatus | 'CREATED'
   title: string
   description: string
   timestamp: string
@@ -146,13 +173,13 @@ export interface AdminOrder {
     country: string
   }
   items: OrderItem[]
-  subtotal: number
-  discount: number
-  shippingFee: number
-  totalAmount: number
+  subtotalVnd: number
+  discountVnd: number
+  shippingFeeVnd: number
+  totalAmountVnd: number
   paymentMethod: 'VNPAY' | 'COD' | 'CREDIT_CARD'
   paymentStatus: PaymentStatus
-  fulfilmentStatus: FulfilmentStatus
+  fulfilmentStatus: OrderStatus
   trackingNumber?: string
   carrier?: string
   notes?: string
@@ -163,7 +190,7 @@ export interface AdminOrder {
 
 export interface RevenuePoint {
   date: string
-  revenue: number
+  revenueVnd: number
   orders: number
 }
 
@@ -173,7 +200,7 @@ export interface TopSellingProduct {
   productSku: string
   categoryName: string
   soldQuantity: number
-  revenue: number
+  revenueVnd: number
   imageUrl?: string
 }
 
@@ -188,7 +215,7 @@ export interface LowStockItem {
 }
 
 export interface DashboardSummary {
-  totalRevenue: number
+  totalRevenueVnd: number
   revenueGrowthPercent: number
   totalOrders: number
   ordersGrowthPercent: number
@@ -197,13 +224,14 @@ export interface DashboardSummary {
   outOfStockCount: number
   totalCustomers: number
   newCustomersThisMonth: number
-  averageOrderValue: number
+  averageOrderValueVnd: number
   orderStatusCounts: {
     pending: number
     processing: number
     shipped: number
     delivered: number
     cancelled: number
+    refunded: number
   }
   paymentStatusCounts: {
     paid: number

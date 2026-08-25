@@ -16,6 +16,17 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Layer aliases — keep in sync with resolve.alias in vite.config.ts */
+    "paths": {
+      "@app/*": ["./src/app/*"],
+      "@routes/*": ["./src/routes/*"],
+      "@layouts/*": ["./src/layouts/*"],
+      "@features/*": ["./src/features/*"],
+      "@shared/*": ["./src/shared/*"],
+      "@domain/*": ["./src/domain/*"],
+      "@core/*": ["./src/core/*"]
+    },
+
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,

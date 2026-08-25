@@ -23,7 +23,7 @@
   --profile-border: rgba(255, 255, 255, 0.08);
 }
 
-/* The shared header is rendered by UserLayout → GlobalHeader
+/* The shared header is rendered by StorefrontLayout → GlobalHeader
  * (.ts-global-header); the old page-local .home-header override was dead. */
 
 /* =================================================================

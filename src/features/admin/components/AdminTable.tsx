@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Icon } from '../../../shared/components/Icon'
+import { Icon } from '@shared/ui/Icon'
 import type { TableColumn } from '../types'
 
 interface AdminTableProps<T> {
@@ -18,6 +18,15 @@ interface AdminTableProps<T> {
   onToggleSelectAll?: () => void
   onToggleSelectRow?: (id: string) => void
   isAllSelected?: boolean
+}
+
+/**
+ * Đọc một ô theo tên khoá khi cột không có `render` riêng.
+ * Dùng `unknown` chứ không `any`: giá trị chỉ được đưa qua `String()`.
+ */
+function readCell(row: unknown, key: string): string {
+  const value = (row as Record<string, unknown>)?.[key]
+  return value === null || value === undefined ? '-' : String(value)
 }
 
 export function AdminTable<T>({
@@ -153,7 +162,7 @@ export function AdminTable<T>({
                   const alignClass = col.align ? `ts-admin-align-${col.align}` : 'ts-admin-align-left'
                   return (
                     <td key={col.key} className={`ts-admin-td ${alignClass}`}>
-                      {col.render ? col.render(item, index) : String((item as any)[col.key] ?? '-')}
+                      {col.render ? col.render(item, index) : String(readCell(item, col.key))}
                     </td>
                   )
                 })}

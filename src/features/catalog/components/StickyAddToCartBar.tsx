@@ -1,5 +1,5 @@
-import { Button } from '../../../shared/components/Button'
-import { Icon } from '../../../shared/components/Icon'
+import { Button } from '@shared/ui/Button'
+import { Icon } from '@shared/ui/Icon'
 
 export interface StickyAddToCartBarProps {
   productName: string

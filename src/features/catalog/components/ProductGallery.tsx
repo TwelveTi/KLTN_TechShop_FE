@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Icon } from '../../../shared/components/Icon'
-import { Badge } from '../../../shared/components/Badge'
+import { Icon } from '@shared/ui/Icon'
+import { Badge } from '@shared/ui/Badge'
 
 export interface ProductGalleryProps {
   images: string[]

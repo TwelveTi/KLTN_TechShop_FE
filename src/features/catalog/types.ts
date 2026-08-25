@@ -1,12 +1,7 @@
-import type { ProductItem } from '../../shared/components/ProductCard'
+import type { Product } from '@domain/product'
+import type { Vnd } from '@domain/money'
 
-export type SortOption =
-  | 'popular'
-  | 'newest'
-  | 'price_asc'
-  | 'price_desc'
-  | 'rating'
-  | 'name_asc'
+export type SortOption = 'popular' | 'newest' | 'price_asc' | 'price_desc' | 'rating' | 'name_asc'
 
 export type ViewMode = 'grid' | 'list' | 'compact'
 
@@ -30,12 +25,11 @@ export interface CatalogFilters {
   q?: string
   category?: string
   brands: string[]
-  minPrice?: number
-  maxPrice?: number
+  minPriceVnd?: Vnd
+  maxPriceVnd?: Vnd
   inStock?: boolean
   onSale?: boolean
   rating?: number
-  specs?: string[]
   sort: SortOption
   page: number
   limit: number
@@ -50,24 +44,17 @@ export interface CatalogMeta {
 }
 
 export interface CatalogResponse {
-  items: ProductItem[]
+  items: Product[]
   pagination: CatalogMeta
   categories: CatalogCategory[]
   brands: CatalogBrand[]
-  priceRange: { min: number; max: number }
-}
-
-export interface CompareItem extends ProductItem {
-  brandName?: string
-  specMap?: Record<string, string>
 }
 
 export interface ProductVariant {
   id: string
   name: string
   sku: string
-  price?: string
-  rawPrice?: number
+  priceVnd: Vnd
   inStock: boolean
   isDefault?: boolean
 }
@@ -78,20 +65,34 @@ export interface ProductSpecItem {
   value: string
 }
 
+/** Sản phẩm ở trang chi tiết: `Product` cộng nội dung dài và biến thể. */
+export interface ProductDetail extends Product {
+  slug: string
+  categorySlug: string
+  brandSlug: string
+  /** Giá niêm yết, luôn có (khác `originalPriceVnd` chỉ xuất hiện khi giảm giá). */
+  basePriceVnd: Vnd
+  inStock: boolean
+  shortDescription: string
+  fullDescription: string
+  galleryImages: string[]
+  variants: ProductVariant[]
+  specifications: ProductSpecItem[]
+  highlights: string[]
+  relatedProducts: Product[]
+}
+
 export interface ProductReview {
   id: string
-  /** Reviewer display name. */
+  /** Tên hiển thị của người đánh giá. */
   user: string
-  /** Reviewer backend id — used to detect the current user's own review. */
+  /** Id backend — để nhận ra đánh giá của chính người đang đăng nhập. */
   userId?: string
-  /** Reviewer avatar url (server reviews only). */
   avatarUrl?: string | null
   rating: number
-  /** Optional short headline for the review. */
   title?: string | null
   comment: string
   verifiedPurchase: boolean
-  /** ISO timestamp. */
   createdAt: string
   updatedAt?: string
 }
@@ -107,23 +108,3 @@ export interface ProductReviewsData {
   distribution: ReviewDistributionBucket[]
   reviews: ProductReview[]
 }
-
-export interface ProductDetailData extends ProductItem {
-  slug: string
-  categorySlug: string
-  brandSlug: string
-  rawPrice: number
-  rawOriginalPrice?: number
-  discountPercent?: number
-  inStock: boolean
-  rating: number
-  reviewCount: number
-  shortDescription: string
-  fullDescription: string
-  galleryImages: string[]
-  variants: ProductVariant[]
-  specifications: ProductSpecItem[]
-  highlights: string[]
-  relatedProducts: ProductItem[]
-}
-

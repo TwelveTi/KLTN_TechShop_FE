@@ -1,4 +1,4 @@
-import { Icon, type IconName } from '../../../shared/components/Icon'
+import { Icon, type IconName } from '@shared/ui/Icon'
 import type { CatalogCategory } from '../types'
 
 export interface CategoryPillsProps {

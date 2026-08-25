@@ -1,0 +1,108 @@
+/* ===================================================================
+ * Base layer — reset, document defaults, và utility toàn cục.
+ *
+ * File này KHÔNG khai báo token (xem tokens.css) và KHÔNG chứa style
+ * của bất kỳ component nào (xem shared/ui/ui.css hoặc CSS của feature).
+ * Nạp sau tokens.css.
+ * =================================================================== */
+
+/* ── Reset ────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  overflow-x: clip;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg);
+  /* Fixed ambient wash gives the whole app depth and a subtle brand tint,
+   * replacing the flat white-gray canvas. */
+  background-image: var(--page-wash);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  color: var(--color-text);
+  overflow-x: clip;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  color: var(--color-heading);
+  margin: 0;
+  line-height: 1.15;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ── Utilities ────────────────────────────────────────────────────── */
+
+/* Universal tabular numerals for prices & aligned data */
+.tabular-nums, .price-tag, .stat-value, .cart-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Visually hidden utility for screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Accessibility ────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+  transition: outline var(--dur-instant);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

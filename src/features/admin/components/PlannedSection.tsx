@@ -1,5 +1,5 @@
-import { Badge } from '../../../shared/components/Badge'
-import { Icon, type IconName } from '../../../shared/components/Icon'
+import { Badge } from '@shared/ui/Badge'
+import { Icon, type IconName } from '@shared/ui/Icon'
 
 interface PlannedModule {
   id: string

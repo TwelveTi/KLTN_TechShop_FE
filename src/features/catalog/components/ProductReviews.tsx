@@ -1,28 +1,25 @@
-import { useEffect, useState } from 'react'
-import { Icon } from '../../../shared/components/Icon'
-import { Button } from '../../../shared/components/Button'
-import { Avatar } from '../../../shared/components/Avatar'
-import { useToast } from '../../../shared/components/Toast'
+import { useState } from 'react'
+import { formatCount } from '@shared/utils/number'
+import { Icon } from '@shared/ui/Icon'
+import { Button } from '@shared/ui/Button'
+import { Avatar } from '@shared/ui/Avatar'
+import { useToast } from '@shared/ui/useToast'
 import { StarRating } from './StarRating'
 import { WriteReviewForm, type WriteReviewFormValues } from './WriteReviewForm'
-import { getProductReviews } from '../lib/mockReviews'
-import { reviewApi, type ReviewSummary } from '../api/reviewApi'
-import type { AuthResult } from '../../auth/types'
-import type { ProductDetailData, ProductReview } from '../types'
+import { toErrorMessage } from '@core/http'
+import { formatDate } from '@shared/utils/date'
+import { useDeleteReview, useReviewSummary, useReviews, useSaveReview } from '../hooks/useReviews'
+import type { AuthResult } from '@features/auth'
+import type { ProductDetail, ProductReview } from '../types'
 
 export interface ProductReviewsProps {
-  product: ProductDetailData
+  product: ProductDetail
   authResult?: AuthResult | null
   onSignIn?: () => void
 }
 
 const PAGE_SIZE = 5
 
-const formatReviewDate = (iso: string): string => {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return ''
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 function ReviewCard({
   review,
@@ -52,7 +49,7 @@ function ReviewCard({
           </div>
           <div className="ts-review-card__meta">
             <StarRating value={review.rating} size={14} aria-label={`${review.rating} out of 5 stars`} />
-            <span className="ts-review-card__date">{formatReviewDate(review.createdAt)}</span>
+            <span className="ts-review-card__date">{formatDate(review.createdAt)}</span>
           </div>
         </div>
 
@@ -84,110 +81,60 @@ export function ProductReviews({ product, authResult, onSignIn }: ProductReviews
   const { showToast } = useToast()
   const currentUserId = authResult?.user?.id
 
-  const [summary, setSummary] = useState<ReviewSummary>({ average: 0, total: 0, distribution: [] })
-  const [reviews, setReviews] = useState<ProductReview[]>([])
-  const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [loading, setLoading] = useState(true)
-  const [loadingMore, setLoadingMore] = useState(false)
-  const [usingMock, setUsingMock] = useState(false)
-
+  // Số TRANG ĐANG HIỂN THỊ, không phải trang hiện tại: "Load more" là nối thêm,
+  // nên ta xin một danh sách dài hơn thay vì trang kế tiếp — hợp với cache khoá
+  // theo (productId, limit) và giữ được toàn bộ danh sách đã tải.
+  const [pagesShown, setPagesShown] = useState(1)
   const [composing, setComposing] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
 
-  // ProductDetailData always carries a real id (set by catalogApi); the base
-  // ProductItem type marks it optional, so coerce to a definite string here.
+  // ProductDetail luôn mang id thật (do mapper đặt); kiểu Product gốc để id là
+  // tuỳ chọn nên ép về chuỗi xác định ở đây.
   const productId = product.id ?? ''
 
-  const loadReviews = async () => {
-    setLoading(true)
-    try {
-      const [summaryData, listData] = await Promise.all([
-        reviewApi.getSummary(productId),
-        reviewApi.getReviews(productId, { page: 1, limit: PAGE_SIZE }),
-      ])
-      setSummary(summaryData)
-      setReviews(listData.items)
-      setPage(1)
-      setTotalPages(listData.pagination.totalPages || 1)
-      setUsingMock(false)
-    } catch {
-      // Backend unavailable — fall back to deterministic sample data so the
-      // section still renders (offline/demo mode). Writing is disabled here.
-      const mock = getProductReviews(product)
-      setSummary({ average: mock.average, total: mock.total, distribution: mock.distribution })
-      setReviews(mock.reviews)
-      setPage(1)
-      setTotalPages(1)
-      setUsingMock(true)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const summaryQuery = useReviewSummary(productId)
+  const listQuery = useReviews(productId, pagesShown * PAGE_SIZE)
+  const saveReview = useSaveReview(productId)
+  const deleteReview = useDeleteReview(productId)
 
-  useEffect(() => {
-    setComposing(false)
-    setEditing(false)
-    void loadReviews()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [productId])
+  const summary = summaryQuery.data ?? { average: 0, total: 0, distribution: [] }
+  const reviews = listQuery.data?.items ?? []
+  const totalReviews = listQuery.data?.pagination.total ?? 0
+  const loading = summaryQuery.isLoading || listQuery.isLoading
+  const loadError = summaryQuery.error ?? listQuery.error
+  const submitting = saveReview.isPending
 
-  const handleLoadMore = async () => {
-    if (usingMock) return
-    const next = page + 1
-    setLoadingMore(true)
-    try {
-      const listData = await reviewApi.getReviews(productId, { page: next, limit: PAGE_SIZE })
-      setReviews((prev) => [...prev, ...listData.items])
-      setPage(next)
-      setTotalPages(listData.pagination.totalPages || next)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not load more reviews.'
-      showToast(message, { variant: 'error' })
-    } finally {
-      setLoadingMore(false)
-    }
-  }
+  // Không cần effect reset khi đổi sản phẩm: ProductDetailScreen truyền
+  // `key={product.id}`, nên React tạo lại component với state ban đầu.
 
   const myReview = currentUserId ? reviews.find((r) => r.userId && r.userId === currentUserId) : undefined
 
   const handleCreate = async (values: WriteReviewFormValues) => {
-    setSubmitting(true)
     try {
-      await reviewApi.createReview(productId, {
+      await saveReview.mutate(null, {
         rating: values.rating,
         title: values.title || null,
         content: values.content || null,
       })
       showToast('Thanks! Your review has been posted.', { variant: 'success' })
       setComposing(false)
-      await loadReviews()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not post your review.'
-      showToast(message, { variant: 'error' })
-    } finally {
-      setSubmitting(false)
+      showToast(toErrorMessage(error, 'Could not post your review.'), { variant: 'error' })
     }
   }
 
   const handleUpdate = async (values: WriteReviewFormValues) => {
     if (!myReview) return
-    setSubmitting(true)
     try {
-      await reviewApi.updateReview(myReview.id, {
+      await saveReview.mutate(myReview.id, {
         rating: values.rating,
         title: values.title || null,
         content: values.content || null,
       })
       showToast('Your review has been updated.', { variant: 'success' })
       setEditing(false)
-      await loadReviews()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not update your review.'
-      showToast(message, { variant: 'error' })
-    } finally {
-      setSubmitting(false)
+      showToast(toErrorMessage(error, 'Could not update your review.'), { variant: 'error' })
     }
   }
 
@@ -195,26 +142,36 @@ export function ProductReviews({ product, authResult, onSignIn }: ProductReviews
     if (!myReview) return
     if (!window.confirm('Delete your review? This cannot be undone.')) return
     try {
-      await reviewApi.deleteReview(myReview.id)
+      await deleteReview.mutate(myReview.id)
       showToast('Your review has been removed.', { variant: 'info' })
-      await loadReviews()
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Could not delete your review.'
-      showToast(message, { variant: 'error' })
+      showToast(toErrorMessage(error, 'Could not delete your review.'), { variant: 'error' })
     }
   }
 
   const maxBucket = Math.max(1, ...summary.distribution.map((b) => b.count))
   const listReviews = myReview ? reviews.filter((r) => r.id !== myReview.id) : reviews
-  const hasMore = !usingMock && page < totalPages
+  const hasMore = reviews.length < totalReviews
+
+  // Chỉ tăng số trang hiển thị — hook tự xin danh sách dài hơn, và quay lại
+  // độ dài cũ thì lấy từ cache.
+  const handleLoadMore = () => setPagesShown((shown) => shown + 1)
 
   const renderWriteArea = () => {
-    // Offline/sample mode: writing is not available without the backend.
-    if (usingMock) {
+    // Không tải được đánh giá: nói thật, không thay bằng dữ liệu giả.
+    if (loadError) {
       return (
-        <p className="ts-pdp-reviews__note">
-          <Icon name="info" size={14} /> Showing sample reviews — connect to the store to post your own.
-        </p>
+        <div className="ts-review-signin" role="alert">
+          <div>
+            <h3 className="ts-review-signin__title">Reviews are unavailable right now</h3>
+            <p className="ts-review-signin__desc">
+              {toErrorMessage(loadError, 'We could not load reviews for this product.')}
+            </p>
+          </div>
+          <Button variant="secondary" size="md" onClick={() => void listQuery.refetch()}>
+            Try again
+          </Button>
+        </div>
       )
     }
 
@@ -292,7 +249,7 @@ export function ProductReviews({ product, authResult, onSignIn }: ProductReviews
             aria-label={`Average rating ${summary.average.toFixed(1)} out of 5`}
           />
           <span className="ts-review-score__count tabular-nums">
-            Based on {summary.total.toLocaleString()} {summary.total === 1 ? 'review' : 'reviews'}
+            Based on {formatCount(summary.total)} {summary.total === 1 ? 'review' : 'reviews'}
           </span>
         </div>
 
@@ -352,10 +309,10 @@ export function ProductReviews({ product, authResult, onSignIn }: ProductReviews
             variant="secondary"
             size="md"
             onClick={handleLoadMore}
-            disabled={loadingMore}
+            disabled={listQuery.isFetching}
             trailingIcon={<Icon name="chevron-down" size={16} />}
           >
-            {loadingMore ? 'Loading…' : 'Load more reviews'}
+            {listQuery.isFetching ? 'Loading…' : 'Load more reviews'}
           </Button>
         </div>
       )}

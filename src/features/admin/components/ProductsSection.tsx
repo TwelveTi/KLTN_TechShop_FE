@@ -1,11 +1,12 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { Badge } from '../../../shared/components/Badge'
-import { Button } from '../../../shared/components/Button'
-import { Icon } from '../../../shared/components/Icon'
-import { Modal } from '../../../shared/components/Modal'
+import { Badge } from '@shared/ui/Badge'
+import { Button } from '@shared/ui/Button'
+import { formatVnd } from '@shared/utils/money'
+import { Icon } from '@shared/ui/Icon'
+import { Modal } from '@shared/ui/Modal'
 import { AdminPagination } from './AdminPagination'
 import { AdminTable } from './AdminTable'
-import { ConfirmModal } from './ConfirmModal'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import type {
   AdminBrand,
   AdminCategory,
@@ -41,12 +42,6 @@ interface ProductsSectionProps {
   onUploadImages?: (files: File[]) => Promise<{ imageUrl: string; publicId: string }[]>
 }
 
-const formatCurrency = (val: number | string | undefined) =>
-  new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(Number(val || 0))
 
 export function ProductsSection({
   products,
@@ -307,9 +302,9 @@ export function ProductsSection({
       sortable: true,
       render: (product) => (
         <div className="ts-admin-price-cell">
-          <span className="ts-tabular ts-admin-price-text">{formatCurrency(product.basePrice)}</span>
+          <span className="ts-tabular ts-admin-price-text">{formatVnd(product.basePrice)}</span>
           {product.salePrice && (
-            <span className="ts-tabular ts-admin-sale-price">{formatCurrency(product.salePrice)}</span>
+            <span className="ts-tabular ts-admin-sale-price">{formatVnd(product.salePrice)}</span>
           )}
         </div>
       ),
@@ -833,12 +828,12 @@ export function ProductsSection({
 
       {/* Delete Confirmation Modal */}
       {activeModal === 'delete' && selectedProduct && (
-        <ConfirmModal
+        <ConfirmDialog
           isOpen={true}
           title="Delete Product"
           message={`Are you sure you want to permanently delete "${selectedProduct.name}"? This action cannot be undone.`}
           confirmLabel="Delete Product"
-          variant="danger"
+          tone="danger"
           isLoading={isSubmitting}
           onConfirm={async () => {
             if (isSubmitting) return

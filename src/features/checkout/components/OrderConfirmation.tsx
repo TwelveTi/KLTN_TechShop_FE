@@ -1,6 +1,6 @@
-import { Button } from '../../../shared/components/Button'
-import { Icon } from '../../../shared/components/Icon'
-import { formatVnd } from '../lib/checkout'
+import { Button } from '@shared/ui/Button'
+import { Icon } from '@shared/ui/Icon'
+import { formatVnd } from '@shared/utils/money'
 import type { CreatedOrder, PaymentMethod } from '../types'
 
 export interface OrderConfirmationProps {

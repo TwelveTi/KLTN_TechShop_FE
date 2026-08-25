@@ -1,16 +1,35 @@
-import { useState, useMemo, useEffect, type FormEvent } from 'react'
-import { Badge } from '../../../shared/components/Badge'
-import { Button } from '../../../shared/components/Button'
-import { Icon } from '../../../shared/components/Icon'
-import { Modal } from '../../../shared/components/Modal'
+import { useState, useMemo, type FormEvent } from 'react'
+import { Badge } from '@shared/ui/Badge'
+import { Button } from '@shared/ui/Button'
+import { formatVnd } from '@shared/utils/money'
+import { formatDate, formatDateTime, formatRelative as formatRelativeTime } from '@shared/utils/date'
+import { Icon } from '@shared/ui/Icon'
+import { Modal } from '@shared/ui/Modal'
 import { AdminPagination } from './AdminPagination'
 import { AdminTable } from './AdminTable'
-import { ConfirmModal } from './ConfirmModal'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import { isUserVerified, type AdminUser, type TableColumn, type UserRole, type UserStatus } from '../types'
 
 interface UsersSectionProps {
+  /** Đúng MỘT trang người dùng, đã được server lọc và sắp xếp. */
   users: AdminUser[]
   isLoading?: boolean
+  totalItems: number
+  currentPage: number
+  pageSize: number
+  searchQuery: string
+  selectedRole: string
+  selectedStatus: string
+  selectedVerification: string
+  /** Cảnh báo khi tìm kiếm/lọc chỉ bao phủ một phần dữ liệu (giới hạn backend). */
+  truncatedNotice?: string
+  onSearchChange: (value: string) => void
+  onRoleChange: (value: string) => void
+  onStatusChange: (value: string) => void
+  onVerificationChange: (value: string) => void
+  onPageChange: (page: number) => void
+  onPageSizeChange: (size: number) => void
+  onResetFilters: () => void
   onCreateUser: (user: Partial<AdminUser> & { password?: string }) => Promise<void>
   onUpdateUser: (id: string, user: Partial<AdminUser>) => Promise<void>
   onBulkUpdateStatus?: (ids: string[], status: UserStatus) => Promise<void>
@@ -26,81 +45,38 @@ type UserModalType =
   | 'delete'
   | null
 
-const formatDate = (isoString?: string | null) => {
-  if (!isoString) return '—'
-  try {
-    return new Date(isoString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
-  } catch {
-    return isoString
-  }
-}
 
-const formatDateTime = (isoString?: string | null) => {
-  if (!isoString) return '—'
-  try {
-    return new Date(isoString).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return isoString
-  }
-}
-
-const formatRelativeTime = (isoString?: string | null) => {
-  if (!isoString) return 'Never'
-  try {
-    const date = new Date(isoString)
-    const now = new Date()
-    const diffInMs = now.getTime() - date.getTime()
-    const diffInMins = Math.floor(diffInMs / (1000 * 60))
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
-    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
-
-    if (diffInMins < 5) return 'Just now'
-    if (diffInMins < 60) return `${diffInMins}m ago`
-    if (diffInHours < 24) return `${diffInHours}h ago`
-    if (diffInDays === 1) return 'Yesterday'
-    if (diffInDays < 7) return `${diffInDays}d ago`
-    return formatDate(isoString)
-  } catch {
-    return isoString
-  }
-}
-
-const formatCurrency = (amount?: number) => {
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(amount || 0)
-}
-
+/**
+ * Bảng người dùng.
+ *
+ * Lọc, sắp xếp và phân trang do SERVER làm; component này chỉ hiển thị đúng
+ * trang nó nhận được. v1 kéo `limit: 100` một lần rồi tự lọc/sắp/cắt trang trên
+ * mảng đó, nên người dùng thứ 101 trở đi vô hình với admin: tìm không ra, và số
+ * liệu ở chân bảng cũng sai.
+ */
 export function UsersSection({
   users,
   isLoading = false,
+  totalItems,
+  currentPage,
+  pageSize,
+  searchQuery,
+  selectedRole,
+  selectedStatus,
+  selectedVerification,
+  truncatedNotice,
+  onSearchChange,
+  onRoleChange,
+  onStatusChange,
+  onVerificationChange,
+  onPageChange,
+  onPageSizeChange,
+  onResetFilters,
   onCreateUser,
   onUpdateUser,
   onBulkUpdateStatus,
   onDeleteUser,
 }: UsersSectionProps) {
-  // Filter & Search Controls state
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedRole, setSelectedRole] = useState('ALL')
-  const [selectedStatus, setSelectedStatus] = useState('ALL')
-  const [selectedVerification, setSelectedVerification] = useState('ALL')
-  const [sortKey, setSortKey] = useState('createdAt-desc')
-
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
 
   // Selection & Modal state (Single discriminant pattern)
   const [activeModal, setActiveModal] = useState<UserModalType>(null)
@@ -119,104 +95,17 @@ export function UsersSection({
   const [status, setStatus] = useState<UserStatus>('ACTIVE')
   const [address, setAddress] = useState('')
 
-  // -------------------------------------------------------------
-  // Data Transformation Pipeline:
-  // ALL USERS -> SEARCH -> ROLE -> STATUS -> VERIFICATION -> SORT
-  // -------------------------------------------------------------
-  const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
-      // 1. Search across Name, Email, and Phone
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim()
-        const matchName = u.fullName?.toLowerCase().includes(q)
-        const matchEmail = u.email?.toLowerCase().includes(q)
-        const matchPhone = u.phone ? u.phone.toLowerCase().includes(q) : false
-        if (!matchName && !matchEmail && !matchPhone) return false
-      }
-
-      // 2. Role filter
-      if (selectedRole !== 'ALL' && u.role !== selectedRole) {
-        return false
-      }
-
-      // 3. Account Status filter
-      if (selectedStatus !== 'ALL') {
-        if (selectedStatus === 'ACTIVE' && u.status !== 'ACTIVE') return false
-        if (selectedStatus === 'SUSPENDED' && u.status !== 'SUSPENDED' && u.status !== 'BLOCKED') return false
-        if (selectedStatus === 'INACTIVE' && u.status !== 'INACTIVE') return false
-      }
-
-      // 4. Verification filter (derived strictly from email_verified_at / emailVerifiedAt)
-      if (selectedVerification !== 'ALL') {
-        const verified = isUserVerified(u)
-        if (selectedVerification === 'verified' && !verified) return false
-        if (selectedVerification === 'unverified' && verified) return false
-      }
-
-      return true
-    })
-  }, [users, searchQuery, selectedRole, selectedStatus, selectedVerification])
-
-  const sortedUsers = useMemo(() => {
-    return [...filteredUsers].sort((a, b) => {
-      const createdA = a.createdAt || a.created_at || 0
-      const createdB = b.createdAt || b.created_at || 0
-      const activeA = a.lastActiveAt || a.lastLoginAt || a.last_login_at || 0
-      const activeB = b.lastActiveAt || b.lastLoginAt || b.last_login_at || 0
-
-      switch (sortKey) {
-        case 'createdAt-desc':
-          return new Date(createdB).getTime() - new Date(createdA).getTime()
-        case 'createdAt-asc':
-          return new Date(createdA).getTime() - new Date(createdB).getTime()
-        case 'name-asc':
-          return (a.fullName || '').localeCompare(b.fullName || '')
-        case 'name-desc':
-          return (b.fullName || '').localeCompare(a.fullName || '')
-        case 'lastActive-desc':
-          return new Date(activeB).getTime() - new Date(activeA).getTime()
-        case 'orders-desc':
-          return (b.totalOrders || 0) - (a.totalOrders || 0)
-        case 'spent-desc':
-          return (b.totalSpent || 0) - (a.totalSpent || 0)
-        default:
-          return 0
-      }
-    })
-  }, [filteredUsers, sortKey])
-
-  // Pagination calculation
-  const totalFiltered = sortedUsers.length
-  const totalPages = Math.max(1, Math.ceil(totalFiltered / pageSize))
-
-  // Ensure current page is valid whenever filters reduce result count
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(1)
-    }
-  }, [currentPage, totalPages])
-
-  const paginatedUsers = useMemo(() => {
-    const start = (currentPage - 1) * pageSize
-    return sortedUsers.slice(start, start + pageSize)
-  }, [sortedUsers, currentPage, pageSize])
+  // Server đã lọc/sắp/cắt trang — hiển thị nguyên văn những gì nhận được.
+  const paginatedUsers = users
+  const totalFiltered = totalItems
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
 
   // Active filters check
   const hasActiveFilters =
     searchQuery.trim() !== '' ||
     selectedRole !== 'ALL' ||
     selectedStatus !== 'ALL' ||
-    selectedVerification !== 'ALL' ||
-    sortKey !== 'createdAt-desc'
-
-  const handleResetFilters = () => {
-    setSearchQuery('')
-    setSelectedRole('ALL')
-    setSelectedStatus('ALL')
-    setSelectedVerification('ALL')
-    setSortKey('createdAt-desc')
-    setCurrentPage(1)
-  }
+    selectedVerification !== 'ALL'
 
   // Row selection helpers
   const allVisibleIds = useMemo(() => paginatedUsers.map((u) => u.id), [paginatedUsers])
@@ -540,8 +429,8 @@ export function UsersSection({
               placeholder="Search by name, email, phone..."
               value={searchQuery}
               onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setCurrentPage(1)
+                onSearchChange(e.target.value)
+                onPageChange(1)
               }}
               aria-label="Search users"
             />
@@ -550,8 +439,8 @@ export function UsersSection({
                 type="button"
                 className="ts-admin-search-clear"
                 onClick={() => {
-                  setSearchQuery('')
-                  setCurrentPage(1)
+                  onSearchChange('')
+                  onPageChange(1)
                 }}
                 aria-label="Clear search"
                 title="Clear search"
@@ -566,8 +455,8 @@ export function UsersSection({
             <select
               value={selectedRole}
               onChange={(e) => {
-                setSelectedRole(e.target.value)
-                setCurrentPage(1)
+                onRoleChange(e.target.value)
+                onPageChange(1)
               }}
               aria-label="Filter by role"
             >
@@ -585,8 +474,8 @@ export function UsersSection({
             <select
               value={selectedStatus}
               onChange={(e) => {
-                setSelectedStatus(e.target.value)
-                setCurrentPage(1)
+                onStatusChange(e.target.value)
+                onPageChange(1)
               }}
               aria-label="Filter by account status"
             >
@@ -604,8 +493,8 @@ export function UsersSection({
             <select
               value={selectedVerification}
               onChange={(e) => {
-                setSelectedVerification(e.target.value)
-                setCurrentPage(1)
+                onVerificationChange(e.target.value)
+                onPageChange(1)
               }}
               aria-label="Filter by verification"
             >
@@ -618,35 +507,16 @@ export function UsersSection({
             </span>
           </div>
 
-          {/* Sort Selector */}
-          <div className="ts-admin-select-wrapper">
-            <select
-              value={sortKey}
-              onChange={(e) => {
-                setSortKey(e.target.value)
-                setCurrentPage(1)
-              }}
-              aria-label="Sort users"
-            >
-              <option value="createdAt-desc">Joined (Newest)</option>
-              <option value="createdAt-asc">Joined (Oldest)</option>
-              <option value="name-asc">Name (A-Z)</option>
-              <option value="name-desc">Name (Z-A)</option>
-              <option value="lastActive-desc">Last Activity (Newest)</option>
-              <option value="orders-desc">Orders (Highest)</option>
-              <option value="spent-desc">Spent (Highest)</option>
-            </select>
-            <span className="ts-admin-select-icon">
-              <Icon name="chevron-down" size={14} />
-            </span>
-          </div>
+          {/* Ô "Sort by" đã gỡ: sắp xếp phải do server làm để đúng trên toàn
+              tập dữ liệu, mà backend chưa nhận tham số sortBy cho endpoint này.
+              TODO(BE): thêm sortBy/sortOrder rồi khôi phục ô chọn. */}
 
           {/* Reset Filters */}
           {hasActiveFilters && (
             <button
               type="button"
               className="ts-admin-clear-filters-btn"
-              onClick={handleResetFilters}
+              onClick={onResetFilters}
             >
               <Icon name="rotate-ccw" size={12} />
               Reset Filters
@@ -703,6 +573,13 @@ export function UsersSection({
       )}
 
       {/* 3. Main Data Table */}
+      {truncatedNotice && (
+        <p className="ts-admin-inline-notice" role="status">
+          <Icon name="info" size={14} />
+          <span>{truncatedNotice}</span>
+        </p>
+      )}
+
       <AdminTable
         columns={columns}
         data={paginatedUsers}
@@ -716,7 +593,7 @@ export function UsersSection({
         }
         emptyAction={
           hasActiveFilters ? (
-            <Button variant="secondary" size="sm" onClick={handleResetFilters}>
+            <Button variant="secondary" size="sm" onClick={onResetFilters}>
               Reset Filters
             </Button>
           ) : (
@@ -738,10 +615,10 @@ export function UsersSection({
         totalPages={totalPages}
         currentPage={currentPage}
         pageSize={pageSize}
-        onPageChange={(p) => setCurrentPage(p)}
+        onPageChange={(p) => onPageChange(p)}
         onPageSizeChange={(sz) => {
-          setPageSize(sz)
-          setCurrentPage(1)
+          onPageSizeChange(sz)
+          onPageChange(1)
         }}
       />
 
@@ -826,14 +703,14 @@ export function UsersSection({
               </div>
               <div className="ts-admin-user-stat-box">
                 <span className="ts-admin-user-stat-label">Total Spent</span>
-                <span className="ts-admin-user-stat-value ts-tabular">{formatCurrency(selectedUser.totalSpent)}</span>
+                <span className="ts-admin-user-stat-value ts-tabular">{formatVnd(selectedUser.totalSpentVnd)}</span>
               </div>
               <div className="ts-admin-user-stat-box">
                 <span className="ts-admin-user-stat-label">Avg. Order Value</span>
                 <span className="ts-admin-user-stat-value ts-tabular">
-                  {formatCurrency(
+                  {formatVnd(
                     selectedUser.totalOrders && selectedUser.totalOrders > 0
-                      ? (selectedUser.totalSpent || 0) / selectedUser.totalOrders
+                      ? (selectedUser.totalSpentVnd || 0) / selectedUser.totalOrders
                       : 0,
                   )}
                 </span>
@@ -1024,7 +901,7 @@ export function UsersSection({
 
       {/* 7. Suspend / Activate Single User Confirm Modal */}
       {activeModal === 'toggle-status' && selectedUser && (
-        <ConfirmModal
+        <ConfirmDialog
           isOpen={true}
           title={targetStatus === 'SUSPENDED' ? 'Suspend User Account?' : 'Activate User Account?'}
           message={
@@ -1033,7 +910,7 @@ export function UsersSection({
               : `Are you sure you want to restore and activate "${selectedUser.fullName}" (${selectedUser.email})?`
           }
           confirmLabel={targetStatus === 'SUSPENDED' ? 'Suspend Account' : 'Activate Account'}
-          variant={targetStatus === 'SUSPENDED' ? 'warning' : 'primary'}
+          tone={targetStatus === 'SUSPENDED' ? 'warning' : 'primary'}
           isLoading={isSubmitting}
           onConfirm={handleConfirmToggleStatus}
           onCancel={closeModal}
@@ -1042,12 +919,12 @@ export function UsersSection({
 
       {/* 8. Bulk Status Confirm Modal */}
       {activeModal === 'bulk-status' && (
-        <ConfirmModal
+        <ConfirmDialog
           isOpen={true}
           title={targetStatus === 'SUSPENDED' ? 'Suspend Selected Users?' : 'Activate Selected Users?'}
           message={`Are you sure you want to update status for ${selectedUserIds.length} selected user(s) to "${targetStatus}"?`}
           confirmLabel={targetStatus === 'SUSPENDED' ? 'Suspend Users' : 'Activate Users'}
-          variant={targetStatus === 'SUSPENDED' ? 'warning' : 'primary'}
+          tone={targetStatus === 'SUSPENDED' ? 'warning' : 'primary'}
           isLoading={isSubmitting}
           onConfirm={handleConfirmBulkStatus}
           onCancel={closeModal}
@@ -1056,12 +933,12 @@ export function UsersSection({
 
       {/* 9. Delete Confirmation Modal */}
       {activeModal === 'delete' && selectedUser && (
-        <ConfirmModal
+        <ConfirmDialog
           isOpen={true}
           title="Delete User Account"
           message={`Are you sure you want to permanently remove user account for "${selectedUser.fullName}" (${selectedUser.email})? This action cannot be undone.`}
           confirmLabel="Delete User"
-          variant="danger"
+          tone="danger"
           isLoading={isSubmitting}
           onConfirm={async () => {
             setIsSubmitting(true)

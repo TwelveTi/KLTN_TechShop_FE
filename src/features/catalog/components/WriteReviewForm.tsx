@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { Icon } from '../../../shared/components/Icon'
-import { Button } from '../../../shared/components/Button'
+import { Icon } from '@shared/ui/Icon'
+import { Button } from '@shared/ui/Button'
 
 export interface WriteReviewFormValues {
   rating: number

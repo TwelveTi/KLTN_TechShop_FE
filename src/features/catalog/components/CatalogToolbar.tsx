@@ -1,5 +1,6 @@
-import { Icon } from '../../../shared/components/Icon'
-import { Button } from '../../../shared/components/Button'
+import { formatVnd } from '@shared/utils/money'
+import { Icon } from '@shared/ui/Icon'
+import { Button } from '@shared/ui/Button'
 import type { CatalogFilters, SortOption, ViewMode } from '../types'
 
 export interface CatalogToolbarProps {
@@ -44,7 +45,7 @@ export function CatalogToolbar({
   onRemoveRating,
   onClearAllFilters,
 }: CatalogToolbarProps) {
-  const hasActivePrice = (filters.minPrice !== undefined && filters.minPrice > 0) || (filters.maxPrice !== undefined && filters.maxPrice > 0)
+  const hasActivePrice = (filters.minPriceVnd !== undefined && filters.minPriceVnd > 0) || (filters.maxPriceVnd !== undefined && filters.maxPriceVnd > 0)
   const hasActiveFilters = activeFilterCount > 0
 
   return (
@@ -165,8 +166,8 @@ export function CatalogToolbar({
                 aria-label="Remove price filter"
               >
                 <span>
-                  Price: {filters.minPrice !== undefined ? `${Number(filters.minPrice).toLocaleString('vi-VN')} ₫` : '0 ₫'} –{' '}
-                  {filters.maxPrice !== undefined ? `${Number(filters.maxPrice).toLocaleString('vi-VN')} ₫` : 'Any'}
+                  Price: {formatVnd(filters.minPriceVnd ?? 0)} –{' '}
+                  {filters.maxPriceVnd !== undefined ? formatVnd(filters.maxPriceVnd) : 'Any'}
                 </span>
                 <Icon name="x" size={13} />
               </button>

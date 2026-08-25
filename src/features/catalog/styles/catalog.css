@@ -1331,3 +1331,23 @@
     opacity: 0.7;
   }
 }
+
+/* Băng lỗi khi không tải được danh sách sản phẩm. */
+.ts-catalog-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+  color: var(--danger-strong);
+}
+
+.ts-catalog-error p {
+  margin: 0;
+  font-size: var(--text-body-sm);
+}

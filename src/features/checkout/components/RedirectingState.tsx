@@ -1,4 +1,4 @@
-import { Icon } from '../../../shared/components/Icon'
+import { Icon } from '@shared/ui/Icon'
 
 // Full-screen, calm, worded state shown right before navigating to VNPay so the
 // shopper understands the imminent redirect and does not abandon.

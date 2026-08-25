@@ -1,14 +1,11 @@
-# App Layer
+# App Layer — Tầng 5
 
-Contains app-level composition such as providers, root routing, and global layout setup.
+Composition root. Nơi DUY NHẤT được phép biết mọi tầng khác.
 
-`App.tsx` currently switches between `HomePage`, `AuthPage`, `AdminPage`, and `ProfilePage` with a lightweight `window.history.pushState` flow instead of a router dependency.
+- Lồng provider theo đúng thứ tự phụ thuộc (Toast → Auth → Cart → Router).
+- Tiêm dependency vào `@core` (ví dụ: cấp `getToken` cho httpClient — GĐ2).
+- Error boundary cấp cao nhất.
 
-It also owns top-level auth/session behavior:
-
-- Restores cached auth from local storage.
-- Attempts refresh-session flow on app start.
-- Updates stored user data after `GET /users/me`.
-- Coordinates sign in, sign out, admin navigation, and profile navigation.
-
-When a router package is added later, this is where the router and shared providers should be mounted.
+`App.tsx` hiện vẫn tự chuyển màn hình bằng `window.history.pushState`.
+**GĐ3** sẽ thay bằng router có ranh giới ở `src/routes/`: route table dạng data,
+nested route, guard, và lazy. Khi đó `App.tsx` chỉ còn phần ráp provider.

@@ -1,4 +1,4 @@
-import type { CartDateGroup as CartDateGroupData } from '../lib/cartStorage'
+import type { CartDateGroup as CartDateGroupData } from '../lib/guestCart'
 import { CartLineItem } from './CartLineItem'
 
 export interface CartDateGroupProps {
@@ -20,11 +20,11 @@ export function CartDateGroup({
   onRemove,
   onOpenProduct,
 }: CartDateGroupProps) {
-  const ids = group.items.map((i) => i.id)
-  const selectedInGroup = group.items.filter((i) => selectedIds.has(i.id)).length
-  const isAllSelected = selectedInGroup === group.items.length
+  const ids = group.lines.map((i) => i.id)
+  const selectedInGroup = group.lines.filter((i) => selectedIds.has(i.id)).length
+  const isAllSelected = selectedInGroup === group.lines.length
   const isSomeSelected = selectedInGroup > 0 && !isAllSelected
-  const count = group.items.length
+  const count = group.lines.length
 
   return (
     <section className="ts-cart-date-group" aria-label={`Items added ${group.label}`}>
@@ -61,7 +61,7 @@ export function CartDateGroup({
       </header>
 
       <div className="ts-cart-items-list">
-        {group.items.map((item) => (
+        {group.lines.map((item) => (
           <CartLineItem
             key={item.id}
             item={item}

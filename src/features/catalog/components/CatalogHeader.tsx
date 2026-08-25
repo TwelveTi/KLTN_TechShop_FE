@@ -1,6 +1,6 @@
-import { Breadcrumb, type BreadcrumbItem } from '../../../shared/components/Breadcrumb'
-import { Badge } from '../../../shared/components/Badge'
-import { Icon } from '../../../shared/components/Icon'
+import { Breadcrumb, type BreadcrumbItem } from '@shared/ui/Breadcrumb'
+import { Badge } from '@shared/ui/Badge'
+import { Icon } from '@shared/ui/Icon'
 import type { CatalogCategory } from '../types'
 
 export interface CatalogHeaderProps {

@@ -1,4 +1,4 @@
-import { Icon } from '../../../shared/components/Icon'
+import { Icon } from '@shared/ui/Icon'
 
 export interface StarRatingProps {
   /** Rating value, may be fractional (e.g. 4.8). */

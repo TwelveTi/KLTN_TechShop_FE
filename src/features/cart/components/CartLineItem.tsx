@@ -1,8 +1,9 @@
-import { Icon } from '../../../shared/components/Icon'
-import type { CartItem } from '../types'
+import { Icon } from '@shared/ui/Icon'
+import { type CartLine, lineTotalVnd } from '@domain/cart'
+import { formatVnd } from '@shared/utils/money'
 
 export interface CartLineItemProps {
-  item: CartItem
+  item: CartLine
   isSelected: boolean
   onToggleSelect: (id: string) => void
   onUpdateQuantity: (id: string, qty: number) => void
@@ -18,7 +19,7 @@ export function CartLineItem({
   onRemove,
   onOpenProduct,
 }: CartLineItemProps) {
-  const lineSubtotal = item.rawPrice * item.quantity
+  const lineSubtotalVnd = lineTotalVnd(item)
   const maxStock = item.maxStock || 20
   const isMax = item.quantity >= maxStock
   const isMin = item.quantity <= 1
@@ -81,9 +82,9 @@ export function CartLineItem({
 
           <div className="ts-cart-line-item__unit-price">
             <span className="ts-cart-line-item__price-label">Unit price:</span>
-            <span className="ts-cart-line-item__price tabular-nums">{item.price}</span>
-            {item.originalPrice && (
-              <span className="ts-cart-line-item__orig-price tabular-nums">{item.originalPrice}</span>
+            <span className="ts-cart-line-item__price tabular-nums">{formatVnd(item.unitPriceVnd)}</span>
+            {item.originalUnitPriceVnd !== undefined && (
+              <span className="ts-cart-line-item__orig-price tabular-nums">{formatVnd(item.originalUnitPriceVnd)}</span>
             )}
           </div>
         </div>
@@ -131,7 +132,7 @@ export function CartLineItem({
           <div className="ts-cart-line-item__subtotal-block">
             <span className="ts-cart-line-item__subtotal-label">Item Total:</span>
             <span className="ts-cart-line-item__subtotal tabular-nums">
-              {Number(lineSubtotal || 0).toLocaleString('vi-VN')} ₫
+              {formatVnd(lineSubtotalVnd)}
             </span>
           </div>
         </div>

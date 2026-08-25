@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { Icon } from '../../../shared/components/Icon'
-import { Button } from '../../../shared/components/Button'
-import { Badge } from '../../../shared/components/Badge'
-import type { ProductItem } from '../../../shared/components/ProductCard'
+import { Icon } from '@shared/ui/Icon'
+import { Button } from '@shared/ui/Button'
+import { Badge } from '@shared/ui/Badge'
+import type { Product } from '@domain/product'
+import { formatVnd } from '@shared/utils/money'
 
 export interface CompareDrawerProps {
-  items: ProductItem[]
+  items: Product[]
   onRemoveItem: (id: string) => void
   onClearAll: () => void
-  onAddToCart: (product: ProductItem) => void
+  onAddToCart: (product: Product) => void
   onOpenProduct?: (id: string) => void
 }
 
@@ -151,7 +152,7 @@ export function CompareDrawer({
                           >
                             {item.name}
                           </strong>
-                          <div className="ts-compare-table__price tabular-nums">{item.price}</div>
+                          <div className="ts-compare-table__price tabular-nums">{formatVnd(item.priceVnd)}</div>
                           <Button
                             variant="primary"
                             size="sm"
@@ -183,10 +184,10 @@ export function CompareDrawer({
                     <td className="ts-compare-table__feature-title">Price</td>
                     {items.map((item) => (
                       <td key={item.id || item.name} className="tabular-nums font-semibold">
-                        {item.price}
-                        {item.originalPrice && (
+                        {formatVnd(item.priceVnd)}
+                        {item.originalPriceVnd && (
                           <span className="ts-compare-table__orig-price tabular-nums">
-                            {' '}(was {item.originalPrice})
+                            {' '}(was {item.originalPriceVnd})
                           </span>
                         )}
                       </td>

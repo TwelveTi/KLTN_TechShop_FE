@@ -1,4 +1,5 @@
-import { Icon } from '../../../shared/components/Icon'
+import { pageRange, pageWindow } from '@shared/utils/pagination'
+import { Icon } from '@shared/ui/Icon'
 
 interface AdminPaginationProps {
   currentPage: number
@@ -19,75 +20,33 @@ export function AdminPagination({
 }: AdminPaginationProps) {
   if (totalItems === 0) return null
 
-  const startItem = Math.min((currentPage - 1) * pageSize + 1, totalItems)
-  const endItem = Math.min(currentPage * pageSize, totalItems)
+  const { from: startItem, to: endItem } = pageRange({
+    page: currentPage,
+    pageSize,
+    total: totalItems,
+  })
 
-  const renderPageButtons = () => {
-    const buttons = []
-    const maxButtons = 5
-    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2))
-    let endPage = Math.min(totalPages, startPage + maxButtons - 1)
-
-    if (endPage - startPage + 1 < maxButtons) {
-      startPage = Math.max(1, endPage - maxButtons + 1)
-    }
-
-    if (startPage > 1) {
-      buttons.push(
+  // Thuật toán cửa sổ trang ở @shared/utils/pagination — dùng chung với
+  // shared/ui/Pagination, và có test cho các ca biên (trước GĐ5 mỗi component
+  // tự tính, và hai bản cho kết quả khác nhau ở biên).
+  const renderPageButtons = () =>
+    pageWindow({ page: currentPage, totalPages }).map((token, index) =>
+      token === 'ellipsis' ? (
+        <span key={`dots-${index}`} className="ts-admin-page-dots">
+          …
+        </span>
+      ) : (
         <button
-          key={1}
+          key={token}
           type="button"
-          className="ts-admin-page-btn"
-          onClick={() => onPageChange(1)}
+          className={`ts-admin-page-btn ${token === currentPage ? 'is-active' : ''}`}
+          onClick={() => onPageChange(token)}
+          aria-current={token === currentPage ? 'page' : undefined}
         >
-          1
-        </button>,
-      )
-      if (startPage > 2) {
-        buttons.push(
-          <span key="dots-start" className="ts-admin-page-dots">
-            …
-          </span>,
-        )
-      }
-    }
-
-    for (let page = startPage; page <= endPage; page++) {
-      buttons.push(
-        <button
-          key={page}
-          type="button"
-          className={`ts-admin-page-btn ${page === currentPage ? 'is-active' : ''}`}
-          onClick={() => onPageChange(page)}
-          aria-current={page === currentPage ? 'page' : undefined}
-        >
-          {page}
-        </button>,
-      )
-    }
-
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        buttons.push(
-          <span key="dots-end" className="ts-admin-page-dots">
-            …
-          </span>,
-        )
-      }
-      buttons.push(
-        <button
-          key={totalPages}
-          type="button"
-          className="ts-admin-page-btn"
-          onClick={() => onPageChange(totalPages)}
-        >
-          {totalPages}
-        </button>,
-      )
-    }
-
-    return buttons
-  }
+          {token}
+        </button>
+      ),
+    )
 
   return (
     <div className="ts-admin-pagination">

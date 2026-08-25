@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Icon } from '../../../shared/components/Icon'
-import { Button } from '../../../shared/components/Button'
-import { Badge } from '../../../shared/components/Badge'
-import type { ProductDetailData, ProductVariant } from '../types'
+import { formatVnd } from '@shared/utils/money'
+import { discountPercent } from '@domain/product'
+import { Icon } from '@shared/ui/Icon'
+import { Button } from '@shared/ui/Button'
+import { Badge } from '@shared/ui/Badge'
+import type { ProductDetail, ProductVariant } from '../types'
 
 export interface ProductBuyBoxProps {
-  product: ProductDetailData
+  product: ProductDetail
   selectedVariant: ProductVariant | null
   onSelectVariant: (variant: ProductVariant) => void
   onAddToCart: (quantity: number) => void
@@ -23,7 +25,7 @@ export function ProductBuyBox({
 }: ProductBuyBoxProps) {
   const [quantity, setQuantity] = useState(1)
 
-  const activePrice = selectedVariant?.price || product.price
+  const activePrice = formatVnd(selectedVariant?.priceVnd ?? product.priceVnd)
   const inStock = selectedVariant ? selectedVariant.inStock : product.inStock
   const maxStock = product.stockQuantity || 10
 
@@ -76,14 +78,14 @@ export function ProductBuyBox({
       <div className="ts-pdp-buybox__price-block">
         <div className="ts-pdp-buybox__prices">
           <span className="ts-pdp-buybox__price tabular-nums">{activePrice}</span>
-          {product.originalPrice && (
-            <span className="ts-pdp-buybox__orig-price tabular-nums">{product.originalPrice}</span>
+          {product.originalPriceVnd !== undefined && (
+            <span className="ts-pdp-buybox__orig-price tabular-nums">{formatVnd(product.originalPriceVnd)}</span>
           )}
         </div>
 
-        {product.discountPercent && (
+        {discountPercent(product) && (
           <Badge variant="danger" className="ts-pdp-buybox__discount-badge">
-            Save {product.discountPercent}%
+            Save {discountPercent(product)}%
           </Badge>
         )}
       </div>
@@ -108,9 +110,9 @@ export function ProductBuyBox({
                   aria-checked={isSelected}
                 >
                   <span className="ts-pdp-buybox__variant-name">{variant.name}</span>
-                  {variant.price && (
-                    <span className="ts-pdp-buybox__variant-price tabular-nums">{variant.price}</span>
-                  )}
+                  <span className="ts-pdp-buybox__variant-price tabular-nums">
+                    {formatVnd(variant.priceVnd)}
+                  </span>
                 </button>
               )
             })}

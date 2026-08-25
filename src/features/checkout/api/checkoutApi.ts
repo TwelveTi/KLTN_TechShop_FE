@@ -1,6 +1,5 @@
-import { apiClient } from '../../../shared/api/apiClient'
-import type { ApiResponse } from '../../../shared/types/api'
-import type { CreatedOrder, PlaceOrderInput, PlaceOrderResult } from '../types'
+import { http } from '@core/http'
+import type { AppliedDiscount, CreatedOrder, PlaceOrderInput, PlaceOrderResult } from '../types'
 
 /**
  * Checkout / order / payment API client.
@@ -32,45 +31,44 @@ import type { CreatedOrder, PlaceOrderInput, PlaceOrderResult } from '../types'
  * redirect, and the signature has to be checked server-side first.
  */
 
-const readData = async <T>(response: Response, fallbackMessage: string): Promise<T> => {
-  const body = (await response.json().catch(() => null)) as ApiResponse<T> | null
-  if (!response.ok || body?.data === undefined || body?.data === null) {
-    throw new Error(body?.message || fallbackMessage)
-  }
-  return body.data
-}
-
 export const checkoutApi = {
   /**
-   * Create the order (COD or VNPAY). For VNPAY, also requests the hosted
-   * payment URL so the caller can redirect. The idempotency key guarantees a
-   * refresh/retry re-uses the same order instead of creating a duplicate.
+   * Tạo đơn (COD hoặc VNPAY). Với VNPAY, xin luôn URL thanh toán để caller
+   * chuyển hướng. Idempotency key bảo đảm refresh/thử lại dùng lại đúng đơn cũ
+   * thay vì tạo đơn trùng.
    */
   async placeOrder(input: PlaceOrderInput, idempotencyKey: string): Promise<PlaceOrderResult> {
-    const response = await apiClient('/orders', {
-      method: 'POST',
+    const order = await http.post<CreatedOrder>('/orders', input, {
       auth: true,
       headers: { 'Idempotency-Key': idempotencyKey },
-      body: JSON.stringify(input),
     })
-    const order = await readData<CreatedOrder>(response, 'Could not place your order.')
 
     if (input.paymentMethod === 'VNPAY') {
-      const paymentUrl = await this.createVnpayUrl(order.id)
-      return { order, paymentUrl }
+      return { order, paymentUrl: await this.createVnpayUrl(order.id) }
     }
 
     return { order }
   },
 
+  /**
+   * Xem trước một mã giảm giá. Không giữ chỗ — mã vẫn có thể hết trước khi đặt
+   * hàng, nên số tiền ở đây được backend xác nhận (và tính lại) lúc đặt đơn.
+   */
+  validateDiscount(code: string, subtotalVnd: number): Promise<AppliedDiscount> {
+    return http.post<AppliedDiscount>(
+      '/discounts/validate',
+      { code, subtotal: subtotalVnd },
+      { auth: true },
+    )
+  },
+
   async createVnpayUrl(orderId: string): Promise<string> {
     const returnUrl = `${window.location.origin}/checkout/success`
-    const response = await apiClient('/payments/vnpay/create-url', {
-      method: 'POST',
-      auth: true,
-      body: JSON.stringify({ orderId, returnUrl }),
-    })
-    const data = await readData<{ paymentUrl: string }>(response, 'Could not start the VNPay payment.')
+    const data = await http.post<{ paymentUrl: string }>(
+      '/payments/vnpay/create-url',
+      { orderId, returnUrl },
+      { auth: true },
+    )
     return data.paymentUrl
   },
 }

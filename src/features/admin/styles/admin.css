@@ -2632,3 +2632,35 @@
     padding: var(--space-3);
   }
 }
+
+/* Cảnh báo nội tuyến: dữ liệu hiển thị chỉ là một phần (giới hạn backend). */
+.ts-admin-inline-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--warning-base);
+  border-radius: var(--radius-sm);
+  background: var(--warning-soft);
+  color: var(--warning-strong);
+  font-size: var(--text-caption);
+}
+
+/* ── Tiện dụng cho form quản trị ─────────────────────────────────────────────
+ * Hai class này thay các `style={{}}` inline từng nằm trong BrandsSection và
+ * CategoriesSection (GĐ5: component không viết khoảng cách dạng literal). */
+.ts-admin-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.ts-admin-field--spaced {
+  margin-top: var(--space-3);
+}
+
+.ts-admin-checkbox-label.ts-admin-field--spaced {
+  margin-top: var(--space-4);
+}

@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
-import { Icon } from '../../../shared/components/Icon'
-import { Button } from '../../../shared/components/Button'
+import { useState } from 'react'
+import { Icon } from '@shared/ui/Icon'
+import { Button } from '@shared/ui/Button'
 import type { CatalogBrand, CatalogCategory, CatalogFilters } from '../types'
 
 export interface FilterSidebarProps {
+  /** Slug danh mục ĐÃ RESOLVE — không phải token thô trong `filters.category`. */
+  selectedSlug?: string
   categories: CatalogCategory[]
   brands: CatalogBrand[]
   filters: CatalogFilters
@@ -25,6 +27,7 @@ const PRICE_PRESETS = [
 ]
 
 export function FilterSidebar({
+  selectedSlug,
   categories,
   brands,
   filters,
@@ -38,13 +41,18 @@ export function FilterSidebar({
   className = '',
 }: FilterSidebarProps) {
   const [brandSearch, setBrandSearch] = useState('')
-  const [customMin, setCustomMin] = useState<string>(filters.minPrice !== undefined ? String(filters.minPrice) : '')
-  const [customMax, setCustomMax] = useState<string>(filters.maxPrice !== undefined ? String(filters.maxPrice) : '')
-
-  useEffect(() => {
-    setCustomMin(filters.minPrice !== undefined ? String(filters.minPrice) : '')
-    setCustomMax(filters.maxPrice !== undefined ? String(filters.maxPrice) : '')
-  }, [filters.minPrice, filters.maxPrice])
+  /**
+   * Ô nhập giá là input KHÔNG KIỂM SOÁT HOÀN TOÀN: khoảng giá thật sống trong
+   * URL, còn đây chỉ là bản nháp trong lúc người dùng đang gõ.
+   *
+   * `key` gắn với giá trị từ URL khiến React tạo lại input khi khoảng giá đổi
+   * từ bên ngoài (bấm chip preset, Back, mở link chia sẻ) — cách này thay cho
+   * một `useEffect` gọi `setState`, vốn tạo thêm một vòng render và có thể ghi
+   * đè đúng lúc người dùng đang gõ dở.
+   */
+  const priceKey = `${filters.minPriceVnd ?? ''}-${filters.maxPriceVnd ?? ''}`
+  const [customMin, setCustomMin] = useState<string>('')
+  const [customMax, setCustomMax] = useState<string>('')
 
   const filteredBrands = brands.filter((b) =>
     b.name.toLowerCase().includes(brandSearch.toLowerCase())
@@ -52,13 +60,13 @@ export function FilterSidebar({
 
   const handleApplyCustomPrice = (e: React.FormEvent) => {
     e.preventDefault()
-    const minVal = customMin ? Number(customMin) : undefined
-    const maxVal = customMax ? Number(customMax) : undefined
+    const minVal = customMin ? Number(customMin) : filters.minPriceVnd
+    const maxVal = customMax ? Number(customMax) : filters.maxPriceVnd
     onSetPriceRange(minVal, maxVal)
   }
 
   const isPresetActive = (min: number, max: number) => {
-    return filters.minPrice === min && filters.maxPrice === max
+    return filters.minPriceVnd === min && filters.maxPriceVnd === max
   }
 
   return (
@@ -84,7 +92,9 @@ export function FilterSidebar({
           <h3 className="ts-facet-group__title">Categories</h3>
           <ul className="ts-facet-group__category-list">
             {categories.map((cat) => {
-              const isActive = filters.category === cat.slug || (!filters.category && cat.slug === 'all')
+              const isActive =
+                (selectedSlug ?? filters.category) === cat.slug ||
+                (!selectedSlug && !filters.category && cat.slug === 'all')
 
               return (
                 <li key={cat.id} className="ts-facet-group__category-item">
@@ -147,7 +157,8 @@ export function FilterSidebar({
                 min="0"
                 placeholder="Min"
                 className="ts-facet-group__input tabular-nums"
-                value={customMin}
+                key={`min-${priceKey}`}
+              defaultValue={filters.minPriceVnd ?? ''}
                 onChange={(e) => setCustomMin(e.target.value)}
                 aria-label="Minimum price in VND"
               />
@@ -160,7 +171,8 @@ export function FilterSidebar({
                 min="0"
                 placeholder="Max"
                 className="ts-facet-group__input tabular-nums"
-                value={customMax}
+                key={`max-${priceKey}`}
+              defaultValue={filters.maxPriceVnd ?? ''}
                 onChange={(e) => setCustomMax(e.target.value)}
                 aria-label="Maximum price in VND"
               />

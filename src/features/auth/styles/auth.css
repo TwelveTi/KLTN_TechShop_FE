@@ -457,34 +457,6 @@
   gap: var(--space-4);
 }
 
-.ts-form-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.ts-form-label-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.ts-form-label {
-  font-size: var(--text-body-sm);
-  font-weight: var(--weight-medium);
-  color: var(--color-heading);
-}
-
-.ts-form-required {
-  color: var(--danger-strong);
-}
-
-.ts-form-optional {
-  font-size: 0.75rem;
-  color: var(--color-muted);
-  font-weight: var(--weight-normal);
-}
-
 .ts-auth-link {
   font-size: 0.8125rem;
   color: var(--color-primary);
@@ -499,96 +471,6 @@
 
 .ts-auth-link:hover {
   color: var(--brand-700);
-}
-
-/* Input Containers */
-.ts-input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.ts-input-icon {
-  position: absolute;
-  left: 14px;
-  color: var(--color-muted);
-  pointer-events: none;
-}
-
-.ts-form-input {
-  width: 100%;
-  height: 44px;
-  padding: 0 14px;
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface-sunken);
-  border: 1px solid var(--color-border);
-  color: var(--color-heading);
-  font-family: inherit;
-  font-size: var(--text-body);
-  transition:
-    border-color var(--dur-fast) var(--ease-out),
-    background-color var(--dur-fast) var(--ease-out),
-    box-shadow var(--dur-fast) var(--ease-out);
-}
-
-.ts-form-input::placeholder {
-  color: var(--color-muted);
-  opacity: 0.7;
-}
-
-.ts-form-input:hover {
-  border-color: var(--color-border-strong);
-  background-color: var(--color-surface);
-}
-
-.ts-form-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  background-color: var(--color-surface);
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
-}
-
-.ts-form-input.is-invalid {
-  border-color: var(--danger-base);
-}
-
-.ts-form-input.is-invalid:focus {
-  box-shadow: 0 0 0 3px var(--danger-soft);
-}
-
-.ts-form-input--with-icon {
-  padding-left: 42px;
-}
-
-.ts-form-input--with-action {
-  padding-right: 42px;
-}
-
-.ts-input-action-btn {
-  position: absolute;
-  right: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  border: none;
-  color: var(--color-muted);
-  cursor: pointer;
-  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
-}
-
-.ts-input-action-btn:hover {
-  color: var(--color-heading);
-  background-color: var(--color-surface-sunken);
-}
-
-.ts-form-error {
-  font-size: 0.75rem;
-  color: var(--danger-strong);
-  line-height: 1.3;
 }
 
 /* Password Requirements Checklist */
@@ -649,52 +531,6 @@
 .ts-auth-remember {
   display: flex;
   align-items: center;
-}
-
-.ts-checkbox-label {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: var(--text-body-sm);
-  color: var(--color-heading);
-  cursor: pointer;
-  user-select: none;
-}
-
-.ts-checkbox-input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.ts-checkbox-box {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: var(--radius-xs);
-  background-color: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-strong);
-  color: var(--color-on-primary);
-  transition:
-    background-color var(--dur-fast) var(--ease-out),
-    border-color var(--dur-fast) var(--ease-out);
-}
-
-.ts-checkbox-input:checked + .ts-checkbox-box {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.ts-checkbox-input:focus-visible + .ts-checkbox-box {
-  box-shadow: 0 0 0 3px var(--color-primary-soft);
-}
-
-.ts-checkbox-text {
-  font-size: 0.8125rem;
-  color: var(--color-muted);
 }
 
 /* Submit Action Button */
@@ -779,27 +615,6 @@
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-}
-
-/* Spinners */
-.ts-spinner {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #ffffff;
-  animation: ts-spin 0.7s linear infinite;
-}
-
-.ts-spinner--dark {
-  border: 2px solid rgba(0, 0, 0, 0.15);
-  border-top-color: var(--color-heading);
-}
-
-[data-theme="dark"] .ts-spinner--dark {
-  border-color: rgba(255, 255, 255, 0.2);
-  border-top-color: #ffffff;
 }
 
 @keyframes ts-spin {

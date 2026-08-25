@@ -1,4 +1,4 @@
-import type { CartItem } from '../cart/types'
+import type { CartLine } from '@domain/cart'
 
 export type PaymentMethod = 'VNPAY' | 'COD'
 
@@ -22,6 +22,25 @@ export interface PlaceOrderInput {
   deliveryMethodId: string
   note?: string
   items: PlaceOrderItemInput[]
+  /** Optional voucher code. The backend re-validates and recomputes the amount. */
+  discountCode?: string | null
+}
+
+/**
+ * A voucher the shopper has applied at checkout.
+ *
+ * This is a PREVIEW: it reserves nothing, and the code can still be exhausted
+ * by someone else before the order is placed. `subtotal` records what the
+ * amount was computed against, so a changed basket can invalidate it.
+ */
+export interface AppliedDiscount {
+  code: string
+  name: string
+  discountType: 'PERCENT' | 'FIXED'
+  value: number
+  subtotal: number
+  discountAmount: number
+  payable: number
 }
 
 /** Order returned by the backend after a successful create. */
@@ -42,5 +61,5 @@ export interface PlaceOrderResult {
   paymentUrl?: string
 }
 
-/** The subset of checkout state derived from the cart selection. */
-export interface CheckoutLine extends CartItem {}
+/** Dòng giỏ đang được thanh toán. Alias để đọc rõ ý ở chữ ký hàm. */
+export type CheckoutLine = CartLine

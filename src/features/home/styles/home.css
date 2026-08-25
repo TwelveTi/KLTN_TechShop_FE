@@ -1,6 +1,6 @@
 /* Hallmark · macrostructure: Marquee Hero + Dense Grid · tone: premium-technical · anchor hue: ink + brand-blue
  * TechShop Homepage — editorial tech-commerce, layered & compact.
- * Component styles live in shared/components/components.css.
+ * Component styles live in shared/ui/ui.css.
  */
 
 /* Layered surface system, scoped to the home canvas so other routes are untouched. */
@@ -18,7 +18,7 @@
   --home-panel: #0E1420;
 }
 
-/* The shared header + department bar are rendered by UserLayout →
+/* The shared header + department bar are rendered by StorefrontLayout →
  * GlobalHeader (.ts-global-header / .ts-dept-bar); the old page-local
  * .home-header / .dept-bar styles were dead and have been removed. */
 

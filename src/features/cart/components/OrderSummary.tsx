@@ -1,5 +1,6 @@
-import { Button } from '../../../shared/components/Button'
-import { Icon } from '../../../shared/components/Icon'
+import { formatVnd } from '@shared/utils/money'
+import { Button } from '@shared/ui/Button'
+import { Icon } from '@shared/ui/Icon'
 
 export interface OrderSummaryProps {
   selectedCount: number
@@ -31,7 +32,7 @@ export function OrderSummary({
         <div className="ts-order-summary__row">
           <span className="ts-order-summary__row-label">Selected Subtotal</span>
           <span className="ts-order-summary__row-val tabular-nums">
-            {Number(selectedSubtotal || 0).toLocaleString('vi-VN')} ₫
+            {formatVnd(selectedSubtotal)}
           </span>
         </div>
 
@@ -63,7 +64,7 @@ export function OrderSummary({
             </span>
           </div>
           <span className="ts-order-summary__total-val tabular-nums">
-            {Number(selectedTotal || 0).toLocaleString('vi-VN')} ₫
+            {formatVnd(selectedTotal)}
           </span>
         </div>
       </div>

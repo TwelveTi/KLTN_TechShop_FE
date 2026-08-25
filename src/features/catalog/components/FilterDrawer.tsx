@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
-import { Icon } from '../../../shared/components/Icon'
-import { Button } from '../../../shared/components/Button'
+import { Icon } from '@shared/ui/Icon'
+import { Button } from '@shared/ui/Button'
 import { FilterSidebar, type FilterSidebarProps } from './FilterSidebar'
 
 export interface FilterDrawerProps extends FilterSidebarProps {
@@ -11,6 +11,7 @@ export interface FilterDrawerProps extends FilterSidebarProps {
 }
 
 export function FilterDrawer({
+  selectedSlug,
   isOpen,
   totalCount,
   onClose,
@@ -71,7 +72,8 @@ export function FilterDrawer({
 
         {/* Scrollable Content */}
         <div className="ts-filter-drawer__content">
-          <FilterSidebar {...sidebarProps} className="ts-filter-sidebar--drawer" />
+          <FilterSidebar
+      selectedSlug={selectedSlug} {...sidebarProps} className="ts-filter-sidebar--drawer" />
         </div>
 
         {/* Sticky Footer */}

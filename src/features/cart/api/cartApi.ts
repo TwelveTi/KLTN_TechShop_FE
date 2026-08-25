@@ -1,17 +1,17 @@
-import { apiClient } from '../../../shared/api/apiClient'
-import type { ApiResponse } from '../../../shared/types/api'
-import type { CartItem } from '../types'
+import { http } from '@core/http'
+import type { CartLine } from '@domain/cart'
+import { toVnd } from '@shared/utils/money'
 
 /**
- * Cart API client. Talks to the authenticated backend cart endpoints
- * (`/api/v1/cart*`) and maps the server payload onto the `CartItem` shape the
- * cart UI already consumes, so no presentational component needs to change.
+ * Cart API. Nói chuyện với các endpoint giỏ hàng đã xác thực (`/cart*`) và map
+ * payload của server sang `CartLine` của domain.
  *
- * Pricing/stock are ALWAYS resolved server-side; the frontend never sends money
- * values. Every call returns the full, freshly-priced cart.
+ * Giá và tồn kho LUÔN do server quyết; frontend không bao giờ gửi số tiền lên.
+ * Mọi lời gọi đều trả về toàn bộ giỏ đã được định giá lại.
  */
 
-export interface ServerCartItem {
+/** Payload thô của backend. Chỉ mapper bên dưới được đọc kiểu này. */
+interface CartItemDto {
   id: string
   productId: string
   variantId: string | null
@@ -20,112 +20,85 @@ export interface ServerCartItem {
   variantName: string | null
   sku: string | null
   imageUrl: string | null
-  basePrice: number
-  salePrice: number | null
-  unitPrice: number
+  basePrice: number | string
+  salePrice: number | string | null
+  unitPrice: number | string
   quantity: number
-  subtotal: number
+  subtotal: number | string
   stock: number
   inStock: boolean
   isActive: boolean
   isAvailable: boolean
 }
 
-export interface ServerCart {
+interface CartDto {
   id: string
-  items: ServerCartItem[]
-  subtotal: number
+  items: CartItemDto[]
+  subtotal: number | string
   totalItems: number
   totalLines: number
 }
 
-const formatVnd = (value: number): string => `${Math.round(Number(value) || 0).toLocaleString('vi-VN')} ₫`
-
-export function mapServerCartItem(item: ServerCartItem): CartItem {
-  const baseName = item.name ?? 'Product'
-  const name = item.variantName ? `${baseName} (${item.variantName})` : baseName
+function toCartLine(dto: CartItemDto): CartLine {
+  const baseName = dto.name ?? 'Product'
+  const isOnSale = dto.salePrice !== null && dto.salePrice !== undefined
 
   return {
-    id: item.id,
-    productId: item.productId,
-    variantId: item.variantId ?? undefined,
-    slug: item.slug ?? undefined,
-    name,
-    // The backend cart payload intentionally omits category/brand; the cart UI
-    // treats these as optional labels, so an empty category is fine.
+    id: dto.id,
+    productId: dto.productId,
+    variantId: dto.variantId ?? undefined,
+    slug: dto.slug ?? undefined,
+    name: dto.variantName ? `${baseName} (${dto.variantName})` : baseName,
+    // Payload giỏ hàng cố ý không trả category/brand; UI coi đây là nhãn phụ.
     category: '',
     brand: undefined,
-    price: formatVnd(item.unitPrice),
-    rawPrice: Number(item.unitPrice) || 0,
-    originalPrice: item.salePrice != null ? formatVnd(item.basePrice) : undefined,
-    rawOriginalPrice: item.salePrice != null ? Number(item.basePrice) : undefined,
-    imageUrl: item.imageUrl ?? undefined,
-    quantity: item.quantity,
-    specs: item.sku ?? undefined,
-    maxStock: item.stock,
-    outOfStock: !item.inStock,
-    // The backend does not return a per-line timestamp yet; stamp "now" so the
-    // date-grouped cart layout still renders. Once BE exposes createdAt this can
-    // map straight through without any UI change.
+    unitPriceVnd: toVnd(dto.unitPrice),
+    originalUnitPriceVnd: isOnSale ? toVnd(dto.basePrice) : undefined,
+    imageUrl: dto.imageUrl ?? undefined,
+    quantity: dto.quantity,
+    specs: dto.sku ?? undefined,
+    maxStock: dto.stock,
+    outOfStock: !dto.inStock,
+    // Backend chưa trả timestamp theo dòng; đóng dấu "bây giờ" để bố cục nhóm
+    // theo ngày vẫn render. Khi BE có `createdAt` thì map thẳng, UI không đổi.
     addedAt: new Date().toISOString(),
   }
 }
 
-export function mapServerCart(cart: ServerCart): CartItem[] {
-  return (cart.items || []).map(mapServerCartItem)
-}
-
-async function parseCart(response: Response): Promise<ServerCart> {
-  const body = (await response.json().catch(() => null)) as ApiResponse<ServerCart> | null
-
-  if (!response.ok || !body?.data) {
-    throw new Error(body?.message || 'Cart request failed. Please try again.')
-  }
-
-  return body.data
-}
+const toCartLines = (cart: CartDto): CartLine[] => (cart.items || []).map(toCartLine)
 
 export const cartApi = {
-  async get(): Promise<CartItem[]> {
-    const response = await apiClient('/cart', { auth: true })
-    return mapServerCart(await parseCart(response))
+  async get(): Promise<CartLine[]> {
+    return toCartLines(await http.get<CartDto>('/cart', { auth: true }))
   },
 
-  async addItem(input: { productId: string; variantId?: string | null; quantity: number }): Promise<CartItem[]> {
-    const response = await apiClient('/cart/items', {
-      method: 'POST',
-      auth: true,
-      body: JSON.stringify({
-        productId: input.productId,
-        variantId: input.variantId ?? null,
-        quantity: input.quantity,
-      }),
-    })
-    return mapServerCart(await parseCart(response))
+  async addItem(input: {
+    productId: string
+    variantId?: string | null
+    quantity: number
+  }): Promise<CartLine[]> {
+    return toCartLines(
+      await http.post<CartDto>(
+        '/cart/items',
+        {
+          productId: input.productId,
+          variantId: input.variantId ?? null,
+          quantity: input.quantity,
+        },
+        { auth: true },
+      ),
+    )
   },
 
-  async updateItem(itemId: string, quantity: number): Promise<CartItem[]> {
-    const response = await apiClient(`/cart/items/${itemId}`, {
-      method: 'PATCH',
-      auth: true,
-      body: JSON.stringify({ quantity }),
-    })
-    return mapServerCart(await parseCart(response))
+  async updateItem(itemId: string, quantity: number): Promise<CartLine[]> {
+    return toCartLines(await http.patch<CartDto>(`/cart/items/${itemId}`, { quantity }, { auth: true }))
   },
 
-  async removeItem(itemId: string): Promise<CartItem[]> {
-    const response = await apiClient(`/cart/items/${itemId}`, {
-      method: 'DELETE',
-      auth: true,
-    })
-    return mapServerCart(await parseCart(response))
+  async removeItem(itemId: string): Promise<CartLine[]> {
+    return toCartLines(await http.del<CartDto>(`/cart/items/${itemId}`, { auth: true }))
   },
 
-  async clear(): Promise<CartItem[]> {
-    const response = await apiClient('/cart', {
-      method: 'DELETE',
-      auth: true,
-    })
-    return mapServerCart(await parseCart(response))
+  async clear(): Promise<CartLine[]> {
+    return toCartLines(await http.del<CartDto>('/cart', { auth: true }))
   },
 }

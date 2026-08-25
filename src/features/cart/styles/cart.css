@@ -140,53 +140,6 @@
 }
 
 /* =================================================================
- * Custom Checkbox System
- * ================================================================= */
-.ts-checkbox-label {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  position: relative;
-}
-
-.ts-checkbox-input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-.ts-checkbox-custom {
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--color-border-strong);
-  background-color: var(--color-surface);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  transition: all var(--dur-fast) var(--ease-out);
-  flex-shrink: 0;
-}
-
-.ts-checkbox-label:hover .ts-checkbox-custom {
-  border-color: var(--color-primary);
-}
-
-.ts-checkbox-input:focus-visible + .ts-checkbox-custom {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
-}
-
-.ts-checkbox-input:checked + .ts-checkbox-custom,
-.ts-checkbox-input:indeterminate + .ts-checkbox-custom {
-  background-color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-/* =================================================================
  * Date Groups — items grouped by the day they were added
  * ================================================================= */
 .ts-cart-groups {
@@ -416,42 +369,6 @@
   gap: var(--space-4);
 }
 
-.ts-quantity-stepper {
-  display: inline-flex;
-  align-items: center;
-  border-radius: var(--radius-sm);
-  background-color: var(--color-surface-sunken);
-  border: 1px solid var(--color-border);
-  height: 36px;
-  overflow: hidden;
-}
-.ts-quantity-stepper__btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 100%;
-  color: var(--color-text);
-  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
-}
-.ts-quantity-stepper__btn:hover:not(:disabled) {
-  background-color: var(--color-surface);
-  color: var(--color-heading);
-}
-.ts-quantity-stepper__btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.ts-quantity-stepper__value {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  font-size: 0.875rem;
-  font-weight: var(--weight-semibold);
-  color: var(--color-heading);
-}
-
 .ts-cart-line-item__remove-btn {
   display: inline-flex;
   align-items: center;
@@ -675,5 +592,5 @@
 }
 
 /* Undo / add-to-cart feedback now uses the shared Toast system
- * (shared/components/Toast). The old page-local .ts-undo-toast styles
+ * (shared/ui/Toast). The old page-local .ts-undo-toast styles
  * were removed. */

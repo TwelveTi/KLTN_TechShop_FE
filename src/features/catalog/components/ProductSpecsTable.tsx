@@ -1,8 +1,8 @@
-import { Icon } from '../../../shared/components/Icon'
-import type { ProductDetailData } from '../types'
+import { Icon } from '@shared/ui/Icon'
+import type { ProductDetail } from '../types'
 
 export interface ProductSpecsTableProps {
-  product: ProductDetailData
+  product: ProductDetail
 }
 
 export function ProductSpecsTable({ product }: ProductSpecsTableProps) {

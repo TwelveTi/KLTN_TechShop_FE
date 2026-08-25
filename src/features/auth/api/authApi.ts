@@ -1,120 +1,95 @@
-import { apiClient } from '../../../shared/api/apiClient'
-import type { ApiResponse } from '../../../shared/types/api'
+import { http } from '@core/http'
+import { setSession } from '../lib/sessionStore'
 import type { AuthPayload, AuthResult, AuthUser } from '../types'
 
-const authRequest = async (path: string, payload: AuthPayload) => {
-  const response = await apiClient(path, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
+/**
+ * Auth API.
+ *
+ * Không còn hàm bóc envelope riêng: `http` đã ném `ApiError` mang message của
+ * backend cho mọi phản hồi không thành công, nên ở đây chỉ còn endpoint + kiểu.
+ */
 
-  let responseBody: ApiResponse<AuthResult>
-
-  try {
-    responseBody = (await response.json()) as ApiResponse<AuthResult>
-  } catch {
-    throw new Error('The backend did not return valid JSON.')
-  }
-
-  if (!response.ok || !responseBody.data) {
-    throw new Error(responseBody.message || 'Authentication request failed.')
-  }
-
-  return responseBody.data
-}
-
-export const login = (payload: AuthPayload) => {
-  return authRequest('/auth/login', {
+export const login = (payload: AuthPayload) =>
+  http.post<AuthResult>('/auth/login', {
     email: payload.email,
     password: payload.password,
   })
-}
 
-export const register = (payload: AuthPayload) => {
-  return authRequest('/auth/register', {
+export const register = (payload: AuthPayload) =>
+  http.post<AuthResult>('/auth/register', {
     email: payload.email,
     password: payload.password,
     fullName: payload.fullName,
     phone: payload.phone,
   })
+
+export const getCurrentUser = () => http.get<AuthUser>('/users/me', { auth: true })
+
+export const logout = () => http.post<null>('/auth/logout')
+
+/**
+ * Đổi refresh-cookie lấy access token mới và ghi thẳng vào `sessionStore`.
+ *
+ * Đây cũng là hàm được TIÊM vào `httpClient` làm `refreshAccessToken`
+ * (xem `app/bootstrap/configureHttp.ts`), nên `core` không cần biết endpoint
+ * này tồn tại. Request cố ý KHÔNG đặt `auth: true` để không tự kích hoạt vòng
+ * refresh đệ quy.
+ *
+ * Single-flight ở ngay đây, KHÔNG chỉ ở tầng http: hàm này còn được gọi trực
+ * tiếp lúc khởi động, và StrictMode chạy effect hai lần — nếu không gộp thì
+ * mỗi lần mở app sẽ bắn hai request refresh song song.
+ */
+let refreshInFlight: Promise<AuthResult | null> | null = null
+
+export const refreshSession = (): Promise<AuthResult | null> => {
+  if (!refreshInFlight) {
+    refreshInFlight = http
+      .post<AuthResult>('/auth/refresh')
+      .catch(() => null)
+      .then((result) => {
+        setSession(result ?? null)
+        return result
+      })
+      .finally(() => {
+        refreshInFlight = null
+      })
+  }
+  return refreshInFlight
 }
 
-export const getCurrentUser = async () => {
-  const response = await apiClient('/users/me', {
-    method: 'GET',
-    auth: true,
-  })
+// ── Xác minh email ──────────────────────────────────────────────────────────
 
-  const responseBody = (await response.json()) as ApiResponse<AuthUser>
-
-  if (!response.ok || !responseBody.data) {
-    throw new Error(responseBody.message || 'Unable to load the current user.')
-  }
-
-  return responseBody.data
+/**
+ * Gửi lại email xác minh cho người đang đăng nhập.
+ *
+ * Backend đẩy mail qua Kafka (`emailProducer.publishAccountVerification`) rồi
+ * trả về ngay — nên lời gọi này thành công KHÔNG có nghĩa là mail đã tới hộp
+ * thư, chỉ có nghĩa là nó đã được xếp hàng. Thông điệp cho người dùng phải nói
+ * đúng điều đó.
+ *
+ * Lỗi đáng chú ý: 400 "Email is already verified" khi phiên trên máy đã cũ so
+ * với server.
+ */
+export const resendVerificationEmail = async (): Promise<string> => {
+  await http.post<null>('/auth/resend-verification', undefined, { auth: true })
+  return 'Verification email is on its way. Check your inbox — and your spam folder.'
 }
 
-export const logout = async () => {
-  const response = await apiClient('/auth/logout', {
-    method: 'POST',
-  })
+// ── Khôi phục mật khẩu (OTP 3 bước) ─────────────────────────────────────────
 
-  const responseBody = (await response.json()) as ApiResponse<null>
-
-  if (!response.ok) {
-    throw new Error(responseBody.message || 'Unable to sign out.')
-  }
-
-  return responseBody.message
-}
-
-// Reads a { code, message, data } envelope, throwing the friendly backend
-// message on any non-2xx so callers never mistake a failure for success.
-const readEnvelope = async <T>(response: Response, fallbackMessage: string) => {
-  let body: ApiResponse<T>
-  try {
-    body = (await response.json()) as ApiResponse<T>
-  } catch {
-    body = {} as ApiResponse<T>
-  }
-
-  if (!response.ok) {
-    throw new Error(body.message || fallbackMessage)
-  }
-
-  return body
-}
-
-// Step 1 — request a reset code. Backend returns a neutral message whether or
-// not the account exists (anti-enumeration); we surface it verbatim.
+/**
+ * Bước 1 — xin mã đặt lại. Backend trả thông điệp trung tính dù tài khoản có
+ * tồn tại hay không (chống dò email); ta hiển thị nguyên văn.
+ */
 export const forgotPassword = async (email: string): Promise<string> => {
-  const response = await apiClient('/auth/forgot-password', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  })
-
-  const body = await readEnvelope<null>(
-    response,
-    'We couldn’t process that request. Please try again shortly.',
-  )
-
-  return body.message || 'If an account exists for that email, a reset code is on its way.'
+  await http.post<null>('/auth/forgot-password', { email })
+  return 'If an account exists for that email, a reset code is on its way.'
 }
 
-// Resend a reset code. Backend enforces a cooldown and replies 429 with a
-// "please wait" message when called too soon.
+/** Gửi lại mã. Backend có cooldown và trả 429 kèm thông điệp chờ nếu gọi sớm. */
 export const resendResetOtp = async (email: string): Promise<string> => {
-  const response = await apiClient('/auth/resend-reset-otp', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  })
-
-  const body = await readEnvelope<null>(
-    response,
-    'We couldn’t resend the code right now. Please try again shortly.',
-  )
-
-  return body.message || 'A new reset code is on its way.'
+  await http.post<null>('/auth/resend-reset-otp', { email })
+  return 'A new reset code is on its way.'
 }
 
 export interface VerifyResetOtpResult {
@@ -122,75 +97,40 @@ export interface VerifyResetOtpResult {
   expiresInMinutes: number
 }
 
-// Step 2 — verify the 6-digit code. On success the backend mints a short-lived
-// reset authorization token used for the final step (email + OTP alone are
-// never enough to reset the password).
-export const verifyResetOtp = async (
-  email: string,
-  otp: string,
-): Promise<VerifyResetOtpResult> => {
-  const response = await apiClient('/auth/verify-reset-otp', {
-    method: 'POST',
-    body: JSON.stringify({ email, otp }),
-  })
+/**
+ * Bước 2 — xác minh mã 6 số. Thành công thì backend cấp một reset token ngắn
+ * hạn cho bước cuối (email + OTP không bao giờ đủ để đổi mật khẩu).
+ */
+export const verifyResetOtp = (email: string, otp: string) =>
+  http.post<VerifyResetOtpResult>('/auth/verify-reset-otp', { email, otp })
 
-  const body = await readEnvelope<VerifyResetOtpResult>(
-    response,
-    'Invalid or expired code. Please try again.',
-  )
-
-  if (!body.data?.resetToken) {
-    throw new Error(body.message || 'Invalid or expired code. Please try again.')
-  }
-
-  return body.data
-}
-
-// Step 3 — set the new password using the reset authorization token.
-export const resetPassword = async (
-  resetToken: string,
-  newPassword: string,
-): Promise<string> => {
-  const response = await apiClient('/auth/reset-password', {
-    method: 'POST',
-    body: JSON.stringify({ resetToken, newPassword }),
-  })
-
-  const body = await readEnvelope<null>(
-    response,
-    'Unable to reset password. The reset session may have expired.',
-  )
-
-  return body.message || 'Your password has been successfully updated.'
+/** Bước 3 — đặt mật khẩu mới bằng reset token. */
+export const resetPassword = async (resetToken: string, newPassword: string): Promise<string> => {
+  await http.post<null>('/auth/reset-password', { resetToken, newPassword })
+  return 'Your password has been successfully updated.'
 }
 
 export interface ChangePasswordResult {
-  message: string
   revokedOtherSessions: number
   currentSessionKept: boolean
 }
 
-// Authenticated password change. userId is taken from the token on the backend
-// — never sent from here. The current session is preserved; other sessions are
-// revoked server-side.
+/**
+ * Đổi mật khẩu khi đã đăng nhập. `userId` lấy từ token phía backend — không
+ * bao giờ gửi từ đây. Phiên hiện tại được giữ, các phiên khác bị thu hồi.
+ */
 export const changePassword = async (
   currentPassword: string,
   newPassword: string,
 ): Promise<ChangePasswordResult> => {
-  const response = await apiClient('/auth/change-password', {
-    method: 'PATCH',
-    auth: true,
-    body: JSON.stringify({ currentPassword, newPassword }),
-  })
-
-  const body = await readEnvelope<{ revokedOtherSessions?: number; currentSessionKept?: boolean }>(
-    response,
-    'Unable to change password. Please try again.',
+  const data = await http.patch<Partial<ChangePasswordResult> | null>(
+    '/auth/change-password',
+    { currentPassword, newPassword },
+    { auth: true },
   )
 
   return {
-    message: body.message || 'Password changed successfully.',
-    revokedOtherSessions: body.data?.revokedOtherSessions ?? 0,
-    currentSessionKept: body.data?.currentSessionKept ?? true,
+    revokedOtherSessions: data?.revokedOtherSessions ?? 0,
+    currentSessionKept: data?.currentSessionKept ?? true,
   }
 }

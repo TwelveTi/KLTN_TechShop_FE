@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { Badge } from '../../../shared/components/Badge'
-import { Button } from '../../../shared/components/Button'
-import { Icon } from '../../../shared/components/Icon'
-import { Modal } from '../../../shared/components/Modal'
+import { Badge } from '@shared/ui/Badge'
+import { Button } from '@shared/ui/Button'
+import { formatVnd } from '@shared/utils/money'
+import { formatDateTime as formatDate } from '@shared/utils/date'
+import { Icon } from '@shared/ui/Icon'
+import { Modal } from '@shared/ui/Modal'
 import { AdminPagination } from './AdminPagination'
 import { AdminTable } from './AdminTable'
-import { ConfirmModal } from './ConfirmModal'
+import { ConfirmDialog } from '@shared/ui/ConfirmDialog'
 import type {
   AdminOrder,
-  FulfilmentStatus,
+  OrderStatus,
   PaymentStatus,
   TableColumn,
 } from '../types'
@@ -20,37 +22,17 @@ interface OrdersSectionProps {
   currentPage: number
   pageSize: number
   searchQuery: string
-  selectedFulfilmentStatus: string
+  selectedOrderStatus: string
   selectedPaymentStatus: string
   onSearchChange: (query: string) => void
-  onFulfilmentStatusChange: (status: string) => void
+  onOrderStatusChange: (status: string) => void
   onPaymentStatusChange: (status: string) => void
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
-  onUpdateOrderStatus: (orderId: string, status: FulfilmentStatus, note?: string) => Promise<void>
+  onUpdateOrderStatus: (orderId: string, status: OrderStatus, note?: string) => Promise<void>
 }
 
-const formatCurrency = (val: number | string | undefined) =>
-  new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  }).format(Number(val || 0))
 
-const formatDate = (isoString: string) => {
-  try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  } catch {
-    return isoString
-  }
-}
 
 export function OrdersSection({
   orders,
@@ -59,10 +41,10 @@ export function OrdersSection({
   currentPage,
   pageSize,
   searchQuery,
-  selectedFulfilmentStatus,
+  selectedOrderStatus,
   selectedPaymentStatus,
   onSearchChange,
-  onFulfilmentStatusChange,
+  onOrderStatusChange,
   onPaymentStatusChange,
   onPageChange,
   onPageSizeChange,
@@ -71,7 +53,7 @@ export function OrdersSection({
   // Single discriminant modal state
   const [activeModal, setActiveModal] = useState<'detail' | 'transition' | null>(null)
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null)
-  const [transitionStatus, setTransitionStatus] = useState<FulfilmentStatus | null>(null)
+  const [transitionStatus, setTransitionStatus] = useState<OrderStatus | null>(null)
   const [transitionNote, setTransitionNote] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
 
@@ -79,7 +61,7 @@ export function OrdersSection({
     { id: 'ALL', label: 'All Orders' },
     { id: 'PENDING', label: 'Pending Payment' },
     { id: 'PROCESSING', label: 'Processing' },
-    { id: 'SHIPPED', label: 'In Transit' },
+    { id: 'SHIPPING', label: 'In Transit' },
     { id: 'DELIVERED', label: 'Delivered' },
     { id: 'CANCELLED', label: 'Cancelled' },
   ]
@@ -96,7 +78,7 @@ export function OrdersSection({
     setActiveModal('detail')
   }
 
-  const handleInitiateTransition = (status: FulfilmentStatus) => {
+  const handleInitiateTransition = (status: OrderStatus) => {
     setTransitionStatus(status)
     setActiveModal('transition')
   }
@@ -170,7 +152,7 @@ export function OrdersSection({
       align: 'right',
       sortable: true,
       render: (order) => (
-        <span className="ts-tabular ts-admin-price-text">{formatCurrency(order.totalAmount)}</span>
+        <span className="ts-tabular ts-admin-price-text">{formatVnd(order.totalAmountVnd)}</span>
       ),
     },
     {
@@ -180,7 +162,7 @@ export function OrdersSection({
       render: (order) => {
         const variantMap: Record<PaymentStatus, 'success' | 'warning' | 'danger' | 'neutral'> = {
           PAID: 'success',
-          PENDING: 'warning',
+          UNPAID: 'warning',
           FAILED: 'danger',
           REFUNDED: 'neutral',
         }
@@ -196,12 +178,16 @@ export function OrdersSection({
       header: 'Fulfilment',
       align: 'center',
       render: (order) => {
-        const variantMap: Record<FulfilmentStatus, 'success' | 'info' | 'accent' | 'warning' | 'neutral'> = {
-          DELIVERED: 'success',
-          SHIPPED: 'info',
-          PROCESSING: 'accent',
+        // Bảng phải phủ ĐỦ OrderStatus — TypeScript giờ ép điều đó, nên thêm
+        // một trạng thái ở domain sẽ làm build đỏ thay vì im lặng rơi về 'neutral'.
+        const variantMap: Record<OrderStatus, 'success' | 'info' | 'accent' | 'warning' | 'neutral'> = {
           PENDING: 'warning',
+          PAID: 'info',
+          PROCESSING: 'accent',
+          SHIPPING: 'info',
+          DELIVERED: 'success',
           CANCELLED: 'neutral',
+          REFUNDED: 'neutral',
         }
         return (
           <Badge variant={variantMap[order.fulfilmentStatus] || 'neutral'}>
@@ -235,13 +221,13 @@ export function OrdersSection({
       {/* 1. Status Filter Tabs */}
       <div className="ts-admin-status-tabs" role="tablist" aria-label="Filter orders by status">
         {statusTabs.map((tab) => {
-          const isActive = selectedFulfilmentStatus === tab.id
+          const isActive = selectedOrderStatus === tab.id
           return (
             <button
               key={tab.id}
               type="button"
               className={`ts-admin-status-tab ${isActive ? 'is-active' : ''}`}
-              onClick={() => onFulfilmentStatusChange(tab.id)}
+              onClick={() => onOrderStatusChange(tab.id)}
               aria-selected={isActive}
               role="tab"
             >
@@ -290,14 +276,14 @@ export function OrdersSection({
             <Icon name="chevron-down" size={14} className="ts-admin-select-icon" />
           </div>
 
-          {(searchQuery || selectedPaymentStatus !== 'ALL' || selectedFulfilmentStatus !== 'ALL') && (
+          {(searchQuery || selectedPaymentStatus !== 'ALL' || selectedOrderStatus !== 'ALL') && (
             <button
               type="button"
               className="ts-admin-clear-filters-btn"
               onClick={() => {
                 onSearchChange('')
                 onPaymentStatusChange('ALL')
-                onFulfilmentStatusChange('ALL')
+                onOrderStatusChange('ALL')
               }}
             >
               <Icon name="x" size={14} />
@@ -352,12 +338,12 @@ export function OrdersSection({
                     variant="primary"
                     size="sm"
                     leadingIcon={<Icon name="truck" size={16} />}
-                    onClick={() => handleInitiateTransition('SHIPPED')}
+                    onClick={() => handleInitiateTransition('SHIPPING')}
                   >
                     Mark as Shipped
                   </Button>
                 )}
-                {selectedOrder.fulfilmentStatus === 'SHIPPED' && (
+                {selectedOrder.fulfilmentStatus === 'SHIPPING' && (
                   <Button
                     variant="primary"
                     size="sm"
@@ -401,7 +387,7 @@ export function OrdersSection({
                   variant={
                     selectedOrder.paymentStatus === 'PAID'
                       ? 'success'
-                      : selectedOrder.paymentStatus === 'PENDING'
+                      : selectedOrder.paymentStatus === 'UNPAID'
                         ? 'warning'
                         : 'danger'
                   }
@@ -415,7 +401,7 @@ export function OrdersSection({
                   variant={
                     selectedOrder.fulfilmentStatus === 'DELIVERED'
                       ? 'success'
-                      : selectedOrder.fulfilmentStatus === 'SHIPPED'
+                      : selectedOrder.fulfilmentStatus === 'SHIPPING'
                         ? 'info'
                         : selectedOrder.fulfilmentStatus === 'PROCESSING'
                           ? 'accent'
@@ -491,13 +477,13 @@ export function OrdersSection({
                           <span className="ts-admin-cell-sku">{item.productSku || '—'}</span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <span className="ts-tabular">{formatCurrency(item.unitPrice)}</span>
+                          <span className="ts-tabular">{formatVnd(item.unitPriceVnd)}</span>
                         </td>
                         <td style={{ textAlign: 'center' }}>
                           <span className="ts-tabular">{item.quantity}</span>
                         </td>
                         <td style={{ textAlign: 'right' }}>
-                          <strong className="ts-tabular">{formatCurrency(item.totalPrice)}</strong>
+                          <strong className="ts-tabular">{formatVnd(item.totalPriceVnd)}</strong>
                         </td>
                       </tr>
                     ))}
@@ -509,25 +495,25 @@ export function OrdersSection({
               <div className="ts-admin-order-totals">
                 <div className="ts-admin-total-row">
                   <span>Subtotal</span>
-                  <span className="ts-tabular">{formatCurrency(selectedOrder.subtotal)}</span>
+                  <span className="ts-tabular">{formatVnd(selectedOrder.subtotalVnd)}</span>
                 </div>
-                {selectedOrder.discount > 0 && (
+                {selectedOrder.discountVnd > 0 && (
                   <div className="ts-admin-total-row ts-admin-total-row--discount">
                     <span>Discount</span>
-                    <span className="ts-tabular">-{formatCurrency(selectedOrder.discount)}</span>
+                    <span className="ts-tabular">-{formatVnd(selectedOrder.discountVnd)}</span>
                   </div>
                 )}
                 <div className="ts-admin-total-row">
                   <span>Shipping Fee</span>
                   <span className="ts-tabular">
-                    {selectedOrder.shippingFee === 0
+                    {selectedOrder.shippingFeeVnd === 0
                       ? 'FREE'
-                      : formatCurrency(selectedOrder.shippingFee)}
+                      : formatVnd(selectedOrder.shippingFeeVnd)}
                   </span>
                 </div>
                 <div className="ts-admin-total-row ts-admin-total-row--grand">
                   <span>Grand Total</span>
-                  <strong className="ts-tabular">{formatCurrency(selectedOrder.totalAmount)}</strong>
+                  <strong className="ts-tabular">{formatVnd(selectedOrder.totalAmountVnd)}</strong>
                 </div>
               </div>
             </div>
@@ -567,12 +553,12 @@ export function OrdersSection({
 
       {/* Status Transition Confirmation Dialog */}
       {activeModal === 'transition' && selectedOrder && transitionStatus && (
-        <ConfirmModal
+        <ConfirmDialog
           isOpen={true}
           title={`Change status to ${transitionStatus}?`}
           message={`Are you sure you want to transition order ${selectedOrder.orderCode} to ${transitionStatus}?`}
           confirmLabel={`Update to ${transitionStatus}`}
-          variant={transitionStatus === 'CANCELLED' ? 'danger' : 'primary'}
+          tone={transitionStatus === 'CANCELLED' ? 'danger' : 'primary'}
           isLoading={isUpdating}
           onConfirm={handleApplyTransition}
           onCancel={() => {
