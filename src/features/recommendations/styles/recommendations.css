@@ -1,0 +1,189 @@
+/* =================================================================
+ * Recommendations — dải gợi ý
+ *
+ * Quy ước (ARCHITECTURE.md §9): mọi class mang tiền tố `ts-`, và file này chỉ
+ * được khai báo alias có tiền tố `--recommendations-*`, mỗi alias trỏ tới một
+ * token toàn cục trong `shared/styles/tokens.css`. Không hex literal mới.
+ *
+ * Rail dùng cuộn NGANG chứ không phải lưới, ở cả trang chủ lẫn trang chi tiết.
+ * Đó là một quyết định: một lưới 12 sản phẩm gợi ý sẽ đẩy phần còn lại của trang
+ * xuống quá xa, và một dải cuộn nói rõ "đây là phần thêm, không phải nội dung
+ * chính".
+ * ================================================================= */
+
+.ts-rec-rail {
+  --recommendations-card-width: 264px;
+  --recommendations-gap: var(--space-4);
+  --recommendations-radius: var(--radius-lg);
+  --recommendations-surface: var(--color-surface-sunken);
+  --recommendations-border: var(--color-border);
+
+  padding: var(--space-10) 0;
+  /* Neo tới `#ts-rec-for-you` không bị header sticky che mất tiêu đề. */
+  scroll-margin-top: 120px;
+}
+
+.ts-rec-rail__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.ts-rec-rail__headings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.ts-rec-rail__title {
+  font-family: var(--font-display);
+  font-size: var(--text-h2);
+  font-weight: var(--weight-bold);
+  letter-spacing: -0.02em;
+  color: var(--color-heading);
+}
+
+.ts-rec-rail__subtitle {
+  font-size: var(--text-body-sm);
+  color: var(--color-muted);
+  max-width: 60ch;
+  line-height: 1.55;
+}
+
+/* ── Track ────────────────────────────────────────────────────────── */
+
+.ts-rec-rail__track {
+  display: flex;
+  gap: var(--recommendations-gap);
+  overflow-x: auto;
+  /* Chỗ cho shadow của thẻ, nếu không nó bị cắt ở cạnh vùng cuộn. */
+  padding-bottom: var(--space-3);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  list-style: none;
+}
+
+.ts-rec-slot {
+  /* Bề rộng CỐ ĐỊNH: để `auto` thì thẻ có tên dài sẽ nở ra và cả hàng lệch nhịp. */
+  flex: 0 0 var(--recommendations-card-width);
+  width: var(--recommendations-card-width);
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Thẻ phải cao đều nhau kể cả khi slot có thêm nhãn lý do phía trên. */
+.ts-rec-slot .ts-product-card {
+  flex: 1 1 auto;
+}
+
+/* ── Nhãn lý do ───────────────────────────────────────────────────── */
+
+.ts-rec-reason {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: flex-start;
+  max-width: 100%;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-primary-soft);
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: var(--text-overline);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.01em;
+}
+
+.ts-rec-reason__icon {
+  flex-shrink: 0;
+}
+
+.ts-rec-reason__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Skeleton ─────────────────────────────────────────────────────── */
+
+.ts-rec-skeleton {
+  flex: 0 0 var(--recommendations-card-width);
+  width: var(--recommendations-card-width);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--recommendations-radius);
+  border: 1px solid var(--recommendations-border);
+  background-color: var(--color-surface);
+}
+
+.ts-rec-skeleton__media {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+  background-color: var(--recommendations-surface);
+  animation: ts-rec-shimmer 1.4s ease-in-out infinite;
+}
+
+.ts-rec-skeleton__line {
+  height: 12px;
+  border-radius: var(--radius-xs);
+  background-color: var(--recommendations-surface);
+  animation: ts-rec-shimmer 1.4s ease-in-out infinite;
+}
+
+.ts-rec-skeleton__line--meta {
+  width: 40%;
+  height: 10px;
+}
+
+.ts-rec-skeleton__line--title {
+  width: 85%;
+  height: 18px;
+}
+
+.ts-rec-skeleton__line--price {
+  width: 30%;
+  height: 18px;
+}
+
+/* Keyframe riêng: `ts-shimmer` sống trong catalog.css, và catalog.css KHÔNG được
+ * nạp ở trang chủ (CSS tách theo chunk từ GĐ3). Dùng lại tên đó thì skeleton của
+ * rail sẽ đứng im ở đúng nơi nó hay xuất hiện nhất. */
+@keyframes ts-rec-shimmer {
+  0% { opacity: 0.55; }
+  50% { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-rec-skeleton__media,
+  .ts-rec-skeleton__line {
+    animation: none;
+  }
+}
+
+/* ── Màn hình nhỏ ─────────────────────────────────────────────────── */
+
+@media (max-width: 560px) {
+  .ts-rec-rail {
+    padding: var(--space-8) 0;
+  }
+
+  .ts-rec-rail__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ts-rec-slot,
+  .ts-rec-skeleton {
+    flex-basis: 78vw;
+    width: 78vw;
+  }
+}

@@ -71,6 +71,8 @@ export function ProductsScreen() {
       onDeleteProduct={async (id) => {
         await deleteProduct.mutate(id)
       }}
+      // Danh sách không trả thông số kỹ thuật, nên form sửa phải nạp chi tiết.
+      onLoadProduct={adminApi.getProduct}
       onUploadImages={adminApi.uploadProductImages}
     />
   )

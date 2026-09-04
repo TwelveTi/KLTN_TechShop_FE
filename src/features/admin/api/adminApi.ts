@@ -7,17 +7,46 @@ import type {
   AdminCategory,
   AdminOrder,
   AdminProduct,
+  AdminProductPayload,
   AdminUser,
   DashboardSummary,
   LowStockItem,
   OrderItem,
   OrderTimelineEvent,
   PagedResponse,
+  ProductSpecification,
   RevenuePoint,
   TopSellingProduct,
   UserStatus,
 } from '../types'
-import type { AdminOrderDto, AdminProductDto, AdminUserListDto, RevenueSummaryDto } from './dto'
+import type {
+  AdminOrderDto,
+  AdminProductDto,
+  AdminSpecificationDto,
+  AdminUserListDto,
+  RevenueSummaryDto,
+} from './dto'
+
+/**
+ * Dòng spec từ API → dòng của form.
+ *
+ * `valueNumber` về dưới dạng DECIMAL chuỗi ("18.0000"), nên phải qua `Number`
+ * trước khi hiển thị, nếu không admin thấy "18.0000" trong ô nhập.
+ */
+function toSpecification(dto: AdminSpecificationDto): ProductSpecification {
+  const dataType = dto.definition?.dataType ?? 'STRING'
+  const hasNumber = dto.valueNumber !== null && dto.valueNumber !== undefined
+
+  return {
+    id: dto.id,
+    definitionId: dto.specificationDefinitionId ?? dto.definition?.id,
+    name: dto.definition?.name ?? '',
+    valueText: dto.valueText ?? '',
+    value: dataType === 'NUMBER' && hasNumber ? String(Number(dto.valueNumber)) : '',
+    dataType,
+    unit: dto.definition?.unit ?? null,
+  }
+}
 
 /** Giá trị sắp xếp mà backend chấp nhận — khớp `productRepository.buildOrder`. */
 export const ADMIN_PRODUCT_SORTS = ['newest', 'priceAsc', 'priceDesc', 'bestSelling', 'rating'] as const
@@ -292,10 +321,27 @@ export const adminApi = {
     )
   },
 
-  createProduct: (payload: Partial<AdminProduct>) =>
+  /**
+   * Chi tiết một sản phẩm, kèm thông số kỹ thuật.
+   *
+   * Bắt buộc phải có: `GET /admin/products` (danh sách) KHÔNG join bảng
+   * `product_specifications`, nên một row của bảng luôn có `specifications`
+   * undefined. Form sửa mở từ row đó sẽ tưởng sản phẩm không có thông số nào,
+   * và lần Save kế tiếp xoá sạch chúng.
+   */
+  async getProduct(id: string): Promise<AdminProduct> {
+    const dto = await http.get<AdminProduct & { specifications?: AdminSpecificationDto[] }>(
+      `/admin/products/${encodeURIComponent(id)}`,
+      { auth: true },
+    )
+
+    return { ...dto, specifications: (dto.specifications ?? []).map(toSpecification) }
+  },
+
+  createProduct: (payload: AdminProductPayload) =>
     http.post<AdminProduct>('/admin/products', payload, { auth: true }),
 
-  updateProduct: (id: string, payload: Partial<AdminProduct>) =>
+  updateProduct: (id: string, payload: AdminProductPayload) =>
     http.put<AdminProduct>(`/admin/products/${id}`, payload, { auth: true }),
 
   deleteProduct: (id: string) => http.del<null>(`/admin/products/${id}`, { auth: true }),

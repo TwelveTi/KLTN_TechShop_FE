@@ -61,10 +61,29 @@ export interface ProductVariant {
   stockQuantity?: number | string
 }
 
+export type SpecDataType = 'STRING' | 'NUMBER' | 'BOOLEAN' | 'JSON'
+
+/**
+ * Một dòng thông số trong form sản phẩm.
+ *
+ * `name` KHÔNG phải cột của bảng `product_specifications` — tên nằm trên
+ * `SpecificationDefinition`, nên dòng lấy từ API phải được map qua
+ * `definition.name` trước khi đưa vào form.
+ *
+ * `valueText` là chữ hiển thị trên trang sản phẩm; `value` là con số để máy so
+ * sánh, chỉ có nghĩa với definition `NUMBER`. Hai thứ ở hai cột khác nhau nên
+ * không xung đột: "18GB Unified Memory" đọc cho người, 18 dùng để lọc.
+ */
 export interface ProductSpecification {
   id?: string
+  /** Có nó thì backend không phải suy definition từ tên đã gõ. */
+  definitionId?: string
   name: string
   valueText: string
+  /** Giữ dạng chuỗi vì đây là giá trị của một ô input; đổi sang số khi submit. */
+  value?: string
+  dataType?: SpecDataType
+  unit?: string | null
   definition?: { name: string }
 }
 
@@ -96,6 +115,27 @@ export interface AdminProduct {
   specifications?: ProductSpecification[]
   createdAt?: string
   updatedAt?: string
+}
+
+/**
+ * Một dòng thông số như GỬI LÊN backend. Khác dòng trong form ở chỗ `value` đã
+ * là số thật — trong form nó là chuỗi vì đang nằm trong một ô input.
+ */
+export interface ProductSpecificationPayload {
+  definitionId?: string
+  name: string
+  valueText: string
+  value?: number
+}
+
+/**
+ * Payload tạo/sửa sản phẩm. Khác `AdminProduct` ở một cờ chỉ tồn tại trên đường
+ * gửi lên: backend bỏ qua `specifications: []` để một client quên nạp thông số
+ * không xoá sạch chúng, nên muốn xoá hết thật thì phải nói rõ.
+ */
+export type AdminProductPayload = Omit<Partial<AdminProduct>, 'specifications'> & {
+  specifications?: ProductSpecificationPayload[]
+  clearSpecifications?: boolean
 }
 
 export interface AdminUser {

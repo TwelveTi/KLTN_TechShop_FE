@@ -6,7 +6,7 @@ import { formatVnd } from '@shared/utils/money'
 import { discountPercent } from '@domain/product'
 import { Icon } from '@shared/ui/Icon'
 import type { Product } from '@domain/product'
-import { ProductCard } from '@shared/ui/ProductCard'
+import { SimilarProductsRail } from '@features/recommendations'
 import { ProductGallery } from '../components/ProductGallery'
 import { ProductBuyBox } from '../components/ProductBuyBox'
 import { ProductSpecsTable } from '../components/ProductSpecsTable'
@@ -35,7 +35,6 @@ export function ProductDetailScreen() {
   const onNavigateHome = () => navigate(paths.home())
   const onOpenCatalog = (category?: string) => navigate(paths.catalog({ category }))
   const onOpenCart = () => navigate(paths.cart())
-  const onOpenProduct = (id: string) => navigate(paths.product(id))
   const onSignIn = () => navigate(paths.auth('login'))
   const { addToCart } = useCart()
   const { showToast } = useToast()
@@ -194,22 +193,13 @@ export function ProductDetailScreen() {
               onSignIn={onSignIn}
             />
 
-            {/* Related Hardware Rail */}
-            {product.relatedProducts && product.relatedProducts.length > 0 && (
-              <section className="ts-pdp-related" aria-label="Related hardware recommendations">
-                <h2 className="ts-pdp-related__title">Complementary & Similar Hardware</h2>
-                <div className="ts-pdp-related__grid">
-                  {product.relatedProducts.map((relItem) => (
-                    <ProductCard
-                      key={relItem.id || relItem.name}
-                      product={relItem}
-                      onOpen={() => onOpenProduct(relItem.id || relItem.name)}
-                      onAddToCart={() => addToCart(relItem, 1)}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
+            {/* Dải sản phẩm tương tự.
+                Trước đây đây là một lưới tĩnh dựng từ `product.relatedProducts`
+                — một truy vấn "cùng categoryId" đội tên "Similar Hardware".
+                Giờ nó gọi ma trận `ProductSimilarity` thật (danh mục · hãng ·
+                tag · giá · thông số), và chỉ hạ xuống danh sách cùng danh mục
+                khi ma trận chưa được build — kèm đổi tiêu đề cho đúng. */}
+            <SimilarProductsRail productId={product.id} fallback={product.relatedProducts} />
 
             {/* Mobile / Tablet Sticky Purchase Bar */}
             <StickyAddToCartBar

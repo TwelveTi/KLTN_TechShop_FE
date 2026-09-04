@@ -39,6 +39,11 @@ const ALLOWED_FEATURE_EDGES = [
   // Hồ sơ và Thanh toán cùng tiêu thụ sổ địa chỉ.
   { from: 'profile', to: 'addresses' },
   { from: 'checkout', to: 'addresses' },
+  // Dải gợi ý là một BỀ MẶT, không phải một trang: nó xuất hiện bên trong trang
+  // chủ và trang chi tiết sản phẩm. Cạnh đi một chiều — `recommendations` không
+  // import lại `home` hay `catalog`, nên không có chu trình.
+  { from: 'home', to: 'recommendations' },
+  { from: 'catalog', to: 'recommendations' },
 ]
 
 /** Tầng nào bị cấm import lên tầng nào. */

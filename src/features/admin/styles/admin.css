@@ -2055,6 +2055,11 @@
   grid-template-columns: 1.5fr 1fr 1fr 1fr 36px;
 }
 
+/* Thông số dạng số: thêm một ô hẹp cho con số, cạnh phần chữ hiển thị. */
+.ts-admin-repeater-row--typed {
+  grid-template-columns: 1fr 1.5fr 0.6fr 36px;
+}
+
 .ts-admin-repeater-remove {
   display: inline-flex;
   align-items: center;

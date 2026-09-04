@@ -11,6 +11,7 @@ import { useCart } from '@features/cart'
 import { useToast } from '@shared/ui/useToast'
 import { formatVnd } from '@shared/utils/money'
 import { useFeaturedProducts } from '@features/catalog'
+import { PersonalRecommendationRail } from '@features/recommendations'
 import '../styles/home.css'
 
 const serviceHighlights: Array<{ icon: IconName; title: string; desc: string }> = [
@@ -204,6 +205,13 @@ export function HomeScreen() {
             </div>
           ))}
         </section>
+
+        {/* Gợi ý — đặt TRÊN "Featured products" một cách có chủ đích.
+            "Featured" là do admin chọn, giống nhau với mọi khách; dải này được
+            sinh từ hành vi của chính người đang xem, nên nó xứng đáng vị trí
+            đọc trước. Với khách chưa đăng nhập nó tự hạ xuống "Trending right
+            now", và nếu không có gợi ý nào thì nó không render gì cả. */}
+        <PersonalRecommendationRail limit={12} />
 
         {/* Featured — dense product grid */}
         <section className="featured" id="featured" aria-labelledby="featured-heading">

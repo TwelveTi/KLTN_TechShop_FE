@@ -5,6 +5,28 @@
  * nghĩa là backend đổi tên field thì không có gì báo — chỉ có `NaN` hiện lên UI.
  */
 
+/**
+ * Một dòng `product_specifications` như backend trả về.
+ *
+ * Bảng này không có cột `name` và không có cột `value`: tên nằm trên
+ * `definition`, còn giá trị tách theo kiểu ra bốn cột `value_*`. Form quản trị
+ * cần cả `definition.dataType` để biết dòng nào phải nhập bằng số.
+ */
+export interface AdminSpecificationDto {
+  id: string
+  specificationDefinitionId?: string
+  valueText?: string | null
+  valueNumber?: number | string | null
+  valueBoolean?: boolean | null
+  definition?: {
+    id?: string
+    key?: string
+    name?: string
+    dataType?: 'STRING' | 'NUMBER' | 'BOOLEAN' | 'JSON'
+    unit?: string | null
+  } | null
+}
+
 export interface AdminOrderItemDto {
   id: string
   productId?: string

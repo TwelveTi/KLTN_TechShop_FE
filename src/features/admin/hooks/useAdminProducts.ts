@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@core/query'
 import { adminApi, type AdminProductSort } from '../api/adminApi'
 import { adminKeys } from '../api/queryKeys'
-import type { AdminProduct } from '../types'
+import type { AdminProductPayload } from '../types'
 
 export interface AdminProductFilters {
   search?: string
@@ -20,7 +20,7 @@ export function useAdminProducts(filters: AdminProductFilters) {
 
 export function useSaveProduct() {
   return useMutation(
-    (id: string | null, payload: Partial<AdminProduct>) =>
+    (id: string | null, payload: AdminProductPayload) =>
       id ? adminApi.updateProduct(id, payload) : adminApi.createProduct(payload),
     { invalidates: [adminKeys.products(), adminKeys.dashboard()] },
   )

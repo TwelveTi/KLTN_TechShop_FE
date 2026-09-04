@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Badge } from '@shared/ui/Badge'
 import { Button } from '@shared/ui/Button'
 import { formatVnd } from '@shared/utils/money'
@@ -11,6 +11,7 @@ import type {
   AdminBrand,
   AdminCategory,
   AdminProduct,
+  AdminProductPayload,
   ProductSpecification,
   ProductStatus,
   ProductVariant,
@@ -36,9 +37,16 @@ interface ProductsSectionProps {
   onSortChange: (field: string) => void
   onPageChange: (page: number) => void
   onPageSizeChange: (size: number) => void
-  onCreateProduct: (product: Partial<AdminProduct>) => Promise<void>
-  onUpdateProduct: (id: string, product: Partial<AdminProduct>) => Promise<void>
+  onCreateProduct: (product: AdminProductPayload) => Promise<void>
+  onUpdateProduct: (id: string, product: AdminProductPayload) => Promise<void>
   onDeleteProduct: (id: string) => Promise<void>
+  /**
+   * Nạp chi tiết một sản phẩm khi mở form sửa. **Bắt buộc**: row của bảng không
+   * có `specifications` (danh sách không join bảng đó), nên không có hàm này thì
+   * form không bao giờ biết sản phẩm đang có thông số gì — và lần Save kế tiếp
+   * xoá sạch chúng. Để prop này tuỳ chọn là để ngỏ đúng lỗi vừa sửa.
+   */
+  onLoadProduct: (id: string) => Promise<AdminProduct>
   onUploadImages?: (files: File[]) => Promise<{ imageUrl: string; publicId: string }[]>
 }
 
@@ -65,6 +73,7 @@ export function ProductsSection({
   onCreateProduct,
   onUpdateProduct,
   onDeleteProduct,
+  onLoadProduct,
   onUploadImages,
 }: ProductsSectionProps) {
   // Single discriminant modal state
@@ -73,6 +82,19 @@ export function ProductsSection({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  // Chi tiết sản phẩm được nạp SAU khi modal mở, để bấm sửa không phải chờ một
+  // round-trip. Đổi lại là có một khoảng thời gian form chưa biết thông số thật,
+  // và trong khoảng đó Save bị chặn — lưu lúc này là xoá sạch thông số.
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false)
+  const [detailError, setDetailError] = useState<string | null>(null)
+  // Chốt chặn: chỉ khi cờ này bật thì form mới BIẾT sản phẩm đang có thông số
+  // gì, và mới được phép gửi một danh sách thông số lên. Nếu việc nạp không bao
+  // giờ xong, Save bị chặn vĩnh viễn — hỏng ồn ào, thay vì mất dữ liệu im lặng.
+  const [specsLoaded, setSpecsLoaded] = useState(false)
+  // Chống race: bấm nhanh qua hai sản phẩm thì phản hồi của cái trước không được
+  // ghi đè form của cái sau.
+  const detailRequestRef = useRef(0)
 
   // Multi-selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -99,11 +121,20 @@ export function ProductsSection({
     setActiveModal(null)
     setSelectedProduct(null)
     setFormErrors({})
+    // Tăng số hiệu để phản hồi chi tiết đang bay về không ghi vào form đã đóng.
+    detailRequestRef.current += 1
+    setIsLoadingDetail(false)
+    setDetailError(null)
   }
 
   // Open Create Modal
   const handleOpenCreate = () => {
     setSelectedProduct(null)
+    detailRequestRef.current += 1
+    setIsLoadingDetail(false)
+    setDetailError(null)
+    // Sản phẩm mới thì không có gì phải nạp — form đã biết hết thông số của nó.
+    setSpecsLoaded(true)
     setName('')
     setSku('')
     setCategoryId(categories[0]?.id || '')
@@ -137,10 +168,39 @@ export function ProductsSection({
     setDescription(product.description || '')
     setIsFeatured(Boolean(product.isFeatured))
     setImages(product.images || [])
-    setSpecs(product.specifications?.length ? product.specifications : [{ name: '', valueText: '' }])
+    setSpecs(product.specifications?.length ? product.specifications : [])
     setVariants(product.variants?.length ? product.variants : [])
     setFormErrors({})
+    setDetailError(null)
+    setSpecsLoaded(false)
     setActiveModal('edit')
+
+    const requestId = detailRequestRef.current + 1
+    detailRequestRef.current = requestId
+    setIsLoadingDetail(true)
+
+    onLoadProduct(product.id)
+      .then((detail) => {
+        if (detailRequestRef.current !== requestId) return
+
+        setSpecs(detail.specifications?.length ? detail.specifications : [{ name: '', valueText: '' }])
+        // Danh sách có sẵn ảnh và biến thể, nhưng bản chi tiết mới nhất, và mô tả
+        // dài thì danh sách cắt bớt.
+        if (detail.images?.length) setImages(detail.images)
+        if (detail.variants?.length) setVariants(detail.variants)
+        setShortDescription(detail.shortDescription || '')
+        setDescription(detail.description || '')
+        setIsLoadingDetail(false)
+        setSpecsLoaded(true)
+      })
+      .catch(() => {
+        if (detailRequestRef.current !== requestId) return
+
+        setIsLoadingDetail(false)
+        setDetailError(
+          'Could not load this product’s specifications. Saving is disabled — saving now would erase them.',
+        )
+      })
   }
 
   // Open Delete Confirmation
@@ -153,6 +213,37 @@ export function ProductsSection({
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     const errors: Record<string, string> = {}
+
+    // Lưu trước khi biết thông số thật là xoá chúng, nên chặn ở đây thay vì để
+    // backend nhận một mảng rỗng và tin rằng đó là ý của admin.
+    if (activeModal === 'edit' && !specsLoaded) {
+      setFormErrors({
+        specifications: detailError ?? 'Still loading this product’s specifications…',
+      })
+      return
+    }
+
+    // `s.name` có thể undefined nếu một dòng đến từ nơi khác chưa map qua
+    // definition.name — đọc kiểu phòng vệ để không nổ TypeError giữa lúc lưu.
+    const specRows = specs.filter((s) => String(s.name ?? '').trim() && String(s.valueText ?? '').trim())
+
+    const missingNumber = specRows.find(
+      (s) => s.dataType === 'NUMBER' && !String(s.value ?? '').trim(),
+    )
+
+    if (missingNumber) {
+      errors.specifications =
+        `“${missingNumber.name}” là thông số dạng số${missingNumber.unit ? ` (${missingNumber.unit})` : ''}` +
+        ' — nhập con số vào ô bên cạnh phần chữ hiển thị.'
+    }
+
+    const badNumber = specRows.find(
+      (s) => s.dataType === 'NUMBER' && String(s.value ?? '').trim() && isNaN(Number(s.value)),
+    )
+
+    if (badNumber) {
+      errors.specifications = `“${badNumber.name}” cần một con số, không phải “${badNumber.value}”.`
+    }
 
     if (!name.trim()) errors.name = 'Product name is required'
     if (!categoryId) errors.categoryId = 'Category is required'
@@ -171,7 +262,7 @@ export function ProductsSection({
 
     setIsSubmitting(true)
     try {
-      const payload: Partial<AdminProduct> = {
+      const payload: AdminProductPayload = {
         name: name.trim(),
         sku: sku.trim() || undefined,
         categoryId,
@@ -184,8 +275,23 @@ export function ProductsSection({
         description: description.trim() || undefined,
         isFeatured,
         images,
-        specifications: specs.filter((s) => s.name.trim() && s.valueText.trim()),
+        specifications: specRows.map((s) => ({
+          definitionId: s.definitionId,
+          name: String(s.name).trim(),
+          valueText: String(s.valueText).trim(),
+          // Gửi cả hai: `value` là con số để so sánh và lọc, `valueText` là chữ
+          // hiển thị trên trang sản phẩm. Với definition NUMBER, thiếu `value`
+          // thì backend phải parse "18GB Unified Memory" và sẽ từ chối.
+          ...(s.dataType === 'NUMBER' ? { value: Number(s.value) } : {}),
+        })),
         variants: variants.filter((v) => v.variantName.trim()),
+      }
+
+      // Backend bỏ qua `specifications: []` để một client quên nạp thông số
+      // không xoá sạch chúng. Cờ này chỉ được gửi khi `specsLoaded` đã bật —
+      // tức mảng rỗng đúng là ý của admin, họ vừa xoá hết từng dòng.
+      if (activeModal === 'edit' && specsLoaded && payload.specifications?.length === 0) {
+        payload.clearSpecifications = true
       }
 
       if (activeModal === 'edit' && selectedProduct) {
@@ -230,7 +336,7 @@ export function ProductsSection({
   // Specifications helpers
   const handleAddSpec = () => setSpecs((prev) => [...prev, { name: '', valueText: '' }])
   const handleRemoveSpec = (index: number) => setSpecs((prev) => prev.filter((_, i) => i !== index))
-  const handleSpecChange = (index: number, field: 'name' | 'valueText', value: string) => {
+  const handleSpecChange = (index: number, field: 'name' | 'valueText' | 'value', value: string) => {
     setSpecs((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)))
   }
 
@@ -498,7 +604,17 @@ export function ProductsSection({
               <Button variant="secondary" onClick={closeModal} disabled={isSubmitting}>
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>
+              {/*
+                Lưu khi chi tiết chưa về là gửi lên một danh sách thông số rỗng,
+                tức xoá sạch thông số của sản phẩm. Chặn ở nút thay vì chỉ báo lỗi
+                sau khi bấm.
+              */}
+              <Button
+                variant="primary"
+                onClick={handleSubmit}
+                isLoading={isSubmitting}
+                disabled={activeModal === 'edit' && !specsLoaded}
+              >
                 {activeModal === 'edit' ? 'Save Changes' : 'Create Product'}
               </Button>
             </div>
@@ -730,33 +846,76 @@ export function ProductsSection({
           <div className="ts-admin-form-group">
             <div className="ts-admin-group-header">
               <h4 className="ts-admin-form-heading">Technical Specifications</h4>
-              <Button type="button" variant="secondary" size="sm" onClick={handleAddSpec}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleAddSpec}
+                disabled={isLoadingDetail || Boolean(detailError)}
+              >
                 Add spec
               </Button>
             </div>
 
+            {isLoadingDetail && (
+              <p className="ts-admin-empty-subtext">Loading this product’s specifications…</p>
+            )}
+
+            {detailError && <span className="ts-admin-field-err">{detailError}</span>}
+
+            {formErrors.specifications && (
+              <span className="ts-admin-field-err">{formErrors.specifications}</span>
+            )}
+
             <div className="ts-admin-repeater-list">
               {specs.map((s, idx) => (
-                <div key={idx} className="ts-admin-repeater-row">
+                <div
+                  key={s.id ?? idx}
+                  className={
+                    s.dataType === 'NUMBER'
+                      ? 'ts-admin-repeater-row ts-admin-repeater-row--typed'
+                      : 'ts-admin-repeater-row'
+                  }
+                >
                   <input
                     type="text"
                     className="ts-admin-input"
                     placeholder="Spec Name (e.g. CPU, RAM, Display)"
-                    value={s.name}
+                    value={s.name ?? ''}
                     onChange={(e) => handleSpecChange(idx, 'name', e.target.value)}
+                    disabled={isLoadingDetail}
                   />
                   <input
                     type="text"
                     className="ts-admin-input"
                     placeholder="Specification Value"
-                    value={s.valueText}
+                    value={s.valueText ?? ''}
                     onChange={(e) => handleSpecChange(idx, 'valueText', e.target.value)}
+                    disabled={isLoadingDetail}
                   />
+                  {/*
+                    Chỉ thông số dạng số mới có ô này. Con số phải khai tường minh
+                    chứ không moi ra từ chữ hiển thị: "14.2 inch Liquid Retina XDR
+                    (3024 x 1964), 120Hz ProMotion" có bốn con số và không parser
+                    nào nên được tin để chọn đúng cái nào là đường chéo màn hình.
+                  */}
+                  {s.dataType === 'NUMBER' && (
+                    <input
+                      type="number"
+                      step="any"
+                      className="ts-admin-input"
+                      placeholder={s.unit ? `Số (${s.unit})` : 'Số'}
+                      value={s.value ?? ''}
+                      onChange={(e) => handleSpecChange(idx, 'value', e.target.value)}
+                      disabled={isLoadingDetail}
+                      aria-label={`${s.name} numeric value${s.unit ? ` in ${s.unit}` : ''}`}
+                    />
+                  )}
                   <button
                     type="button"
                     className="ts-admin-repeater-remove"
                     onClick={() => handleRemoveSpec(idx)}
-                    disabled={specs.length === 1 && !s.name && !s.valueText}
+                    disabled={isLoadingDetail || (specs.length === 1 && !s.name && !s.valueText)}
                     aria-label="Remove specification"
                   >
                     <Icon name="trash" size={16} />
