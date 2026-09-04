@@ -46,6 +46,15 @@ interface Entry {
   /** Promise đang bay, dùng để gộp các lời gọi trùng key. Không phải state. */
   inFlight: Promise<unknown> | null
   listeners: Set<() => void>
+  /**
+   * Hàm nạp gần nhất của key này.
+   *
+   * Giữ lại để `invalidate()` tự nạp lại được — không có nó thì cache biết một
+   * key đã cũ nhưng không biết cách làm nó mới. `useQuery` truyền vào một
+   * closure đọc ref, nên hàm lưu ở đây luôn gọi tới fetcher mới nhất chứ không
+   * đóng băng cái của lần render đầu.
+   */
+  fetcher: (() => Promise<unknown>) | null
 }
 
 const IDLE: QueryState = {
@@ -76,7 +85,7 @@ export function createQueryCache(now: () => number = () => Date.now()) {
   function entryFor(hash: string): Entry {
     let entry = entries.get(hash)
     if (!entry) {
-      entry = { state: IDLE, inFlight: null, listeners: new Set() }
+      entry = { state: IDLE, inFlight: null, listeners: new Set(), fetcher: null }
       entries.set(hash, entry)
     }
     return entry
@@ -86,6 +95,65 @@ export function createQueryCache(now: () => number = () => Date.now()) {
     const entry = entryFor(hash)
     entry.state = { ...entry.state, ...patch }
     for (const listener of entry.listeners) listener()
+  }
+
+  /**
+   * Thân của `fetch`, làm việc trên hash đã tính sẵn.
+   *
+   * Tách ra vì `invalidate()` chỉ có hash trong tay — nó duyệt `entries` theo
+   * tiền tố chuỗi chứ không giữ key gốc.
+   */
+  async function runFetch<T>(
+    hash: string,
+    fetcher: () => Promise<T>,
+    options: { staleTime?: number; force?: boolean } = {},
+  ): Promise<T | undefined> {
+    const entry = entryFor(hash)
+    const staleTime = options.staleTime ?? 0
+
+    // Ghi lại hàm nạp trước cả phần gộp request: `invalidate()` cần nó kể cả
+    // khi lời gọi này dùng chung một promise đang bay.
+    entry.fetcher = fetcher as () => Promise<unknown>
+
+    // Gộp có mức ưu tiên CAO HƠN `force`: nếu đã có một request đang bay cho
+    // cùng key thì `refetch()` dùng chung nó thay vì mở request thứ hai. Bấm
+    // "Làm mới" liên tục vì thế không tạo được bão request, và vì mỗi key chỉ
+    // có tối đa một request bay, hai phản hồi của cùng key không thể tranh
+    // nhau ghi đè.
+    if (entry.inFlight) return entry.inFlight as Promise<T>
+
+    const isFresh =
+      !options.force &&
+      entry.state.status === 'success' &&
+      now() - entry.state.updatedAt < staleTime
+    if (isFresh) return entry.state.data as T
+
+    publish(hash, {
+      isFetching: true,
+      status: entry.state.status === 'success' ? 'success' : 'loading',
+    })
+
+    const request = fetcher()
+      .then((data) => {
+        // Chỉ promise đang được ghi nhận mới được ghi kết quả. Điều này quan
+        // trọng sau `clear()` (đăng xuất): một phản hồi khởi hành TRƯỚC khi
+        // đăng xuất không được phép rơi vào cache của người dùng tiếp theo.
+        if (entryFor(hash).inFlight !== request) return data
+        publish(hash, { status: 'success', data, error: undefined, updatedAt: now(), isFetching: false })
+        return data
+      })
+      .catch((error: unknown) => {
+        if (entryFor(hash).inFlight !== request) throw error
+        publish(hash, { status: 'error', error, isFetching: false })
+        throw error
+      })
+      .finally(() => {
+        const current = entryFor(hash)
+        if (current.inFlight === request) current.inFlight = null
+      })
+
+    entry.inFlight = request
+    return request
   }
 
   return {
@@ -118,54 +186,12 @@ export function createQueryCache(now: () => number = () => Date.now()) {
      *
      * `staleTime`: dữ liệu còn tươi thì trả về ngay, không gọi mạng.
      */
-    async fetch<T>(
+    fetch<T>(
       key: QueryKey,
       fetcher: () => Promise<T>,
       options: { staleTime?: number; force?: boolean } = {},
     ): Promise<T | undefined> {
-      const hash = hashKey(key)
-      const entry = entryFor(hash)
-      const staleTime = options.staleTime ?? 0
-
-      // Gộp có mức ưu tiên CAO HƠN `force`: nếu đã có một request đang bay cho
-      // cùng key thì `refetch()` dùng chung nó thay vì mở request thứ hai. Bấm
-      // "Làm mới" liên tục vì thế không tạo được bão request, và vì mỗi key chỉ
-      // có tối đa một request bay, hai phản hồi của cùng key không thể tranh
-      // nhau ghi đè.
-      if (entry.inFlight) return entry.inFlight as Promise<T>
-
-      const isFresh =
-        !options.force &&
-        entry.state.status === 'success' &&
-        now() - entry.state.updatedAt < staleTime
-      if (isFresh) return entry.state.data as T
-
-      publish(hash, {
-        isFetching: true,
-        status: entry.state.status === 'success' ? 'success' : 'loading',
-      })
-
-      const request = fetcher()
-        .then((data) => {
-          // Chỉ promise đang được ghi nhận mới được ghi kết quả. Điều này quan
-          // trọng sau `clear()` (đăng xuất): một phản hồi khởi hành TRƯỚC khi
-          // đăng xuất không được phép rơi vào cache của người dùng tiếp theo.
-          if (entryFor(hash).inFlight !== request) return data
-          publish(hash, { status: 'success', data, error: undefined, updatedAt: now(), isFetching: false })
-          return data
-        })
-        .catch((error: unknown) => {
-          if (entryFor(hash).inFlight !== request) throw error
-          publish(hash, { status: 'error', error, isFetching: false })
-          throw error
-        })
-        .finally(() => {
-          const current = entryFor(hash)
-          if (current.inFlight === request) current.inFlight = null
-        })
-
-      entry.inFlight = request
-      return request
+      return runFetch(hashKey(key), fetcher, options)
     },
 
     /**
@@ -185,10 +211,28 @@ export function createQueryCache(now: () => number = () => Date.now()) {
       for (const [hash, entry] of entries) {
         if (hash !== prefixHash && !hash.startsWith(needle)) continue
         affected.push(hash)
+
         // Đánh dấu đã cũ; lần fetch tới sẽ gọi mạng. Vẫn phải tạo state mới để
         // subscriber nào đang xem key này cũng nhận được thông báo.
         entry.state = { ...entry.state, updatedAt: 0 }
         for (const listener of entry.listeners) listener()
+
+        // Và nạp lại NGAY nếu key đang được component theo dõi.
+        //
+        // Thiếu đoạn này là một lỗi thật đã quan sát được: xoá một bản ghi thì
+        // `DELETE` trả 200 nhưng danh sách vẫn nguyên, vì `useQuery` chỉ nạp
+        // trong một effect phụ thuộc `[cache, key, enabled, staleTime]` — không
+        // cái nào đổi khi cache bị vô hiệu, nên effect không chạy lại và dữ liệu
+        // cũ nằm đó tới lần vào trang sau.
+        //
+        // Chỉ nạp cho entry CÒN listener: một key không ai xem thì nạp lại là
+        // request thừa, và nó đã được đánh dấu cũ nên lần xem tới vẫn gọi mạng.
+        if (entry.listeners.size > 0 && entry.fetcher) {
+          void runFetch(hash, entry.fetcher, { force: true }).catch(() => {
+            // Lỗi đã nằm trong state của entry; nuốt ở đây để một lần nạp lại
+            // hỏng không thành unhandled rejection trong tay nơi gọi mutation.
+          })
+        }
       }
 
       return affected

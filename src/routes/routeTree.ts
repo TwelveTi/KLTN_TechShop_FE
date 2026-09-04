@@ -26,6 +26,7 @@ import { CartScreen } from '@features/cart/screens/CartScreen'
 const CheckoutScreen = lazy(() => import('@features/checkout/screens/CheckoutScreen'))
 const CheckoutResultScreen = lazy(() => import('@features/checkout/screens/CheckoutResultScreen'))
 const AuthScreen = lazy(() => import('@features/auth/screens/AuthScreen'))
+const AdvisorScreen = lazy(() => import('@features/ai-assistant/screens/AdvisorScreen'))
 
 const ProfileLayout = lazy(() => import('@features/profile/components/ProfileLayout'))
 const ProfileAccountScreen = lazy(() => import('@features/profile/screens/ProfileAccountScreen'))
@@ -54,6 +55,7 @@ export const routeTree: RouteDefinition[] = [
       { path: patterns.catalog, element: CatalogScreen, title: 'Catalog' },
       { path: patterns.product, element: ProductDetailScreen, title: 'Product' },
       { path: patterns.cart, element: CartScreen, title: 'Cart' },
+      { path: patterns.advisor, element: AdvisorScreen, title: 'AI advisor' },
 
       {
         path: patterns.checkout,

@@ -679,6 +679,21 @@
   border: 1px solid var(--color-border);
   color: var(--color-text);
   white-space: nowrap;
+
+  /* Ba dòng dưới đi liền với `nowrap` ở trên và không tách rời được.
+   *
+   * `nowrap` một mình khiến chip không xuống dòng ĐƯỢC mà cũng không co lại,
+   * nên một tên biến thể dài — "Core Ultra 9 / 32GB RAM / 1TB SSD / RTX 4070 -
+   * Eclipse Gray" — tràn thẳng ra ngoài mép thẻ. `flex-wrap` của container
+   * không cứu được: nó chỉ đẩy CẢ chip xuống dòng, chứ một chip vốn đã rộng
+   * hơn thẻ thì xuống dòng nào cũng vẫn tràn.
+   *
+   * Cắt bằng `…` thay vì cho xuống nhiều dòng: chip là nhãn liếc qua, và một
+   * chip hai dòng làm vỡ nhịp chiều cao của cả lưới sản phẩm. Chuỗi đầy đủ nằm
+   * ở `title` nên vẫn đọc được khi rê chuột. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ts-product-card__footer {

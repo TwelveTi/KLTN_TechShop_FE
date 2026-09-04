@@ -1,5 +1,6 @@
 import { Outlet, useNavigate, useSearchParams } from '@core/router'
 import { paths } from '@routes/paths'
+import { AdvisorLauncher, AdvisorProvider } from '@features/ai-assistant'
 import { useAuth } from '@features/auth'
 import { useCart } from '@features/cart'
 import { Footer } from '@shared/ui/Footer'
@@ -24,22 +25,33 @@ export function StorefrontLayout() {
   const activeCategory = searchParams.get('category') ?? undefined
 
   return (
-    <div className="ts-storefront-layout">
-      <GlobalHeader
-        authResult={authResult}
-        cartCount={cartCount}
-        activeCategory={activeCategory}
-        onLogout={async () => {
-          await signOut()
-          navigate(paths.home())
-        }}
-      />
+    // Provider bọc CẢ header: chip "AI Assist" nằm trong `DepartmentBar`, tức
+    // là bên trong `GlobalHeader`, nên nó phải ở trong tầm của provider mới mở
+    // được cùng cuộc hội thoại với nút nổi ở cuối trang.
+    //
+    // Đặt ở layout chứ không ở từng màn hình để trợ lý sống qua mọi lần chuyển
+    // trang — bấm vào một sản phẩm nó vừa gợi ý mà mất hội thoại thì hỏng.
+    // Chỉ có ở khu mua sắm; admin không cần.
+    <AdvisorProvider>
+      <div className="ts-storefront-layout">
+        <GlobalHeader
+          authResult={authResult}
+          cartCount={cartCount}
+          activeCategory={activeCategory}
+          onLogout={async () => {
+            await signOut()
+            navigate(paths.home())
+          }}
+        />
 
-      <div className="ts-storefront-layout__content">
-        <Outlet />
+        <div className="ts-storefront-layout__content">
+          <Outlet />
+        </div>
+
+        <Footer />
+
+        <AdvisorLauncher />
       </div>
-
-      <Footer />
-    </div>
+    </AdvisorProvider>
   )
 }

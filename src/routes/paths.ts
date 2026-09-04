@@ -18,6 +18,7 @@ export const patterns = {
   cart: '/cart',
   checkout: '/checkout',
   checkoutResult: '/checkout/:result',
+  advisor: '/ai-assistant',
   profile: '/profile',
   profileOrders: 'orders',
   profileAddresses: 'addresses',
@@ -76,6 +77,17 @@ export const paths = {
   product: (productId: string) => `/products/${encodeURIComponent(productId)}`,
 
   cart: () => '/cart',
+
+  /**
+   * Trang tư vấn AI. `conversation` mở sẵn một cuộc đã có.
+   *
+   * Cuộc hội thoại nằm trong URL chứ không phải trong state: nhờ vậy nó chia sẻ
+   * được, F5 không mất, và nút Back của trình duyệt đi qua đúng những cuộc vừa
+   * xem thay vì nhảy thẳng ra khỏi trang.
+   */
+  advisor: (conversationId?: string | null) =>
+    withQuery('/ai-assistant', { c: conversationId || undefined }),
+
   checkout: () => '/checkout',
   checkoutSuccess: () => '/checkout/success',
   checkoutFailed: () => '/checkout/failed',

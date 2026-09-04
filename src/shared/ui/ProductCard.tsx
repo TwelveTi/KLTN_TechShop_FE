@@ -161,7 +161,9 @@ export function ProductCard({
         {specsList.length > 0 && (
           <div className="ts-product-card__specs-pills">
             {specsList.slice(0, isList ? 5 : 3).map((spec, idx) => (
-              <span key={idx} className="ts-product-card__spec-pill">
+              // `title`: chip bị cắt bằng `…` khi tên biến thể dài hơn bề ngang
+              // thẻ, nên chuỗi đầy đủ phải còn đường đọc được.
+              <span key={idx} className="ts-product-card__spec-pill" title={spec}>
                 {spec}
               </span>
             ))}

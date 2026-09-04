@@ -46,6 +46,36 @@
   border-bottom-color: #263043;
 }
 
+/* Màn hình hẹp: ô tìm kiếm xuống hàng riêng.
+ *
+ * Sửa một lỗi đo được ở 375px. `.ts-navbar__search` là `flex: 1; min-width: 0`
+ * nên khi logo và cụm nút đã chiếm hết chỗ, nó co về ĐÚNG 0px — mà nút "Search"
+ * bên trong lại `position: absolute; right: 4px`, nên nó tràn ngược sang trái
+ * và nằm đè lên logo (đo được: nút 89→162px, logo 16→154px). Ô input cũng phình
+ * ra 114px thuần padding và đè sang cụm nút bên phải.
+ *
+ * Cho nó xuống hàng thay vì ẩn đi: khách mua hàng trên điện thoại cần tìm kiếm
+ * hơn là cần một header một dòng. */
+@media (max-width: 640px) {
+  .ts-global-header .ts-navbar__container {
+    flex-wrap: wrap;
+    height: auto;
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+    row-gap: var(--space-2);
+  }
+
+  /* Không còn ô tìm kiếm co giãn ở giữa để đẩy cụm nút sang phải. */
+  .ts-global-header .ts-navbar__actions {
+    margin-left: auto;
+  }
+
+  .ts-global-header .ts-navbar__search {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
+
 /* =================================================================
  * Department Quick-Nav Taskbar
  * ================================================================= */

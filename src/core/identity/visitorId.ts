@@ -1,17 +1,23 @@
-import { createVersionedStore } from '@core/storage/versionedStorage'
+import { createVersionedStore } from '../storage/versionedStorage'
 
 /**
  * Định danh khách CHƯA ĐĂNG NHẬP, gửi lên qua header `X-Session-Id`.
  *
  * Vì sao cần: phần lớn việc duyệt xảy ra trước khi đăng nhập, và đó đúng là dữ
  * liệu recommender cần (README 6.1). Backend đã sẵn sàng nhận —
- * `attachSessionId` đứng trên `/recommendations`, `/products` và `/behaviors` —
- * nhưng nếu FE không gửi thì mọi sự kiện của khách vãng lai rơi vào cùng một hố
- * không tên và không nhóm lại được thành một người.
+ * `attachSessionId` đứng trên `/recommendations`, `/products`, `/behaviors` và
+ * `/ai/advisor` — nhưng nếu FE không gửi thì mọi sự kiện của khách vãng lai rơi
+ * vào cùng một hố không tên và không nhóm lại được thành một người.
  *
  * Nó KHÔNG phải danh tính. Backend không bao giờ dùng nó để phân quyền, chỉ để
  * nhóm sự kiện. Đặt tên `visitor` thay vì `session` cũng vì vậy: `sessionStore`
  * của feature `auth` mới là phiên đăng nhập thật.
+ *
+ * Vì sao nằm ở `@core` chứ không trong một feature: nó đọc storage, nên theo
+ * bảng quyết định của ARCHITECTURE.md §3 nó thuộc về core. Thực tế cũng ép như
+ * vậy — `recommendations` và `ai-assistant` đều cần, mà eslint chặn import sâu
+ * giữa hai feature. Nhân bản nó ra hai nơi sẽ sinh HAI id cho cùng một người và
+ * làm hỏng chính việc nhóm sự kiện mà nó tồn tại để làm.
  *
  * Định dạng phải khớp bộ lọc của backend (`behaviorValidation`):
  * `^[A-Za-z0-9_.-]+$`, tối đa 100 ký tự. UUID v4 thoả cả hai.

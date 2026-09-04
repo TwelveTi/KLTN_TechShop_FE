@@ -195,6 +195,47 @@ describe('invalidate — theo tiền tố', () => {
     expect(fetcher).toHaveBeenCalledTimes(2)
   })
 
+  // Hồi quy cho lỗi thật: `invalidate` chỉ đánh dấu cũ chứ không nạp lại, nên
+  // sau khi xoá một bản ghi thì `DELETE` trả 200 mà danh sách vẫn nguyên —
+  // `useQuery` nạp trong một effect phụ thuộc `[cache, key, enabled, staleTime]`
+  // và không giá trị nào trong đó đổi khi cache bị vô hiệu.
+  it('nạp lại NGAY key đang được theo dõi', async () => {
+    const cache = createQueryCache()
+    const fetcher = vi.fn(async () => 'v1')
+    await cache.fetch(['admin', 'brands'], fetcher, { staleTime: 60_000 })
+
+    const unsubscribe = cache.subscribe(['admin', 'brands'], () => {})
+    cache.invalidate(['admin', 'brands'])
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(2))
+
+    unsubscribe()
+  })
+
+  it('KHÔNG nạp lại key không ai theo dõi — request thừa', async () => {
+    const cache = createQueryCache()
+    const fetcher = vi.fn(async () => 'v1')
+    await cache.fetch(['admin', 'brands'], fetcher, { staleTime: 60_000 })
+
+    cache.invalidate(['admin', 'brands'])
+    await Promise.resolve()
+
+    expect(fetcher).toHaveBeenCalledTimes(1)
+  })
+
+  it('subscriber nhận được dữ liệu MỚI sau khi vô hiệu, không phải bản cũ', async () => {
+    const cache = createQueryCache()
+    let value = 'cũ'
+    const fetcher = vi.fn(async () => value)
+    await cache.fetch(['k'], fetcher, { staleTime: 60_000 })
+
+    const unsubscribe = cache.subscribe(['k'], () => {})
+    value = 'mới'
+    cache.invalidate(['k'])
+    await vi.waitFor(() => expect(cache.getState(['k']).data).toBe('mới'))
+
+    unsubscribe()
+  })
+
   it('tiền tố không khớp một phần tên: ["admin","product"] không quét ["admin","products"]', async () => {
     const cache = createQueryCache()
     await cache.fetch(['admin', 'products'], async () => 'p')

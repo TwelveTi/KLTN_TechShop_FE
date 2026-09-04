@@ -1,6 +1,6 @@
 import { http } from '@core/http'
+import { visitorHeaders } from '@core/identity'
 import { withQuery } from '@shared/utils/url'
-import { visitorHeaders } from '../lib/visitorId'
 import type { RecommendationOutcome, RecommendationSet } from '../types'
 import type { RecommendationSetDto } from './dto'
 import { toRecommendationSet } from './mappers'
