@@ -46,4 +46,25 @@ export interface RecommendationSetDto {
   algorithmVersion?: string
   personalised?: boolean
   weights?: Record<string, number>
+  /**
+   * `true` khi backend trả lại dòng `recommendation_results` còn hạn thay vì
+   * tính lại — tức là dải này KHÔNG sinh thêm lượt "shown". Giao diện không
+   * hiển thị cờ này (giống `cached` của explain); nó có ở đây vì đó là thứ
+   * backend trả về, và vì nó đọc được khi soi mạng lúc đánh giá.
+   */
+  cached?: boolean
+}
+
+/**
+ * `POST /ai/recommendations/:itemId/explain`.
+ *
+ * `cached` cho biết lời giải thích được đọc lại từ `reasonMetadata` chứ không
+ * phải vừa sinh ra. Giao diện KHÔNG hiển thị cờ này — nó có ở đây vì đó là thứ
+ * backend trả về, và vì nó đọc được khi soi mạng lúc đánh giá.
+ */
+export interface RecommendationExplanationDto {
+  itemId?: string | null
+  explanation?: string | null
+  cached?: boolean
+  model?: string | null
 }

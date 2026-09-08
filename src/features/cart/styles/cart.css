@@ -139,6 +139,22 @@
   color: var(--color-primary-hover);
 }
 
+/* Nút hỏi AI. Có VIỀN, khác hai nút chữ trơn cạnh nó: "Select all" chỉ đổi
+   trạng thái tại chỗ, còn nút này rời khỏi trang — hai hành vi khác nhau thì
+   không nên trông giống nhau. */
+.ts-cart-select-bar__btn--ai {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+}
+
+.ts-cart-select-bar__btn--ai:hover {
+  background-color: var(--color-primary-soft);
+}
+
 /* =================================================================
  * Date Groups — items grouped by the day they were added
  * ================================================================= */

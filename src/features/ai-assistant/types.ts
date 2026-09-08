@@ -15,6 +15,15 @@ import type { Product } from '@domain/product'
 /** Ai nói. `system` dành cho thông báo của giao diện, không phải của model. */
 export type AdvisorRole = 'user' | 'assistant' | 'system'
 
+/**
+ * Hai chế độ hỏi đáp, tương ứng `AiConversation.conversationType` của backend.
+ *
+ * Đây là một liên minh hai giá trị chứ không phải một cờ `isComparison`: backend
+ * đã có ba giá trị (`CUSTOMER_SUPPORT` chưa dùng tới), và một boolean sẽ phải
+ * viết lại từ đầu ngay khi chế độ thứ ba xuất hiện.
+ */
+export type AdvisorMode = 'advisor' | 'comparison'
+
 /** Một lần gọi tool mà backend đã thực hiện để trả lời. */
 export interface AdvisorToolCall {
   name: string
@@ -51,6 +60,12 @@ export interface ConversationSummary {
   id: string
   title: string
   updatedAt: string
+  /**
+   * Backend trả về MỌI hội thoại của người gọi trong một danh sách, tư vấn lẫn
+   * so sánh. Giữ lại kiểu ở đây để giao diện phân biệt được hai loại thay vì
+   * trộn chúng thành một danh sách không đọc ra là gì.
+   */
+  mode: AdvisorMode
 }
 
 /**

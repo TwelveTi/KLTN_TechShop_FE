@@ -1,6 +1,12 @@
 import type { Product } from '@domain/product'
 import { toVnd } from '@shared/utils/money'
-import type { AdvisorMessage, AdvisorToolCall, AdvisorTurn, ConversationSummary } from '../types'
+import type {
+  AdvisorMessage,
+  AdvisorMode,
+  AdvisorToolCall,
+  AdvisorTurn,
+  ConversationSummary,
+} from '../types'
 import type {
   AdvisorAnswerDto,
   AdvisorProductDto,
@@ -70,6 +76,17 @@ function toToolCall(dto: AdvisorToolCallDto): AdvisorToolCall {
   }
 }
 
+/**
+ * `conversationType` của backend → chế độ của giao diện.
+ *
+ * Mọi giá trị KHÁC `PRODUCT_COMPARISON` đều về `advisor`, kể cả
+ * `CUSTOMER_SUPPORT` chưa được dùng tới. Rơi về chế độ tổng quát an toàn hơn là
+ * ném lỗi: một enum mới thêm ở backend không được làm trắng trang lịch sử.
+ */
+function toMode(conversationType: string | null | undefined): AdvisorMode {
+  return conversationType === 'PRODUCT_COMPARISON' ? 'comparison' : 'advisor'
+}
+
 function toSummary(dto: ConversationSummaryDto): ConversationSummary {
   return {
     id: String(dto.id),
@@ -77,6 +94,7 @@ function toSummary(dto: ConversationSummaryDto): ConversationSummary {
     // hội thoại vừa mở mà chưa hỏi gì.
     title: (dto.title || '').trim() || 'Cuộc trò chuyện mới',
     updatedAt: dto.updatedAt || dto.createdAt || '',
+    mode: toMode(dto.conversationType),
   }
 }
 

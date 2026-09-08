@@ -19,6 +19,7 @@ export const patterns = {
   checkout: '/checkout',
   checkoutResult: '/checkout/:result',
   advisor: '/ai-assistant',
+  compare: '/ai-assistant/compare',
   profile: '/profile',
   profileOrders: 'orders',
   profileAddresses: 'addresses',
@@ -87,6 +88,24 @@ export const paths = {
    */
   advisor: (conversationId?: string | null) =>
     withQuery('/ai-assistant', { c: conversationId || undefined }),
+
+  /**
+   * So sánh sản phẩm bằng AI.
+   *
+   * `names` là những sản phẩm đã chọn ở thanh so sánh của trang danh mục; màn
+   * hình dùng chúng để soạn sẵn câu hỏi đầu tiên. `conversation` mở lại một lần
+   * so sánh đã có — sau lượt đầu, màn hình thay `p` bằng `c`, nên F5 đọc lại
+   * bản đã lưu thay vì tốn thêm một lượt gọi model.
+   *
+   * Ngăn cách bằng `|` chứ không phải dấu phẩy: tên sản phẩm có dấu phẩy
+   * (`"Laptop Gaming Acer Nitro V 15, RTX 4050"`) là chuyện bình thường, còn
+   * dấu gạch đứng thì không.
+   */
+  compare: (names: string[] = [], conversationId?: string | null) =>
+    withQuery('/ai-assistant/compare', {
+      p: names.length > 0 ? names.join('|') : undefined,
+      c: conversationId || undefined,
+    }),
 
   checkout: () => '/checkout',
   checkoutSuccess: () => '/checkout/success',

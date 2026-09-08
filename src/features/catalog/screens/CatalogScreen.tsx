@@ -518,6 +518,10 @@ export function CatalogScreen() {
         onClearAll={() => setComparedItems([])}
         onAddToCart={handleAddToCart}
         onOpenProduct={onOpenProduct}
+        // Gửi TÊN chứ không phải id: tool `find_products_by_name` của backend
+        // tra theo tên, và tên cũng là thứ đọc được trong câu hỏi soạn sẵn ở
+        // trang so sánh.
+        onAskAi={() => navigate(paths.compare(comparedItems.map((item) => item.name)))}
       />
     </div>
   )

@@ -50,6 +50,10 @@ export function ConversationList({
                 onClick={() => onSelect(item.id)}
                 aria-current={item.id === activeId}
               >
+                {/* Chỉ dòng so sánh mới đeo nhãn — xem ghi chú trong CSS. */}
+                {item.mode === 'comparison' && (
+                  <span className="ts-advisor-sidebar__badge">So sánh</span>
+                )}
                 <span className="ts-advisor-sidebar__title">{item.title}</span>
                 {item.updatedAt && (
                   <span className="ts-advisor-sidebar__time">{formatDateTime(item.updatedAt)}</span>

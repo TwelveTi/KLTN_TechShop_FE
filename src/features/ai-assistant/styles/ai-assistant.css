@@ -720,3 +720,54 @@
 .ts-advisor-page__thread .ts-advisor-bubble--user {
   max-width: 70%;
 }
+
+/* ── Nhãn kiểu hội thoại trong cột lịch sử ────────────────────── */
+
+/* Danh sách của backend trộn cả tư vấn lẫn so sánh. Chỉ những dòng SO SÁNH mới
+   đeo nhãn: gắn nhãn cho cả hai loại thì nhãn thành nhiễu nền, còn nhãn chỉ
+   xuất hiện ở thiểu số thì nó thật sự nói được điều gì đó. */
+.ts-advisor-sidebar__badge {
+  align-self: flex-start;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-soft);
+  color: var(--ai-assistant-accent);
+  font-size: var(--text-overline);
+  font-weight: 600;
+}
+
+/* =================================================================
+ * Trang so sánh (/ai-assistant/compare)
+ *
+ * Dùng lại toàn bộ `.ts-advisor-page__*`, `.ts-advisor-thread`,
+ * `.ts-advisor-composer` của trang tư vấn — hai màn hình phải trông như một
+ * tính năng, không phải hai. Chỉ khác đúng phần bố cục: một cột thay vì hai,
+ * vì ở đây không có cột lịch sử.
+ * ================================================================= */
+
+.ts-advisor-page--single .ts-advisor-page__chat {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.ts-advisor-page__footnote {
+  max-width: 880px;
+  margin: var(--space-5) auto 0;
+  color: var(--color-muted);
+  font-size: var(--text-body-sm);
+  text-align: center;
+}
+
+.ts-advisor-page__footlink {
+  color: var(--ai-assistant-accent);
+  font-weight: 600;
+}
+
+/* Câu dẫn trên hàng chip nhu cầu. Chiếm trọn một dòng trong khối flex-wrap để
+   các chip xuống hàng dưới nó, thay vì nằm lọt giữa hàng chip. */
+.ts-advisor-suggestions__lead {
+  flex-basis: 100%;
+  margin: 0 0 var(--space-1);
+  color: var(--color-muted);
+  font-size: var(--text-body-sm);
+}

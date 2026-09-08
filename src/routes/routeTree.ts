@@ -27,6 +27,7 @@ const CheckoutScreen = lazy(() => import('@features/checkout/screens/CheckoutScr
 const CheckoutResultScreen = lazy(() => import('@features/checkout/screens/CheckoutResultScreen'))
 const AuthScreen = lazy(() => import('@features/auth/screens/AuthScreen'))
 const AdvisorScreen = lazy(() => import('@features/ai-assistant/screens/AdvisorScreen'))
+const ComparisonScreen = lazy(() => import('@features/ai-assistant/screens/ComparisonScreen'))
 
 const ProfileLayout = lazy(() => import('@features/profile/components/ProfileLayout'))
 const ProfileAccountScreen = lazy(() => import('@features/profile/screens/ProfileAccountScreen'))
@@ -56,6 +57,9 @@ export const routeTree: RouteDefinition[] = [
       { path: patterns.product, element: ProductDetailScreen, title: 'Product' },
       { path: patterns.cart, element: CartScreen, title: 'Cart' },
       { path: patterns.advisor, element: AdvisorScreen, title: 'AI advisor' },
+      // Cụ thể hơn `/ai-assistant` một đoạn tĩnh, nên `matchPath` luôn chọn nó
+      // trước — không phụ thuộc thứ tự khai báo ở đây.
+      { path: patterns.compare, element: ComparisonScreen, title: 'AI comparison' },
 
       {
         path: patterns.checkout,

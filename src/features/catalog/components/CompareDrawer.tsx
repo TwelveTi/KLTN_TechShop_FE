@@ -11,6 +11,14 @@ export interface CompareDrawerProps {
   onClearAll: () => void
   onAddToCart: (product: Product) => void
   onOpenProduct?: (id: string) => void
+  /**
+   * Mang danh sách đang chọn sang trang so sánh bằng AI.
+   *
+   * Là một callback chứ không phải `navigate` gọi thẳng ở đây: bảng so sánh
+   * bên dưới là phần TRÌNH BÀY, và trang danh mục mới là nơi biết những sản
+   * phẩm này sẽ đi đâu.
+   */
+  onAskAi?: () => void
 }
 
 export function CompareDrawer({
@@ -19,6 +27,7 @@ export function CompareDrawer({
   onClearAll,
   onAddToCart,
   onOpenProduct,
+  onAskAi,
 }: CompareDrawerProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -76,6 +85,19 @@ export function CompareDrawer({
             >
               Clear
             </Button>
+            {/* Bảng thông số bên dưới đối chiếu những gì đã có trong catalogue;
+                nút này hỏi AI phần bảng không trả lời được — máy nào hợp với
+                nhu cầu nào. Hai việc khác nhau nên là hai nút. */}
+            {onAskAi && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onAskAi}
+                leadingIcon={<Icon name="sparkles" size={14} />}
+              >
+                Ask AI
+              </Button>
+            )}
             <Button
               variant="primary"
               size="sm"

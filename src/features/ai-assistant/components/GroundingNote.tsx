@@ -17,6 +17,8 @@ import type { AdvisorToolCall } from '../types'
 
 /** Tên kỹ thuật của tham số → chữ đọc được. Khoá lạ giữ nguyên, không nuốt. */
 const ARG_LABELS: Record<string, string> = {
+  // Tham số của `find_products_by_name` — tool riêng của chế độ so sánh.
+  names: 'tra theo tên',
   categorySlug: 'danh mục',
   brandNames: 'thương hiệu',
   minPrice: 'giá từ',

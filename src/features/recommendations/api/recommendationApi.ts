@@ -2,7 +2,7 @@ import { http } from '@core/http'
 import { visitorHeaders } from '@core/identity'
 import { withQuery } from '@shared/utils/url'
 import type { RecommendationOutcome, RecommendationSet } from '../types'
-import type { RecommendationSetDto } from './dto'
+import type { RecommendationExplanationDto, RecommendationSetDto } from './dto'
 import { toRecommendationSet } from './mappers'
 
 /**
@@ -19,6 +19,16 @@ import { toRecommendationSet } from './mappers'
  *     khởi động nên cửa sổ này hẹp; đây là một đánh đổi đã biết, không phải một
  *     chỗ bị bỏ sót.
  */
+
+/**
+ * Timeout riêng cho lời giải thích, dài hơn mặc định 20 giây của `httpClient`.
+ *
+ * Đây là một lời gọi model thật. Ngắn hơn hẳn một lượt hỏi trợ lý (không có
+ * vòng gọi tool, chỉ một lượt sinh văn bản tối đa hai câu), nhưng khi model
+ * chính hết hạn mức thì backend chạy lại trên model dự phòng — và ở mốc 20 giây
+ * trình duyệt huỷ request đúng lúc backend đang thử lại.
+ */
+const EXPLAIN_TIMEOUT_MS = 40_000
 
 export const recommendationApi = {
   /** Dải cá nhân hoá. `strategy` chỉ dùng khi đo lường, giao diện không truyền. */
@@ -37,6 +47,25 @@ export const recommendationApi = {
       { auth: true, headers: visitorHeaders() },
     )
     return toRecommendationSet(dto)
+  },
+
+  /**
+   * "Vì sao tôi được gợi ý sản phẩm này?" — AI diễn giải MỘT dòng gợi ý.
+   *
+   * Chỉ gọi khi khách bấm hỏi, không bao giờ gọi sẵn khi rail hiện ra: một dải
+   * 12 thẻ mà mỗi thẻ một lời gọi model thì riêng việc mở trang chủ đã ăn hết
+   * hạn mức 20 lượt/ngày của free tier.
+   *
+   * Backend lưu kết quả vào `reasonMetadata.explanation` của chính dòng đó, nên
+   * hỏi lại cùng một `itemId` không tốn thêm lượt nào.
+   */
+  async explain(itemId: string): Promise<string> {
+    const dto = await http.post<RecommendationExplanationDto | null>(
+      `/ai/recommendations/${encodeURIComponent(itemId)}/explain`,
+      undefined,
+      { auth: true, headers: visitorHeaders(), timeoutMs: EXPLAIN_TIMEOUT_MS },
+    )
+    return (dto?.explanation ?? '').trim()
   },
 
   /**

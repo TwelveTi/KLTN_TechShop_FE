@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { isApiError } from '@core/http'
 import { useAuth } from '@features/auth'
 import { advisorApi } from '../api/advisorApi'
-import type { AdvisorMessage } from '../types'
+import type { AdvisorMessage, AdvisorMode } from '../types'
 
 /**
  * Trạng thái của một cuộc hội thoại tư vấn.
@@ -16,9 +16,21 @@ import type { AdvisorMessage } from '../types'
 let messageCounter = 0
 const nextId = (prefix: string) => `${prefix}-${(messageCounter += 1)}`
 
-const GREETING =
-  'Chào bạn! Mình tư vấn sản phẩm dựa trên hàng thật đang có tại cửa hàng. ' +
-  'Bạn cứ nói nhu cầu và ngân sách nhé.'
+/**
+ * Câu chào theo chế độ.
+ *
+ * Không phải trang trí: nó là chỗ nói cho khách biết phải gõ KIỂU GÌ. Chế độ so
+ * sánh cần tên sản phẩm, chế độ tư vấn cần nhu cầu và ngân sách — dùng chung một
+ * câu chào thì một nửa số người sẽ gõ nhầm loại câu hỏi.
+ */
+const GREETINGS: Record<AdvisorMode, string> = {
+  advisor:
+    'Chào bạn! Mình tư vấn sản phẩm dựa trên hàng thật đang có tại cửa hàng. ' +
+    'Bạn cứ nói nhu cầu và ngân sách nhé.',
+  comparison:
+    'Bạn nêu tên 2–4 sản phẩm, mình tra đúng những máy đó trong kho rồi đối chiếu ' +
+    'từng thông số. Máy nào cửa hàng không bán thì mình nói thẳng.',
+}
 
 /**
  * Thông báo lỗi theo NGUYÊN NHÂN, không phải theo mã số.
@@ -61,7 +73,7 @@ function toMessage(error: unknown): { text: string; unavailable: boolean } {
   }
 }
 
-export function useAdvisorChat() {
+export function useAdvisorChat({ mode = 'advisor' }: { mode?: AdvisorMode } = {}) {
   const { user } = useAuth()
   const [messages, setMessages] = useState<AdvisorMessage[]>([])
   const [isSending, setIsSending] = useState(false)
@@ -106,7 +118,7 @@ export function useAdvisorChat() {
       setIsSending(true)
 
       try {
-        const turn = await advisorApi.ask({ message: text, conversationId })
+        const turn = await advisorApi.ask({ message: text, conversationId, mode })
         setConversationId(turn.conversationId)
 
         setMessages((current) => [
@@ -135,7 +147,7 @@ export function useAdvisorChat() {
         setIsSending(false)
       }
     },
-    [conversationId, isSending, isUnavailable],
+    [conversationId, isSending, isUnavailable, mode],
   )
 
   /** Bắt đầu một cuộc mới. Không gọi mạng — hội thoại chỉ sinh ra khi hỏi câu đầu. */
@@ -178,6 +190,6 @@ export function useAdvisorChat() {
     isSending,
     isLoadingHistory,
     isUnavailable,
-    greeting: GREETING,
+    greeting: GREETINGS[mode],
   }
 }

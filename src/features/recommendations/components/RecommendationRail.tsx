@@ -1,5 +1,4 @@
-import { ProductCard } from '@shared/ui/ProductCard'
-import { ReasonChip } from './ReasonChip'
+import { RecommendationSlot } from './RecommendationSlot'
 import type { RecommendedItem } from '../types'
 import '../styles/recommendations.css'
 
@@ -76,16 +75,13 @@ export function RecommendationRail({
       ) : (
         <ul className="ts-rec-rail__track">
           {items.map((item) => (
-            <li className="ts-rec-slot" key={item.product.id}>
-              {showReasons && <ReasonChip reasonCode={item.reasonCode} />}
-              <ProductCard
-                product={item.product}
-                variant="default"
-                showSave={false}
-                onOpen={() => onOpenProduct(item)}
-                onAddToCart={() => onAddToCart(item)}
-              />
-            </li>
+            <RecommendationSlot
+              key={item.product.id}
+              item={item}
+              showReason={showReasons}
+              onOpen={() => onOpenProduct(item)}
+              onAddToCart={() => onAddToCart(item)}
+            />
           ))}
         </ul>
       )}

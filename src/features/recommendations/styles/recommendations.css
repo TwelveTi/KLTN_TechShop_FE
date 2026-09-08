@@ -109,6 +109,104 @@
   white-space: nowrap;
 }
 
+/* ── Lời giải thích của AI ────────────────────────────────────────── */
+
+/* Nhãn lý do và nút hỏi nằm cùng một hàng, và hàng đó có CHIỀU CAO CỐ ĐỊNH.
+ * Không cố định thì ô nào có nhãn dài xuống hai dòng sẽ đẩy thẻ của nó thấp hơn
+ * những ô bên cạnh — trong một dải cuộn ngang, lệch một nhịp là thấy ngay. */
+.ts-rec-slot__reason {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: 26px;
+  /* Mốc neo của khối giải thích. Neo vào HÀNG NÀY chứ không vào cả ô, để khối
+   * luôn rơi ngay dưới nút vừa bấm bất kể thẻ bên dưới cao bao nhiêu. */
+  position: relative;
+}
+
+/* Nhãn được viết cho bố cục CỘT (`align-self: flex-start`). Trong hàng này nó
+ * phải co lại nhường chỗ cho nút, và `min-width: 0` là điều kiện để `ellipsis`
+ * bên trong nó thật sự hoạt động — một flex item mặc định không co dưới nội
+ * dung của nó. */
+.ts-rec-slot__reason .ts-rec-reason {
+  align-self: center;
+  min-width: 0;
+}
+
+.ts-rec-explain {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--recommendations-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--color-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-overline);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.ts-rec-explain:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.ts-rec-explain.is-open {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+/* Khối NỔI, neo ngay dưới nút và đè lên phần trên của thẻ.
+ *
+ * Bản đầu đặt nó dưới thẻ để không ô nào bị xê dịch. Bố cục đúng, dùng thì hỏng:
+ * đo được 383px từ nút xuống tới chữ, tức là nằm ngoài màn hình — bấm xong không
+ * thấy gì đổi ở gần chỗ vừa bấm.
+ *
+ * Đè lên thẻ giữ được cả hai điều: phản hồi nằm đúng chỗ bấm, mà chiều cao của ô
+ * không đổi nên cả dải vẫn thẳng hàng. Khối nằm gọn trong ranh giới `<li>` nên
+ * `overflow` của dải cuộn cũng không cắt mất nó. */
+.ts-rec-explain__popover {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  right: 0;
+  z-index: var(--z-raised);
+}
+
+.ts-rec-explain__note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-primary);
+  /* Nền ĐẶC, không phải nền mờ: nó nằm trên ảnh sản phẩm. */
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  color: var(--color-text);
+  font-size: var(--text-caption);
+  line-height: 1.5;
+}
+
+.ts-rec-explain__note--pending {
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.ts-rec-explain__note--error {
+  border-color: var(--recommendations-border);
+  color: var(--color-muted);
+}
+
 /* ── Skeleton ─────────────────────────────────────────────────────── */
 
 .ts-rec-skeleton {

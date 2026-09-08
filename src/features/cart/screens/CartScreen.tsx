@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { Link, useNavigate } from '@core/router'
 import { paths } from '@routes/paths'
 import { Breadcrumb } from '@shared/ui/Breadcrumb'
+import { Icon } from '@shared/ui/Icon'
 import { useToast } from '@shared/ui/useToast'
 import { useCart } from '../context/useCart'
 import { CartDateGroup } from '../components/CartDateGroup'
@@ -113,6 +114,21 @@ export function CartScreen() {
     navigate(paths.checkout(), { state: { selectedLineIds: selectedItems.map((line) => line.id) } })
   }
 
+  /**
+   * Hai tới bốn món: đủ để so sánh, và khớp trần của prompt bên backend.
+   *
+   * Một món thì không có gì để đối chiếu; năm món trở lên thì bảng so sánh chật
+   * tới mức không đọc được, và câu trả lời của model cũng loãng ra.
+   */
+  const canCompareSelection = selectedCount >= 2 && selectedCount <= 4
+
+  // Gửi TÊN chứ không phải id: tool `find_products_by_name` của backend tra theo
+  // tên, và tên cũng là thứ đọc được trong câu hỏi hiện lên ở khung chat.
+  const handleCompareClick = () => {
+    if (!canCompareSelection) return
+    navigate(paths.compare(selectedItems.map((line) => line.name)))
+  }
+
   return (
     <div className="ts-cart-page">
       <main className="ts-cart-content" id="main-cart-content">
@@ -178,6 +194,19 @@ export function CartScreen() {
                   <span className="ts-cart-select-bar__status tabular-nums">
                     {selectedCount} of {lines.length} selected
                   </span>
+                  {/* Giỏ hàng đã có sẵn cơ chế chọn dòng, nên so sánh không cần
+                      thêm một danh sách chọn thứ hai — chọn 2 tới 4 món là hỏi
+                      được luôn. Giới hạn trên khớp với prompt của backend. */}
+                  {canCompareSelection && (
+                    <button
+                      type="button"
+                      className="ts-cart-select-bar__btn ts-cart-select-bar__btn--ai"
+                      onClick={handleCompareClick}
+                    >
+                      <Icon name="sparkles" size={14} />
+                      <span>Nhờ AI so sánh</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="ts-cart-select-bar__btn"

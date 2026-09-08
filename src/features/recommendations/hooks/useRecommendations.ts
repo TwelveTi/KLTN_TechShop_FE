@@ -11,11 +11,12 @@ import type { RecommendationOutcome, RecommendedItem } from '../types'
  * `staleTime` ở đây dài hơn catalog (5 phút thay vì 30 giây) vì hai lý do, và cả
  * hai đều quan trọng hơn độ tươi:
  *
- *  1. **Mỗi lần gọi `/recommendations` của người đã đăng nhập tạo một dòng
- *     `recommendation_results` mới.** Gọi lại mỗi lần điều hướng sẽ bơm số
- *     "shown" lên và làm loãng CTR — tức là làm sai chính con số chương Đánh giá
- *     đang đo. Backend cũng tự cache 15 phút (`CACHE_MINUTES`), nên gọi dày hơn
- *     thế chỉ tốn ghi.
+ *  1. **Backend cache 15 phút (`CACHE_MINUTES`), nhưng chỉ cho người đã đăng
+ *     nhập.** Trong hạn đó mọi lời gọi nhận lại đúng dòng `recommendation_results`
+ *     cũ với đúng bộ `itemId` cũ, nên không sinh thêm lượt "shown" và lời giải
+ *     thích AI đã lưu vẫn dùng được. Khách vãng lai KHÔNG được cache (backend
+ *     không lưu dải của họ), nên với họ `staleTime` ở đây là lớp duy nhất chặn
+ *     việc tính lại — đó là lý do nó không được rút ngắn về mức của catalog.
  *  2. Một dải gợi ý xáo lại thứ tự mỗi lần khách bấm Back là giao diện tệ. Gợi
  *     ý nên đứng yên đủ lâu để đọc.
  */

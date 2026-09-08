@@ -1,6 +1,6 @@
 import { http } from '@core/http'
 import { visitorHeaders } from '@core/identity'
-import type { AdvisorMessage, AdvisorTurn, ConversationSummary } from '../types'
+import type { AdvisorMessage, AdvisorMode, AdvisorTurn, ConversationSummary } from '../types'
 import type { AdvisorAnswerDto, ConversationDetailDto, ConversationListDto } from './dto'
 import { toAdvisorTurn, toConversationList, toConversationMessages } from './mappers'
 
@@ -31,22 +31,41 @@ export const MAX_MESSAGE_LENGTH = 1000
  */
 const ADVISOR_TIMEOUT_MS = 60_000
 
+/**
+ * Mỗi chế độ một endpoint, KHÔNG phải một cờ trong body.
+ *
+ * Backend cũng tách như vậy (`/ai/advisor` và `/ai/compare`): hai đường đi qua
+ * cùng một vòng gọi model nhưng khác prompt và khác bộ tool, và với người dùng
+ * chúng là hai tính năng khác nhau. Bảng tra ở đây là chỗ DUY NHẤT phía client
+ * biết sự khác biệt đó tồn tại — phần còn lại chỉ truyền `mode` đi.
+ */
+const ENDPOINTS: Record<AdvisorMode, string> = {
+  advisor: '/ai/advisor',
+  comparison: '/ai/compare',
+}
+
 export const advisorApi = {
   /**
    * Hỏi trợ lý một câu.
    *
    * `conversationId` là `null` ở câu đầu tiên; backend tạo cuộc hội thoại và
    * trả id về, những câu sau gửi kèm để giữ ngữ cảnh.
+   *
+   * `mode` chỉ quyết định endpoint của câu ĐẦU TIÊN. Sau đó kiểu hội thoại đã
+   * nằm trong hàng `ai_conversations` và backend đọc từ đó, nên gửi nhầm
+   * endpoint ở một lượt sau cũng không đổi được luật chơi giữa chừng.
    */
   async ask({
     message,
     conversationId,
+    mode = 'advisor',
   }: {
     message: string
     conversationId: string | null
+    mode?: AdvisorMode
   }): Promise<AdvisorTurn> {
     const dto = await http.post<AdvisorAnswerDto>(
-      '/ai/advisor',
+      ENDPOINTS[mode],
       { message, conversationId },
       { auth: true, headers: visitorHeaders(), timeoutMs: ADVISOR_TIMEOUT_MS },
     )
