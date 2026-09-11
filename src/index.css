@@ -1,0 +1,248 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   Tầng token của TechShop — dịch nguyên docs/design-system.md sang CSS.
+   Mọi component chỉ dùng token theo TÊN, không bao giờ ghi thẳng mã màu.
+   ========================================================================== */
+
+:root {
+  /* --- Primitive: thương hiệu (xanh dương) --- */
+  --brand-50: #eff5ff;
+  --brand-100: #dbe7fe;
+  --brand-200: #bfd3fe;
+  --brand-300: #93b4fd;
+  --brand-400: #5e8cfa;
+  --brand-500: #3b6ef3;
+  --brand-600: #2563eb;
+  --brand-700: #1d4fd0;
+  --brand-800: #1b44a8;
+  --brand-900: #1b3b85;
+
+  /* --- Primitive: nhấn (cyan), chỉ dùng đúng một chỗ nhỏ --- */
+  --accent-100: #cff6fd;
+  --accent-500: #06b6d4;
+  --accent-600: #0891b2;
+
+  /* --- Primitive: trung tính, hơi ngả lạnh về phía xanh thương hiệu --- */
+  --neutral-0: #ffffff;
+  --neutral-25: #fbfcfe;
+  --neutral-50: #f6f8fb;
+  --neutral-100: #eef1f6;
+  --neutral-200: #e2e7ef;
+  --neutral-300: #cbd3df;
+  --neutral-400: #9aa5b5;
+  --neutral-500: #6b7688;
+  --neutral-600: #4b5563;
+  --neutral-700: #374151;
+  --neutral-800: #1f2733;
+  --neutral-900: #111827;
+  --neutral-950: #0b0f17;
+
+  /* --- Semantic: sáng --- */
+  --ts-bg: var(--neutral-50);
+  --ts-surface: var(--neutral-0);
+  --ts-surface-sunken: var(--neutral-50);
+  --ts-surface-raised: var(--neutral-0);
+  --ts-border: var(--neutral-200);
+  --ts-border-strong: var(--neutral-300);
+  --ts-heading: var(--neutral-900);
+  --ts-text: var(--neutral-600);
+  --ts-muted: var(--neutral-500);
+  --ts-faint: var(--neutral-400);
+  --ts-primary: var(--brand-600);
+  --ts-primary-hover: var(--brand-700);
+  --ts-on-primary: var(--neutral-0);
+  --ts-primary-soft: var(--brand-50);
+  --ts-accent: var(--accent-600);
+  --ts-focus: var(--brand-500);
+
+  --ts-success: #16a34a;
+  --ts-success-soft: #dcfce7;
+  --ts-success-strong: #15803d;
+  --ts-warning: #f59e0b;
+  --ts-warning-soft: #fef3c7;
+  --ts-warning-strong: #b45309;
+  --ts-danger: #ef4444;
+  --ts-danger-soft: #fee2e2;
+  --ts-danger-strong: #dc2626;
+
+  --ts-shadow-sm: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --ts-shadow-md: 0 2px 4px rgb(16 24 40 / 0.04), 0 8px 16px rgb(16 24 40 / 0.08);
+  --ts-shadow-lg: 0 4px 8px rgb(16 24 40 / 0.04), 0 16px 32px rgb(16 24 40 / 0.12);
+}
+
+/* Chế độ tối định nghĩa MỘT lần ở đây, áp cho cả app. Thương hiệu vẫn là
+   xanh dương, chỉ sáng lên cho đủ tương phản — không đổi sang cyan. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ts-bg: var(--neutral-950);
+    --ts-surface: #121826;
+    --ts-surface-sunken: #0e1420;
+    --ts-surface-raised: #172032;
+    --ts-border: #232c3b;
+    --ts-border-strong: #33405a;
+    --ts-heading: #f5f7fa;
+    --ts-text: #c7d0de;
+    --ts-muted: #8a96a8;
+    --ts-faint: #63708a;
+    --ts-primary: var(--brand-400);
+    --ts-primary-hover: var(--brand-300);
+    --ts-on-primary: var(--neutral-950);
+    --ts-primary-soft: #16223d;
+    --ts-accent: var(--accent-500);
+    --ts-focus: var(--brand-400);
+
+    --ts-success-soft: #10291b;
+    --ts-warning-soft: #2c2210;
+    --ts-danger-soft: #2e1618;
+
+    --ts-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --ts-shadow-md: 0 8px 16px rgb(0 0 0 / 0.45);
+    --ts-shadow-lg: 0 16px 32px rgb(0 0 0 / 0.5);
+  }
+}
+
+/* `inline` để utility trỏ thẳng vào biến, nhờ vậy đổi theme lúc chạy là đủ. */
+@theme inline {
+  --color-bg: var(--ts-bg);
+  --color-surface: var(--ts-surface);
+  --color-sunken: var(--ts-surface-sunken);
+  --color-raised: var(--ts-surface-raised);
+  --color-line: var(--ts-border);
+  --color-line-strong: var(--ts-border-strong);
+  --color-heading: var(--ts-heading);
+  --color-body: var(--ts-text);
+  --color-muted: var(--ts-muted);
+  --color-faint: var(--ts-faint);
+  --color-primary: var(--ts-primary);
+  --color-primary-hover: var(--ts-primary-hover);
+  --color-on-primary: var(--ts-on-primary);
+  --color-primary-soft: var(--ts-primary-soft);
+  --color-accent: var(--ts-accent);
+  --color-focus: var(--ts-focus);
+
+  --color-success: var(--ts-success);
+  --color-success-soft: var(--ts-success-soft);
+  --color-success-strong: var(--ts-success-strong);
+  --color-warning: var(--ts-warning);
+  --color-warning-soft: var(--ts-warning-soft);
+  --color-warning-strong: var(--ts-warning-strong);
+  --color-danger: var(--ts-danger);
+  --color-danger-soft: var(--ts-danger-soft);
+  --color-danger-strong: var(--ts-danger-strong);
+
+  --shadow-sm: var(--ts-shadow-sm);
+  --shadow-md: var(--ts-shadow-md);
+  --shadow-lg: var(--ts-shadow-lg);
+}
+
+@theme {
+  /* Ba vai trò chữ: Sora cho tiêu đề, Inter cho nội dung, mono cho dữ liệu.
+     Cả ba đóng gói cùng app qua @fontsource, không tải từ CDN. */
+  --font-display: 'Sora Variable', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, Consolas, monospace;
+
+  /* Thang chữ. Cỡ co giãn theo bề rộng màn hình bằng clamp(). */
+  --text-display: clamp(2.75rem, 1.8rem + 3.4vw, 4rem);
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 700;
+
+  --text-h1: clamp(2rem, 1.6rem + 1.4vw, 2.5rem);
+  --text-h1--line-height: 1.1;
+  --text-h1--letter-spacing: -0.015em;
+  --text-h1--font-weight: 700;
+
+  --text-h2: clamp(1.625rem, 1.45rem + 0.6vw, 1.875rem);
+  --text-h2--line-height: 1.15;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h2--font-weight: 600;
+
+  --text-h3: clamp(1.3125rem, 1.2rem + 0.4vw, 1.5rem);
+  --text-h3--line-height: 1.2;
+  --text-h3--letter-spacing: -0.005em;
+  --text-h3--font-weight: 600;
+
+  --text-h4: 1.125rem;
+  --text-h4--line-height: 1.3;
+  --text-h4--font-weight: 600;
+
+  --text-lead: 1.125rem;
+  --text-lead--line-height: 1.6;
+
+  --text-base: 1rem;
+  --text-base--line-height: 1.6;
+
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
+
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
+  --text-caption--font-weight: 500;
+
+  --text-overline: 0.75rem;
+  --text-overline--line-height: 1.3;
+  --text-overline--letter-spacing: 0.08em;
+  --text-overline--font-weight: 600;
+
+  /* Bo góc */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  /* Bề ngang tối đa của nội dung */
+  --container-page: 1200px;
+  --container-wide: 1320px;
+}
+
+@layer base {
+  html {
+    /* Trang không bao giờ cuộn ngang; phần nào rộng thì tự cuộn trong nó. */
+    overflow-x: clip;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-body);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    color: var(--color-heading);
+  }
+
+  h4,
+  h5,
+  h6 {
+    color: var(--color-heading);
+  }
+
+  /* Vòng focus hiện ngay lập tức, không bao giờ có transition. */
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  /* Số nằm trong cột phải thẳng hàng: dùng chữ số đều bề ngang. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Người dùng tắt hiệu ứng thì mọi chuyển động thu về gần như không có. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
