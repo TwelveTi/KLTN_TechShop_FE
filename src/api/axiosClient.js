@@ -37,7 +37,10 @@ axiosClient.interceptors.response.use(
   async (error) => {
     const original = error.config
 
-    if (error.response?.status === 401 && !original._retry) {
+    // Chính lời gọi refresh hỏng thì không xin refresh lần nữa, tránh gọi đôi.
+    const isRefreshCall = original?.url?.includes('/auth/refresh')
+
+    if (error.response?.status === 401 && !original._retry && !isRefreshCall) {
       original._retry = true
       try {
         const res = await axios.post(
@@ -58,7 +61,7 @@ axiosClient.interceptors.response.use(
 
     // Ném ra thông báo lỗi của backend để màn hình hiển thị đúng nguyên nhân.
     const message =
-      error.response?.data?.message || error.message || 'Không kết nối được máy chủ'
+      error.response?.data?.message || error.message || 'Could not reach the server'
     return Promise.reject(new Error(message))
   },
 )

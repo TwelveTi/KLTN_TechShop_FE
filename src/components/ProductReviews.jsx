@@ -64,7 +64,7 @@ export default function ProductReviews({ productId }) {
   }
 
   async function handleDelete(reviewId) {
-    if (!confirm('Xoá đánh giá này?')) return
+    if (!confirm('Delete this review?')) return
     try {
       await reviewApi.deleteReview(reviewId)
       loadReviews()
@@ -77,7 +77,7 @@ export default function ProductReviews({ productId }) {
 
   return (
     <section className="mt-16">
-      <h2 className="text-h2">Đánh giá từ người mua</h2>
+      <h2 className="text-h2">Customer reviews</h2>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[320px_1fr]">
         <div className="space-y-6">
@@ -89,7 +89,9 @@ export default function ProductReviews({ productId }) {
                 </p>
                 <div>
                   <StarRating value={summary.averageRating} />
-                  <p className="tabular mt-1 text-sm text-muted">{total} đánh giá</p>
+                  <p className="tabular mt-1 text-sm text-muted">
+                    {total} {total === 1 ? 'review' : 'reviews'}
+                  </p>
                 </div>
               </div>
 
@@ -116,40 +118,40 @@ export default function ProductReviews({ productId }) {
               onSubmit={handleSubmit}
               className="space-y-4 rounded-md border border-line bg-surface p-6 shadow-sm"
             >
-              <p className="text-h4">Viết đánh giá của bạn</p>
+              <p className="text-h4">Write your review</p>
 
               <div>
-                <span className="mb-1.5 block text-sm font-medium text-heading">Chấm điểm</span>
+                <span className="mb-1.5 block text-sm font-medium text-heading">Your rating</span>
                 <StarRating value={rating} onChange={setRating} size={24} />
               </div>
 
               <Input
-                label="Tiêu đề"
+                label="Title"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Tóm tắt trong một câu"
+                placeholder="Sum it up in one line"
               />
 
               <Input
                 as="textarea"
                 rows={4}
-                label="Nhận xét"
+                label="Review"
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
-                placeholder="Bạn dùng sản phẩm này thế nào?"
+                placeholder="How has this product worked for you?"
               />
 
               {formError && <Alert>{formError}</Alert>}
 
               <Button type="submit" variant="primary" isLoading={submitting} fullWidth>
-                Gửi đánh giá
+                Submit review
               </Button>
             </form>
           ) : (
             <div className="rounded-md border border-line bg-surface p-6 text-sm shadow-sm">
-              <p className="text-muted">Đăng nhập để viết đánh giá cho sản phẩm này.</p>
+              <p className="text-muted">Sign in to review this product.</p>
               <LinkButton to="/login" variant="secondary" size="sm" className="mt-3">
-                Đăng nhập
+                Sign in
               </LinkButton>
             </div>
           )}
@@ -159,8 +161,8 @@ export default function ProductReviews({ productId }) {
           {reviews.length === 0 ? (
             <EmptyState
               icon={MessageSquareOff}
-              title="Chưa có đánh giá nào"
-              description="Hãy là người đầu tiên chia sẻ cảm nhận về sản phẩm này."
+              title="No reviews yet"
+              description="Be the first to share what you think of this product."
             />
           ) : (
             <div className="space-y-4">
@@ -172,9 +174,9 @@ export default function ProductReviews({ productId }) {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-heading">
-                          {review.user?.name || 'Khách hàng'}
+                          {review.user?.name || 'Customer'}
                         </span>
-                        {review.verifiedPurchase && <Badge tone="success">Đã mua hàng</Badge>}
+                        {review.verifiedPurchase && <Badge tone="success">Verified purchase</Badge>}
                         <span className="ml-auto text-caption text-faint">
                           {formatDate(review.createdAt)}
                         </span>
@@ -196,7 +198,7 @@ export default function ProductReviews({ productId }) {
                           onClick={() => handleDelete(review.id)}
                           className="mt-2 !text-danger-strong"
                         >
-                          Xoá đánh giá của tôi
+                          Delete my review
                         </Button>
                       )}
                     </div>

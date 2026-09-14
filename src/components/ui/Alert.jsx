@@ -9,7 +9,7 @@ const TONES = {
   info: { cls: 'bg-primary-soft text-primary', Icon: Info },
 }
 
-export default function Alert({ tone = 'danger', title, children, onRetry, retryLabel = 'Thử lại' }) {
+export default function Alert({ tone = 'danger', title, children, onRetry, retryLabel = 'Try again' }) {
   if (!children && !title) return null
   const { cls, Icon } = TONES[tone]
 

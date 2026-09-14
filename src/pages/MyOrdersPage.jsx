@@ -49,9 +49,9 @@ export default function MyOrdersPage() {
   }
 
   async function handleCancel(orderId) {
-    if (!confirm('Bạn chắc chắn muốn huỷ đơn hàng này?')) return
+    if (!confirm('Are you sure you want to cancel this order?')) return
     try {
-      await orderApi.cancelOrder(orderId, 'Khách hàng tự huỷ')
+      await orderApi.cancelOrder(orderId, 'Cancelled by the customer')
       loadOrders()
     } catch (err) {
       setError(err.message)
@@ -60,12 +60,12 @@ export default function MyOrdersPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
-      <h1 className="text-h1">Đơn hàng của tôi</h1>
+      <h1 className="text-h1">My orders</h1>
       <ProfileTabs />
 
       {error && (
         <div className="mt-6">
-          <Alert title="Không tải được đơn hàng" onRetry={loadOrders}>
+          <Alert title="Could not load your orders" onRetry={loadOrders}>
             {error}
           </Alert>
         </div>
@@ -81,9 +81,9 @@ export default function MyOrdersPage() {
       {!loading && !error && orders.length === 0 && (
         <EmptyState
           icon={PackageOpen}
-          title="Bạn chưa có đơn hàng nào"
-          description="Khi bạn đặt hàng, đơn sẽ xuất hiện ở đây kèm trạng thái giao hàng."
-          actionLabel="Xem sản phẩm"
+          title="You have no orders yet"
+          description="Once you place an order it will appear here with its delivery status."
+          actionLabel="Browse products"
           actionTo="/products"
         />
       )}
@@ -128,7 +128,7 @@ export default function MyOrdersPage() {
 
             <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-4">
               <p className="text-sm">
-                <span className="text-muted">Tổng tiền: </span>
+                <span className="text-muted">Total: </span>
                 <span className="tabular text-h4 text-heading">
                   {formatPrice(order.totalPrice)}
                 </span>
@@ -137,7 +137,7 @@ export default function MyOrdersPage() {
               {/* Chỉ đơn chưa xác nhận mới cho khách tự huỷ. */}
               {order.status === 'PENDING' && (
                 <Button variant="ghost" size="sm" onClick={() => handleCancel(order.id)} className="!text-danger-strong">
-                  Huỷ đơn hàng
+                  Cancel order
                 </Button>
               )}
             </footer>

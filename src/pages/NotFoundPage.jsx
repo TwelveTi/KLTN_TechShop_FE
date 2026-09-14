@@ -4,12 +4,12 @@ export default function NotFoundPage() {
   return (
     <div className="mx-auto max-w-lg px-4 py-28 text-center">
       <p className="font-display text-display text-faint">404</p>
-      <h1 className="mt-2 text-h2">Không tìm thấy trang này</h1>
+      <h1 className="mt-2 text-h2">Page not found</h1>
       <p className="mt-2 text-sm text-muted">
-        Đường dẫn có thể đã đổi, hoặc sản phẩm bạn tìm không còn được bán.
+        The link may have changed, or the product you were looking for is no longer sold.
       </p>
       <LinkButton to="/" variant="primary" className="mt-8">
-        Về trang chủ
+        Back to home
       </LinkButton>
     </div>
   )

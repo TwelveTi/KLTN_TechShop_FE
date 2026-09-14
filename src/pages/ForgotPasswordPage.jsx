@@ -6,7 +6,7 @@ import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 
 // Quên mật khẩu gồm 3 bước: nhập email → nhập mã OTP → đặt mật khẩu mới.
-const STEPS = ['Nhập email', 'Nhập mã xác nhận', 'Đặt mật khẩu mới']
+const STEPS = ['Enter email', 'Enter the code', 'Set a new password']
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate()
@@ -29,7 +29,7 @@ export default function ForgotPasswordPage() {
       await authApi.forgotPassword(email)
       // Backend cố ý trả lời trung lập dù email có tồn tại hay không, để
       // người ngoài không dò được ai đang có tài khoản.
-      setNotice('Nếu email này có tài khoản, mã xác nhận đã được gửi tới hộp thư.')
+      setNotice('If an account exists for this email, a verification code has been sent to it.')
       setStep(2)
     } catch (err) {
       setError(err.message)
@@ -70,9 +70,9 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <h1 className="text-h1">Quên mật khẩu</h1>
+      <h1 className="text-h1">Forgot password</h1>
 
-      <ol className="mt-4 flex gap-2" aria-label="Tiến trình">
+      <ol className="mt-4 flex gap-2" aria-label="Progress">
         {STEPS.map((label, index) => (
           <li key={label} className="flex-1">
             <div
@@ -100,14 +100,14 @@ export default function ForgotPasswordPage() {
         <form onSubmit={handleSendOtp} className="mt-6 space-y-5">
           <Input
             type="email"
-            label="Email tài khoản"
+            label="Account email"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
           {error && <Alert>{error}</Alert>}
           <Button type="submit" variant="primary" size="lg" fullWidth isLoading={loading}>
-            Gửi mã xác nhận
+            Send verification code
           </Button>
         </form>
       )}
@@ -115,7 +115,7 @@ export default function ForgotPasswordPage() {
       {step === 2 && (
         <form onSubmit={handleVerifyOtp} className="mt-6 space-y-5">
           <Input
-            label="Mã xác nhận gồm 6 số"
+            label="6-digit verification code"
             required
             inputMode="numeric"
             maxLength={6}
@@ -125,7 +125,7 @@ export default function ForgotPasswordPage() {
           />
           {error && <Alert>{error}</Alert>}
           <Button type="submit" variant="primary" size="lg" fullWidth isLoading={loading}>
-            Xác nhận mã
+            Verify code
           </Button>
           <Button
             type="button"
@@ -133,7 +133,7 @@ export default function ForgotPasswordPage() {
             fullWidth
             onClick={() => authApi.resendResetOtp(email).catch(() => {})}
           >
-            Gửi lại mã
+            Resend code
           </Button>
         </form>
       )}
@@ -142,23 +142,23 @@ export default function ForgotPasswordPage() {
         <form onSubmit={handleResetPassword} className="mt-6 space-y-5">
           <Input
             type="password"
-            label="Mật khẩu mới"
+            label="New password"
             required
             autoComplete="new-password"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
-            hint="Tối thiểu 8 ký tự, có chữ hoa, chữ thường và chữ số."
+            hint="At least 8 characters, with upper case, lower case and a digit."
           />
           {error && <Alert>{error}</Alert>}
           <Button type="submit" variant="primary" size="lg" fullWidth isLoading={loading}>
-            Đặt mật khẩu mới
+            Set new password
           </Button>
         </form>
       )}
 
       <p className="mt-5 text-center text-sm">
         <Link to="/login" className="rounded-xs text-primary hover:underline">
-          Quay lại đăng nhập
+          Back to sign in
         </Link>
       </p>
     </>

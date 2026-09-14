@@ -82,22 +82,22 @@ export default function AdminOrdersPage() {
           className="flex gap-2"
         >
           <label htmlFor="order-search" className="sr-only">
-            Tìm đơn hàng
+            Search orders
           </label>
           <input
             id="order-search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm theo mã đơn…"
+            placeholder="Search by order code…"
             className="h-10 w-56 rounded-sm border border-line-strong bg-surface px-3 text-base text-heading placeholder:text-faint"
           />
           <Button type="submit" variant="secondary" leadingIcon={Search}>
-            Tìm
+            Search
           </Button>
         </form>
 
         <label className="flex items-center gap-2 text-sm text-muted">
-          Trạng thái
+          Status
           <select
             value={status}
             onChange={(event) => {
@@ -106,7 +106,7 @@ export default function AdminOrdersPage() {
             }}
             className="h-10 rounded-sm border border-line-strong bg-surface px-2 text-sm text-heading"
           >
-            <option value="">Tất cả</option>
+            <option value="">All</option>
             {ORDER_STATUS.map((option) => (
               <option key={option} value={option}>
                 {ORDER_STATUS_LABEL[option]}
@@ -128,17 +128,17 @@ export default function AdminOrdersPage() {
         <Table>
           <thead>
             <tr>
-              <Th>Mã đơn</Th>
-              <Th>Khách hàng</Th>
-              <Th>Ngày đặt</Th>
-              <Th align="right">Tổng tiền</Th>
-              <Th>Thanh toán</Th>
-              <Th>Trạng thái</Th>
+              <Th>Order code</Th>
+              <Th>Customer</Th>
+              <Th>Placed on</Th>
+              <Th align="right">Total</Th>
+              <Th>Payment</Th>
+              <Th>Status</Th>
             </tr>
           </thead>
           <tbody>
             {orders.length === 0 ? (
-              <TableEmpty colSpan={6}>Không có đơn hàng nào khớp bộ lọc.</TableEmpty>
+              <TableEmpty colSpan={6}>No orders match these filters.</TableEmpty>
             ) : (
               orders.map((order) => (
                 <Fragment key={order.id}>
@@ -170,7 +170,7 @@ export default function AdminOrdersPage() {
                         <select
                           value={order.status}
                           onChange={(event) => handleChangeStatus(order.id, event.target.value)}
-                          aria-label={`Đổi trạng thái đơn ${order.orderCode}`}
+                          aria-label={`Change the status of order ${order.orderCode}`}
                           className="h-8 rounded-sm border border-line-strong bg-surface px-1.5 text-caption text-heading"
                         >
                           {ORDER_STATUS.map((option) => (
@@ -187,7 +187,7 @@ export default function AdminOrdersPage() {
                     <tr className="border-t border-line bg-sunken">
                       <td colSpan={6} className="px-4 py-5">
                         <p className="mb-3 text-sm font-semibold text-heading">
-                          Sản phẩm trong đơn
+                          Items in this order
                         </p>
                         <ul className="space-y-1.5 text-sm">
                           {(order.items || []).map((item) => (
@@ -203,14 +203,14 @@ export default function AdminOrdersPage() {
                         </ul>
 
                         <p className="mt-4 text-sm text-muted">
-                          <span className="font-medium text-heading">Giao tới: </span>
+                          <span className="font-medium text-heading">Deliver to: </span>
                           {order.receiverName} · {order.receiverPhone} ·{' '}
                           {order.address?.addressLine}, {order.address?.ward},{' '}
                           {order.address?.district}, {order.address?.province}
                         </p>
                         {order.note && (
                           <p className="mt-1 text-sm text-muted">
-                            <span className="font-medium text-heading">Ghi chú: </span>
+                            <span className="font-medium text-heading">Note: </span>
                             {order.note}
                           </p>
                         )}

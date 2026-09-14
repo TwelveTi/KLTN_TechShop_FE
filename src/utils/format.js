@@ -3,12 +3,14 @@
 // Backend trả tiền dạng số hoặc chuỗi "12500000.00" nên phải ép về số trước.
 export function formatPrice(value) {
   const number = Number(value) || 0
-  return number.toLocaleString('vi-VN') + '₫'
+  return number.toLocaleString('en-US') + '₫'
 }
 
+// Dùng en-GB chứ không phải en-US: vẫn là ngày/tháng/năm như cũ, chỉ đổi cách
+// ngăn nhóm số. Đổi sang en-US sẽ lật thành tháng/ngày và đọc sai ngày đơn hàng.
 export function formatDate(value) {
   if (!value) return ''
-  return new Date(value).toLocaleDateString('vi-VN', {
+  return new Date(value).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -17,7 +19,7 @@ export function formatDate(value) {
 
 export function formatDateTime(value) {
   if (!value) return ''
-  return new Date(value).toLocaleString('vi-VN')
+  return new Date(value).toLocaleString('en-GB')
 }
 
 // Ảnh mặc định khi sản phẩm chưa có hình.
@@ -40,7 +42,7 @@ export function getProductPrice(product) {
   return { price: onSale ? sale : base, oldPrice: onSale ? base : null, onSale }
 }
 
-// Nhãn tiếng Việt cho trạng thái đơn hàng. Danh sách mã lấy từ enum của
+// Nhãn hiển thị cho trạng thái đơn hàng. Danh sách mã lấy từ enum của
 // bảng orders bên backend (orderModel.js), không tự đặt thêm.
 export const ORDER_STATUS = [
   'PENDING',
@@ -53,18 +55,18 @@ export const ORDER_STATUS = [
 ]
 
 export const ORDER_STATUS_LABEL = {
-  PENDING: 'Chờ xác nhận',
-  PAID: 'Đã thanh toán',
-  PROCESSING: 'Đang xử lý',
-  SHIPPING: 'Đang giao',
-  DELIVERED: 'Đã giao',
-  CANCELLED: 'Đã huỷ',
-  REFUNDED: 'Đã hoàn tiền',
+  PENDING: 'Awaiting confirmation',
+  PAID: 'Paid',
+  PROCESSING: 'Processing',
+  SHIPPING: 'Out for delivery',
+  DELIVERED: 'Delivered',
+  CANCELLED: 'Cancelled',
+  REFUNDED: 'Refunded',
 }
 
 export const PAYMENT_STATUS_LABEL = {
-  UNPAID: 'Chưa thanh toán',
-  PAID: 'Đã thanh toán',
-  FAILED: 'Thất bại',
-  REFUNDED: 'Đã hoàn tiền',
+  UNPAID: 'Unpaid',
+  PAID: 'Paid',
+  FAILED: 'Failed',
+  REFUNDED: 'Refunded',
 }

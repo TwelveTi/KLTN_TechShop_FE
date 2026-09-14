@@ -4,8 +4,8 @@ import TaxonomyManager from './TaxonomyManager'
 export default function AdminCategoriesPage() {
   return (
     <TaxonomyManager
-      noun="Danh mục"
-      emptyText="Chưa có danh mục nào. Thêm danh mục trước khi tạo sản phẩm."
+      noun="Category"
+      emptyText="No categories yet. Add a category before creating products."
       api={{
         list: adminApi.getCategories,
         create: adminApi.createCategory,

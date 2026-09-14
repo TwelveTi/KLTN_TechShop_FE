@@ -9,19 +9,19 @@ import Button from '../components/ui/Button'
 //  - advisor:    tư vấn chọn sản phẩm
 //  - comparison: so sánh nhiều sản phẩm với nhau
 const MODES = [
-  { key: 'advisor', label: 'Tư vấn chọn máy' },
-  { key: 'comparison', label: 'So sánh sản phẩm' },
+  { key: 'advisor', label: 'Help me choose' },
+  { key: 'comparison', label: 'Compare products' },
 ]
 
 const SUGGESTIONS = {
   advisor: [
-    'Tôi cần laptop lập trình dưới 25 triệu',
-    'Điện thoại chụp ảnh đẹp, pin trâu tầm 15 triệu',
-    'Bàn phím cơ gõ êm để làm văn phòng',
+    'I need a laptop for programming under 25 million',
+    'A phone with a great camera and long battery, around 15 million',
+    'A quiet mechanical keyboard for office work',
   ],
   comparison: [
-    'So sánh MacBook Air M2 với Dell XPS 13',
-    'iPhone 15 và Samsung S24 khác nhau thế nào?',
+    'Compare the MacBook Air M2 with the Dell XPS 13',
+    'How do the iPhone 15 and the Samsung S24 differ?',
   ],
 }
 
@@ -126,13 +126,13 @@ export default function AdvisorPage() {
       <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
         <aside className="hidden lg:block">
           <Button variant="secondary" fullWidth leadingIcon={Plus} onClick={startNewChat}>
-            Cuộc trò chuyện mới
+            New conversation
           </Button>
 
-          <p className="mb-2 mt-6 text-overline uppercase text-faint">Lịch sử</p>
+          <p className="mb-2 mt-6 text-overline uppercase text-faint">History</p>
 
           {conversations.length === 0 ? (
-            <p className="text-sm text-muted">Chưa có cuộc trò chuyện nào.</p>
+            <p className="text-sm text-muted">No conversations yet.</p>
           ) : (
             <ul className="space-y-0.5">
               {conversations.map((conversation) => (
@@ -145,7 +145,7 @@ export default function AdvisorPage() {
                         : 'text-muted hover:bg-sunken hover:text-body'
                     }`}
                   >
-                    {conversation.title || 'Cuộc trò chuyện'}
+                    {conversation.title || 'Conversation'}
                   </button>
                 </li>
               ))}
@@ -154,7 +154,7 @@ export default function AdvisorPage() {
         </aside>
 
         <div className="min-w-0">
-          <div className="mb-5 flex gap-2" role="tablist" aria-label="Chế độ trợ lý">
+          <div className="mb-5 flex gap-2" role="tablist" aria-label="Assistant mode">
             {MODES.map((item) => (
               <button
                 key={item.key}
@@ -181,10 +181,10 @@ export default function AdvisorPage() {
                 <div className="mx-auto grid size-12 place-items-center rounded-full bg-primary-soft text-primary">
                   <Bot size={24} aria-hidden />
                 </div>
-                <h1 className="mt-4 text-h3">Trợ lý AI của TechShop</h1>
+                <h1 className="mt-4 text-h3">The TechShop AI advisor</h1>
                 <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-                  Trợ lý tra cứu thông số thật của sản phẩm trong kho rồi trả lời, nên nó không
-                  nói về những sản phẩm cửa hàng không bán.
+                  The advisor answers from the real specifications of products in stock, so it
+                  will not talk about products the store does not sell.
                 </p>
 
                 <div className="mt-7 flex flex-col items-center gap-2">
@@ -229,7 +229,8 @@ export default function AdvisorPage() {
                   {message.toolCalls?.length > 0 && (
                     <p className="mt-3 inline-flex items-center gap-1.5 text-caption text-muted">
                       <Database size={12} aria-hidden />
-                      Đã tra cứu {message.toolCalls.length} lượt trong cơ sở dữ liệu sản phẩm
+                      Looked up the product database {message.toolCalls.length}{' '}
+                      {message.toolCalls.length === 1 ? 'time' : 'times'}
                     </p>
                   )}
                 </div>
@@ -237,7 +238,7 @@ export default function AdvisorPage() {
 
               {sending && (
                 <p className="text-sm text-muted" aria-live="polite">
-                  Trợ lý đang tra cứu và soạn câu trả lời…
+                  The advisor is looking things up and writing an answer…
                 </p>
               )}
             </div>
@@ -247,20 +248,20 @@ export default function AdvisorPage() {
 
           {error && (
             <div className="mt-4">
-              <Alert title="Không nhận được câu trả lời">{error}</Alert>
+              <Alert title="No answer came back">{error}</Alert>
             </div>
           )}
 
           <form onSubmit={handleSend} className="mt-4 flex gap-2">
             <label htmlFor="advisor-input" className="sr-only">
-              Câu hỏi của bạn
+              Your question
             </label>
             <input
               id="advisor-input"
               value={input}
               onChange={(event) => setInput(event.target.value)}
               maxLength={1000}
-              placeholder="Nhập câu hỏi của bạn…"
+              placeholder="Type your question…"
               className="h-12 flex-1 rounded-full border border-line-strong bg-surface px-5 text-base
                 text-heading placeholder:text-faint"
             />
@@ -272,7 +273,7 @@ export default function AdvisorPage() {
               disabled={!input.trim()}
               isLoading={sending}
             >
-              Gửi
+              Send
             </Button>
           </form>
         </div>

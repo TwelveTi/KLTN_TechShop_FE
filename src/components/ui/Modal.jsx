@@ -48,7 +48,7 @@ export default function Modal({ open, onClose, title, size = 'md', children }) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Đóng"
+            aria-label="Close"
             className="rounded-xs p-1 text-muted hover:bg-sunken hover:text-heading"
           >
             <X size={18} aria-hidden />

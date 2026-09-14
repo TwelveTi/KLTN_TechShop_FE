@@ -6,9 +6,9 @@ import BrandMark from '../components/ui/BrandMark'
 // Desktop chia hai cột: cột trái giới thiệu, cột phải là form.
 // Trang cao theo nội dung và cuộn bình thường — không khoá vào chiều cao màn hình.
 const BENEFITS = [
-  { icon: Bot, text: 'Trợ lý AI tư vấn theo thông số thật trong kho' },
-  { icon: PackageCheck, text: 'Giỏ hàng và đơn hàng đồng bộ giữa các thiết bị' },
-  { icon: ShieldCheck, text: 'Gợi ý sản phẩm riêng theo những gì bạn quan tâm' },
+  { icon: Bot, text: 'An AI advisor that reads the real specifications in stock' },
+  { icon: PackageCheck, text: 'Cart and orders kept in sync across your devices' },
+  { icon: ShieldCheck, text: 'Recommendations shaped by what you actually look at' },
 ]
 
 export default function AuthLayout() {
@@ -19,7 +19,7 @@ export default function AuthLayout() {
 
         <div>
           <h2 className="text-h1 text-balance text-heading">
-            Mua thiết bị công nghệ, có người tư vấn
+            Buy tech with someone to advise you
           </h2>
 
           <ul className="mt-8 space-y-4">
@@ -33,7 +33,7 @@ export default function AuthLayout() {
         </div>
 
         <p className="text-caption text-muted">
-          Khoá luận tốt nghiệp — TechShop {new Date().getFullYear()}
+          Graduation thesis — TechShop {new Date().getFullYear()}
         </p>
       </aside>
 

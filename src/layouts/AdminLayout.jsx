@@ -15,12 +15,12 @@ import BrandMark from '../components/ui/BrandMark'
 import { useAuth } from '../context/AuthContext'
 
 const MENU = [
-  { to: '/admin', label: 'Tổng quan', icon: LayoutDashboard, end: true },
-  { to: '/admin/products', label: 'Sản phẩm', icon: Package },
-  { to: '/admin/categories', label: 'Danh mục', icon: Tag },
-  { to: '/admin/brands', label: 'Thương hiệu', icon: Tag },
-  { to: '/admin/orders', label: 'Đơn hàng', icon: ShoppingBag },
-  { to: '/admin/users', label: 'Người dùng', icon: Users },
+  { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/admin/products', label: 'Products', icon: Package },
+  { to: '/admin/categories', label: 'Categories', icon: Tag },
+  { to: '/admin/brands', label: 'Brands', icon: Tag },
+  { to: '/admin/orders', label: 'Orders', icon: ShoppingBag },
+  { to: '/admin/users', label: 'Users', icon: Users },
 ]
 
 // Khung trang quản trị: menu cố định bên trái, thanh tiêu đề dính trên cùng.
@@ -61,7 +61,7 @@ export default function AdminLayout() {
     <div className="flex min-h-screen bg-bg">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface p-4 lg:flex">
         <BrandMark label="TechShop" />
-        <p className="mb-6 mt-1 pl-10 text-caption text-muted">Quản trị</p>
+        <p className="mb-6 mt-1 pl-10 text-caption text-muted">Admin</p>
 
         {nav}
 
@@ -70,7 +70,7 @@ export default function AdminLayout() {
           className="mt-auto flex items-center gap-2 rounded-sm px-3 py-2 text-sm text-muted hover:bg-sunken hover:text-body"
         >
           <ArrowLeft size={16} aria-hidden />
-          Về cửa hàng
+          Back to store
         </Link>
       </aside>
 
@@ -78,13 +78,13 @@ export default function AdminLayout() {
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-line bg-surface px-4 sm:px-6">
           <button
             onClick={() => setDrawerOpen(true)}
-            aria-label="Mở menu quản trị"
+            aria-label="Open admin menu"
             className="rounded-sm p-2 text-body hover:bg-sunken lg:hidden"
           >
             <Menu size={18} aria-hidden />
           </button>
 
-          <h1 className="text-h4">{currentTitle || 'Quản trị'}</h1>
+          <h1 className="text-h4">{currentTitle || 'Admin'}</h1>
 
           <div className="ml-auto flex items-center gap-2">
             <span className="hidden text-sm text-muted sm:block">
@@ -107,14 +107,14 @@ export default function AdminLayout() {
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Menu quản trị"
+            aria-label="Admin menu"
             className="flex h-full w-64 flex-col bg-surface p-4"
           >
             <div className="mb-6 flex items-center justify-between">
               <BrandMark />
               <button
                 onClick={() => setDrawerOpen(false)}
-                aria-label="Đóng menu"
+                aria-label="Close menu"
                 className="rounded-xs p-1 text-muted hover:bg-sunken"
               >
                 <X size={18} aria-hidden />

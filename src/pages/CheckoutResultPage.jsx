@@ -33,28 +33,28 @@ export default function CheckoutResultPage() {
       </div>
 
       <h1 className="mt-5 text-h1">
-        {success ? 'Đặt hàng thành công' : 'Thanh toán không thành công'}
+        {success ? 'Order placed' : 'Payment failed'}
       </h1>
 
       {orderCode && (
         <p className="mt-3 text-body">
-          Mã đơn hàng của bạn là{' '}
+          Your order code is{' '}
           <span className="font-mono font-semibold text-heading">{orderCode}</span>
         </p>
       )}
 
       <p className="mt-2 text-sm text-muted">
         {success
-          ? 'Chúng tôi đã nhận được đơn hàng và sẽ liên hệ với bạn để xác nhận.'
-          : reason || 'Giao dịch bị huỷ hoặc bị từ chối. Bạn có thể đặt lại đơn hàng này.'}
+          ? 'We have received your order and will contact you to confirm it.'
+          : reason || 'The transaction was cancelled or declined. You can place this order again.'}
       </p>
 
       <div className="mt-8 flex justify-center gap-3">
         <LinkButton to="/my-orders" variant="primary">
-          Xem đơn hàng của tôi
+          View my orders
         </LinkButton>
         <LinkButton to="/products" variant="secondary">
-          Tiếp tục mua sắm
+          Keep shopping
         </LinkButton>
       </div>
     </div>

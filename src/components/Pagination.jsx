@@ -12,11 +12,11 @@ export default function Pagination({ page, totalPages, onChange }) {
     text-body hover:bg-sunken disabled:pointer-events-none disabled:opacity-40`
 
   return (
-    <nav aria-label="Phân trang" className="flex items-center justify-center gap-1.5 py-8">
+    <nav aria-label="Pagination" className="flex items-center justify-center gap-1.5 py-8">
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
-        aria-label="Trang trước"
+        aria-label="Previous page"
         className={arrow}
       >
         <ChevronLeft size={16} aria-hidden />
@@ -40,7 +40,7 @@ export default function Pagination({ page, totalPages, onChange }) {
       <button
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
-        aria-label="Trang sau"
+        aria-label="Next page"
         className={arrow}
       >
         <ChevronRight size={16} aria-hidden />

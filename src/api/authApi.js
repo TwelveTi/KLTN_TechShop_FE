@@ -1,5 +1,9 @@
 import axiosClient from './axiosClient'
 
+// Đăng nhập Google đi bằng cách chuyển cả trang, không phải gọi axios — luồng
+// OAuth cần trình duyệt tự đi qua Google rồi quay về backend.
+export const googleAuthUrl = () => `${import.meta.env.VITE_API_BASE_URL}/auth/google`
+
 // Đăng nhập / đăng ký / quên mật khẩu.
 const authApi = {
   login: (email, password) => axiosClient.post('/auth/login', { email, password }),

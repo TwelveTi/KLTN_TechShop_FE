@@ -7,7 +7,7 @@ export default function StarRating({ value = 0, onChange, size = 16 }) {
   // Chỉ đọc: một hình ảnh duy nhất kèm nhãn bằng chữ, không đọc rời từng sao.
   if (!onChange) {
     return (
-      <span className="inline-flex items-center gap-0.5" aria-label={`${value.toFixed(1)} trên 5 sao`}>
+      <span className="inline-flex items-center gap-0.5" aria-label={`${value.toFixed(1)} out of 5 stars`}>
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
@@ -27,7 +27,7 @@ export default function StarRating({ value = 0, onChange, size = 16 }) {
           key={star}
           type="button"
           onClick={() => onChange(star)}
-          aria-label={`Chấm ${star} sao`}
+          aria-label={`Rate ${star} star${star === 1 ? '' : 's'}`}
           aria-pressed={star === value}
           className="rounded-xs p-0.5"
         >

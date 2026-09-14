@@ -6,15 +6,15 @@ import Badge from './ui/Badge'
 import SectionHead from './ui/SectionHead'
 import { ProductGridSkeleton } from './ui/Skeleton'
 
-// Nhãn tiếng Việt cho lý do gợi ý. Các mã này do backend sinh ra trong
+// Nhãn hiển thị cho lý do gợi ý. Các mã này do backend sinh ra trong
 // recommendationService.REASON_CODES, sửa ở đây phải sửa kèm bên đó.
 const REASON_LABEL = {
-  MATCHES_YOUR_TASTE: 'Hợp sở thích của bạn',
-  MATCHES_YOUR_SEARCH: 'Khớp tìm kiếm gần đây',
-  LIKE_WHAT_YOU_BOUGHT: 'Giống sản phẩm bạn đã mua',
-  SIMILAR_TO_VIEWED: 'Giống sản phẩm bạn đã xem',
-  SIMILAR_TO_THIS: 'Tương tự sản phẩm này',
-  POPULAR_NOW: 'Đang bán chạy',
+  MATCHES_YOUR_TASTE: 'Matches your taste',
+  MATCHES_YOUR_SEARCH: 'Matches a recent search',
+  LIKE_WHAT_YOU_BOUGHT: 'Like something you bought',
+  SIMILAR_TO_VIEWED: 'Like something you viewed',
+  SIMILAR_TO_THIS: 'Similar to this product',
+  POPULAR_NOW: 'Selling well right now',
 }
 
 // Dải sản phẩm gợi ý. mode = 'personal' (cho tôi) hoặc 'similar' (tương tự).
@@ -61,7 +61,7 @@ export default function RecommendationRail({
       const data = await recommendationApi.explain(item.itemId)
       setExplanations((prev) => ({ ...prev, [item.itemId]: data?.explanation || '' }))
     } catch {
-      setExplanations((prev) => ({ ...prev, [item.itemId]: 'Chưa giải thích được lúc này.' }))
+      setExplanations((prev) => ({ ...prev, [item.itemId]: 'No explanation available right now.' }))
     } finally {
       setExplaining(null)
     }
@@ -89,7 +89,7 @@ export default function RecommendationRail({
             <ProductCard product={item.product} onClick={() => handleClick(item)} />
 
             <div className="px-1">
-              <Badge tone="primary">{REASON_LABEL[item.reasonCode] || 'Gợi ý cho bạn'}</Badge>
+              <Badge tone="primary">{REASON_LABEL[item.reasonCode] || 'Picked for you'}</Badge>
 
               {explanations[item.itemId] ? (
                 <p className="mt-1.5 text-caption text-muted">{explanations[item.itemId]}</p>
@@ -103,7 +103,7 @@ export default function RecommendationRail({
                       hover:text-primary disabled:opacity-60"
                   >
                     <Sparkles size={12} aria-hidden />
-                    {explaining === item.itemId ? 'Đang hỏi AI…' : 'Vì sao gợi ý sản phẩm này?'}
+                    {explaining === item.itemId ? 'Asking the AI…' : 'Why this product?'}
                   </button>
                 )
               )}

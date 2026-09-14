@@ -11,12 +11,12 @@ import Modal from '../components/ui/Modal'
 import { Skeleton } from '../components/ui/Skeleton'
 
 const FIELDS = [
-  ['receiverName', 'Họ tên người nhận'],
-  ['receiverPhone', 'Số điện thoại'],
-  ['province', 'Tỉnh / Thành phố'],
-  ['district', 'Quận / Huyện'],
-  ['ward', 'Phường / Xã'],
-  ['addressLine', 'Số nhà, tên đường'],
+  ['receiverName', 'Recipient name'],
+  ['receiverPhone', 'Phone number'],
+  ['province', 'Province / City'],
+  ['district', 'District'],
+  ['ward', 'Ward'],
+  ['addressLine', 'House number and street'],
 ]
 
 const EMPTY_FORM = {
@@ -79,7 +79,7 @@ export default function AddressPage() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Xoá địa chỉ này?')) return
+    if (!confirm('Delete this address?')) return
     try {
       await userApi.deleteAddress(id)
       loadAddresses()
@@ -90,7 +90,7 @@ export default function AddressPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
-      <h1 className="text-h1">Địa chỉ giao hàng</h1>
+      <h1 className="text-h1">Delivery addresses</h1>
       <ProfileTabs />
 
       {error && (
@@ -107,8 +107,8 @@ export default function AddressPage() {
       ) : addresses.length === 0 ? (
         <EmptyState
           icon={MapPinOff}
-          title="Chưa có địa chỉ nào"
-          description="Lưu sẵn địa chỉ để những lần đặt hàng sau nhanh hơn."
+          title="No addresses yet"
+          description="Save an address now to make future orders quicker."
         />
       ) : (
         <ul className="mt-6 space-y-3">
@@ -120,7 +120,7 @@ export default function AddressPage() {
               <div className="text-sm">
                 <p className="flex flex-wrap items-center gap-2 font-medium text-heading">
                   {address.receiverName} · {address.receiverPhone}
-                  {address.isDefault && <Badge tone="primary">Mặc định</Badge>}
+                  {address.isDefault && <Badge tone="primary">Default</Badge>}
                 </p>
                 <p className="mt-1 text-muted">
                   {address.addressLine}, {address.ward}, {address.district}, {address.province}
@@ -130,7 +130,7 @@ export default function AddressPage() {
               <div className="flex gap-1">
                 {!address.isDefault && (
                   <Button variant="ghost" size="sm" onClick={() => handleSetDefault(address.id)}>
-                    Đặt mặc định
+                    Set as default
                   </Button>
                 )}
                 <Button
@@ -139,7 +139,7 @@ export default function AddressPage() {
                   onClick={() => handleDelete(address.id)}
                   className="!text-danger-strong"
                 >
-                  Xoá
+                  Delete
                 </Button>
               </div>
             </li>
@@ -153,10 +153,10 @@ export default function AddressPage() {
         onClick={() => setModalOpen(true)}
         className="mt-6"
       >
-        Thêm địa chỉ mới
+        Add a new address
       </Button>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Thêm địa chỉ giao hàng">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add a delivery address">
         <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-2">
           {FIELDS.map(([field, label]) => (
             <Input
@@ -171,10 +171,10 @@ export default function AddressPage() {
 
           <div className="flex gap-3 sm:col-span-2">
             <Button type="submit" variant="primary" isLoading={saving}>
-              Lưu địa chỉ
+              Save address
             </Button>
             <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
-              Huỷ
+              Cancel
             </Button>
           </div>
         </form>

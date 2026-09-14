@@ -55,16 +55,16 @@ export default function Header({ variant = 'storefront' }) {
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex h-16 max-w-page items-center justify-between px-4 sm:px-8">
           <BrandMark />
-          <span className="text-sm text-muted">Kết nối được mã hoá</span>
+          <span className="text-sm text-muted">Encrypted connection</span>
         </div>
       </header>
     )
   }
 
   const menuItems = [
-    { to: '/profile', label: 'Tài khoản của tôi', icon: User },
-    { to: '/my-orders', label: 'Đơn hàng của tôi', icon: Package },
-    ...(isAdmin ? [{ to: '/admin', label: 'Trang quản trị', icon: Settings }] : []),
+    { to: '/profile', label: 'My account', icon: User },
+    { to: '/my-orders', label: 'My orders', icon: Package },
+    ...(isAdmin ? [{ to: '/admin', label: 'Admin dashboard', icon: Settings }] : []),
   ]
 
   return (
@@ -74,7 +74,7 @@ export default function Header({ variant = 'storefront' }) {
 
         <form onSubmit={handleSearch} className="relative hidden flex-1 sm:block">
           <label htmlFor="header-search" className="sr-only">
-            Tìm sản phẩm
+            Search products
           </label>
           <Search
             size={16}
@@ -85,7 +85,7 @@ export default function Header({ variant = 'storefront' }) {
             id="header-search"
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
-            placeholder="Tìm laptop, điện thoại, phụ kiện…"
+            placeholder="Search laptops, phones, accessories…"
             className="h-10 w-full rounded-full border border-line-strong bg-sunken pl-9 pr-4 text-base
               text-heading placeholder:text-faint"
           />
@@ -96,7 +96,7 @@ export default function Header({ variant = 'storefront' }) {
             to="/cart"
             className="relative inline-flex size-10 items-center justify-center rounded-sm text-body
               hover:bg-sunken"
-            aria-label={`Giỏ hàng, ${totalQuantity} sản phẩm`}
+            aria-label={`Cart, ${totalQuantity} ${totalQuantity === 1 ? 'item' : 'items'}`}
           >
             <ShoppingCart size={20} aria-hidden />
             {totalQuantity > 0 && (
@@ -111,7 +111,7 @@ export default function Header({ variant = 'storefront' }) {
           </Link>
 
           {/* Chưa biết phiên đăng nhập thì để chỗ trống, tránh nhấp nháy chữ
-              "Đăng nhập" trước mặt người đang có phiên. */}
+              "Sign in" trước mặt người đang có phiên. */}
           {loading ? (
             <div className="size-9 rounded-full bg-sunken" />
           ) : isLoggedIn ? (
@@ -135,7 +135,7 @@ export default function Header({ variant = 'storefront' }) {
                 >
                   <div className="border-b border-line px-4 py-3">
                     <p className="truncate text-sm font-semibold text-heading">
-                      {user.fullName || 'Khách hàng'}
+                      {user.fullName || 'Customer'}
                     </p>
                     <p className="truncate text-caption text-muted">{user.email}</p>
                   </div>
@@ -161,7 +161,7 @@ export default function Header({ variant = 'storefront' }) {
                       text-sm text-danger-strong hover:bg-sunken"
                   >
                     <LogOut size={16} aria-hidden />
-                    Đăng xuất
+                    Sign out
                   </button>
                 </div>
               )}
@@ -169,10 +169,10 @@ export default function Header({ variant = 'storefront' }) {
           ) : (
             <>
               <LinkButton to="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">
-                Đăng nhập
+                Sign in
               </LinkButton>
               <LinkButton to="/register" variant="primary" size="sm">
-                Đăng ký
+                Sign up
               </LinkButton>
             </>
           )}

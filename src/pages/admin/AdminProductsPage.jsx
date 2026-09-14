@@ -157,7 +157,7 @@ export default function AdminProductsPage() {
   }
 
   async function handleDelete(id, name) {
-    if (!confirm(`Xoá sản phẩm “${name}”? Thao tác này không hoàn tác được.`)) return
+    if (!confirm(`Delete the product “${name}”? This cannot be undone.`)) return
     try {
       await adminApi.deleteProduct(id)
       loadProducts()
@@ -178,17 +178,17 @@ export default function AdminProductsPage() {
           className="flex gap-2"
         >
           <label htmlFor="product-search" className="sr-only">
-            Tìm sản phẩm
+            Search products
           </label>
           <input
             id="product-search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm theo tên sản phẩm…"
+            placeholder="Search by product name…"
             className="h-10 w-64 rounded-sm border border-line-strong bg-surface px-3 text-base text-heading placeholder:text-faint"
           />
           <Button type="submit" variant="secondary" leadingIcon={Search}>
-            Tìm
+            Search
           </Button>
         </form>
 
@@ -198,7 +198,7 @@ export default function AdminProductsPage() {
           onClick={() => setForm({ ...EMPTY_PRODUCT })}
           className="ml-auto"
         >
-          Thêm sản phẩm
+          Add product
         </Button>
       </div>
 
@@ -214,20 +214,20 @@ export default function AdminProductsPage() {
         <Table>
           <thead>
             <tr>
-              <Th>Sản phẩm</Th>
-              <Th>Danh mục</Th>
-              <Th align="right">Giá</Th>
-              <Th align="right">Tồn kho</Th>
-              <Th>Trạng thái</Th>
-              <Th align="right">Thao tác</Th>
+              <Th>Product</Th>
+              <Th>Category</Th>
+              <Th align="right">Price</Th>
+              <Th align="right">Stock</Th>
+              <Th>Status</Th>
+              <Th align="right">Actions</Th>
             </tr>
           </thead>
           <tbody>
             {products.length === 0 ? (
               <TableEmpty colSpan={6}>
                 {appliedSearch
-                  ? `Không có sản phẩm nào khớp “${appliedSearch}”.`
-                  : 'Chưa có sản phẩm nào trong kho.'}
+                  ? `No products match “${appliedSearch}”.`
+                  : 'No products in stock yet.'}
               </TableEmpty>
             ) : (
               products.map((product) => (
@@ -254,7 +254,7 @@ export default function AdminProductsPage() {
                   </Td>
                   <RowActions>
                     <Button variant="ghost" size="sm" onClick={() => openEditForm(product.id)}>
-                      Sửa
+                      Edit
                     </Button>
                     <Button
                       variant="ghost"
@@ -262,7 +262,7 @@ export default function AdminProductsPage() {
                       onClick={() => handleDelete(product.id, product.name)}
                       className="!text-danger-strong"
                     >
-                      Xoá
+                      Delete
                     </Button>
                   </RowActions>
                 </Tr>
@@ -278,12 +278,12 @@ export default function AdminProductsPage() {
         open={!!form}
         onClose={() => setForm(null)}
         size="lg"
-        title={form?.id ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}
+        title={form?.id ? 'Edit product' : 'Add product'}
       >
         {form && (
           <form onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2">
             <Input
-              label="Tên sản phẩm"
+              label="Product name"
               required
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
@@ -291,14 +291,14 @@ export default function AdminProductsPage() {
             />
 
             <Input
-              label="Mã SKU"
+              label="SKU"
               value={form.sku || ''}
               onChange={(event) => setForm({ ...form, sku: event.target.value })}
             />
 
             <Input
               as="select"
-              label="Trạng thái"
+              label="Status"
               value={form.status}
               onChange={(event) => setForm({ ...form, status: event.target.value })}
             >
@@ -311,12 +311,12 @@ export default function AdminProductsPage() {
 
             <Input
               as="select"
-              label="Danh mục"
+              label="Category"
               required
               value={form.categoryId || ''}
               onChange={(event) => setForm({ ...form, categoryId: event.target.value })}
             >
-              <option value="">— Chọn danh mục —</option>
+              <option value="">— Choose a category —</option>
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -326,12 +326,12 @@ export default function AdminProductsPage() {
 
             <Input
               as="select"
-              label="Thương hiệu"
+              label="Brand"
               required
               value={form.brandId || ''}
               onChange={(event) => setForm({ ...form, brandId: event.target.value })}
             >
-              <option value="">— Chọn thương hiệu —</option>
+              <option value="">— Choose a brand —</option>
               {brands.map((brand) => (
                 <option key={brand.id} value={brand.id}>
                   {brand.name}
@@ -341,7 +341,7 @@ export default function AdminProductsPage() {
 
             <Input
               type="number"
-              label="Giá gốc (VND)"
+              label="Base price (VND)"
               required
               value={form.basePrice}
               onChange={(event) => setForm({ ...form, basePrice: event.target.value })}
@@ -349,15 +349,15 @@ export default function AdminProductsPage() {
 
             <Input
               type="number"
-              label="Giá khuyến mãi (VND)"
-              hint="Để trống nếu không giảm giá."
+              label="Sale price (VND)"
+              hint="Leave empty if the product is not on sale."
               value={form.salePrice}
               onChange={(event) => setForm({ ...form, salePrice: event.target.value })}
             />
 
             <Input
               type="number"
-              label="Số lượng tồn kho"
+              label="Stock quantity"
               required
               value={form.stockQuantity}
               onChange={(event) => setForm({ ...form, stockQuantity: event.target.value })}
@@ -370,13 +370,13 @@ export default function AdminProductsPage() {
                 onChange={(event) => setForm({ ...form, isFeatured: event.target.checked })}
                 className="size-4 accent-[var(--color-primary)]"
               />
-              Sản phẩm nổi bật
+              Featured product
             </label>
 
             <Input
               as="textarea"
               rows={2}
-              label="Mô tả ngắn"
+              label="Short description"
               value={form.shortDescription || ''}
               onChange={(event) => setForm({ ...form, shortDescription: event.target.value })}
               className="sm:col-span-2"
@@ -385,14 +385,14 @@ export default function AdminProductsPage() {
             <Input
               as="textarea"
               rows={5}
-              label="Mô tả chi tiết"
+              label="Full description"
               value={form.description || ''}
               onChange={(event) => setForm({ ...form, description: event.target.value })}
               className="sm:col-span-2"
             />
 
             <div className="sm:col-span-2">
-              <span className="mb-1.5 block text-sm font-medium text-heading">Hình ảnh</span>
+              <span className="mb-1.5 block text-sm font-medium text-heading">Images</span>
               <input
                 type="file"
                 multiple
@@ -400,7 +400,7 @@ export default function AdminProductsPage() {
                 onChange={handleUploadImages}
                 className="text-sm text-muted"
               />
-              {uploading && <p className="mt-2 text-sm text-muted">Đang tải ảnh lên…</p>}
+              {uploading && <p className="mt-2 text-sm text-muted">Uploading images…</p>}
 
               {form.images.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -418,10 +418,10 @@ export default function AdminProductsPage() {
 
             <div className="flex gap-3 sm:col-span-2">
               <Button type="submit" variant="primary" isLoading={saving}>
-                {form.id ? 'Lưu thay đổi' : 'Tạo sản phẩm'}
+                {form.id ? 'Save changes' : 'Create product'}
               </Button>
               <Button type="button" variant="secondary" onClick={() => setForm(null)}>
-                Huỷ
+                Cancel
               </Button>
             </div>
           </form>

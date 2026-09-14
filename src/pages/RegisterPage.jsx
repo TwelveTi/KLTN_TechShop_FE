@@ -4,13 +4,14 @@ import { Check, X } from 'lucide-react'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import OAuthButton, { OrDivider } from '../components/ui/OAuthButton'
 import { useAuth } from '../context/AuthContext'
 
 // Điều kiện mật khẩu, hiện thành danh sách tick để người dùng biết còn thiếu gì.
 const PASSWORD_RULES = [
-  { label: 'Ít nhất 8 ký tự', test: (value) => value.length >= 8 },
-  { label: 'Có chữ hoa và chữ thường', test: (value) => /[a-z]/.test(value) && /[A-Z]/.test(value) },
-  { label: 'Có ít nhất một chữ số', test: (value) => /\d/.test(value) },
+  { label: 'At least 8 characters', test: (value) => value.length >= 8 },
+  { label: 'Upper and lower case letters', test: (value) => /[a-z]/.test(value) && /[A-Z]/.test(value) },
+  { label: 'At least one digit', test: (value) => /\d/.test(value) },
 ]
 
 export default function RegisterPage() {
@@ -56,13 +57,13 @@ export default function RegisterPage() {
 
   return (
     <>
-      <h1 className="text-h1">Tạo tài khoản</h1>
-      <p className="mt-2 text-sm text-muted">Chỉ mất chưa tới một phút.</p>
+      <h1 className="text-h1">Create an account</h1>
+      <p className="mt-2 text-sm text-muted">It takes less than a minute.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <Input
           name="fullName"
-          label="Họ và tên"
+          label="Full name"
           required
           autoComplete="name"
           value={form.fullName}
@@ -76,12 +77,12 @@ export default function RegisterPage() {
           autoComplete="email"
           value={form.email}
           onChange={handleChange}
-          hint="Dùng để nhận mã xác minh và thông tin đơn hàng."
+          hint="Used for your verification code and order updates."
         />
         <Input
           name="phone"
           type="tel"
-          label="Số điện thoại"
+          label="Phone number"
           required
           autoComplete="tel"
           value={form.phone}
@@ -92,7 +93,7 @@ export default function RegisterPage() {
           <Input
             name="password"
             type="password"
-            label="Mật khẩu"
+            label="Password"
             required
             autoComplete="new-password"
             value={form.password}
@@ -119,25 +120,28 @@ export default function RegisterPage() {
         <Input
           name="confirmPassword"
           type="password"
-          label="Nhập lại mật khẩu"
+          label="Confirm password"
           required
           autoComplete="new-password"
           value={form.confirmPassword}
           onChange={handleChange}
-          error={mismatch ? 'Hai mật khẩu chưa khớp nhau.' : ''}
+          error={mismatch ? 'The two passwords do not match.' : ''}
         />
 
         {error && <Alert>{error}</Alert>}
 
         <Button type="submit" variant="primary" size="lg" fullWidth isLoading={loading}>
-          Đăng ký
+          Create account
         </Button>
       </form>
 
+      <OrDivider />
+      <OAuthButton />
+
       <p className="mt-5 text-center text-sm text-muted">
-        Đã có tài khoản?{' '}
+        Already have an account?{' '}
         <Link to="/login" className="rounded-xs text-primary hover:underline">
-          Đăng nhập
+          Sign in
         </Link>
       </p>
     </>

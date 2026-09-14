@@ -28,8 +28,8 @@ export default function ProductCard({ product, compact = false, onClick }) {
         />
 
         <div className="absolute left-3 top-3 flex flex-col items-start gap-1">
-          {onSale && <Badge tone="danger">Giảm {discount}%</Badge>}
-          {outOfStock && <Badge tone="neutral">Hết hàng</Badge>}
+          {onSale && <Badge tone="danger">{discount}% off</Badge>}
+          {outOfStock && <Badge tone="neutral">Out of stock</Badge>}
         </div>
       </div>
 
@@ -51,7 +51,9 @@ export default function ProductCard({ product, compact = false, onClick }) {
         {reviewCount > 0 && (
           <div className="flex items-center gap-1.5">
             <StarRating value={rating} size={13} />
-            <span className="text-caption text-muted">{reviewCount} đánh giá</span>
+            <span className="text-caption text-muted">
+              {reviewCount} {reviewCount === 1 ? 'review' : 'reviews'}
+            </span>
           </div>
         )}
 

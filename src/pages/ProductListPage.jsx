@@ -12,11 +12,11 @@ import EmptyState from '../components/ui/EmptyState'
 import { ProductGridSkeleton, Skeleton } from '../components/ui/Skeleton'
 
 const SORT_OPTIONS = [
-  { value: 'bestSelling', label: 'Bán chạy nhất' },
-  { value: 'newest', label: 'Mới nhất' },
-  { value: 'priceAsc', label: 'Giá thấp đến cao' },
-  { value: 'priceDesc', label: 'Giá cao đến thấp' },
-  { value: 'rating', label: 'Đánh giá cao nhất' },
+  { value: 'bestSelling', label: 'Best selling' },
+  { value: 'newest', label: 'Newest' },
+  { value: 'priceAsc', label: 'Price: low to high' },
+  { value: 'priceDesc', label: 'Price: high to low' },
+  { value: 'rating', label: 'Highest rated' },
 ]
 
 const LIMIT = 12
@@ -86,16 +86,16 @@ export default function ProductListPage() {
 
   // Các chip cho biết truy vấn hiện tại đang gồm những gì, bấm chữ X để bỏ từng cái.
   const activeFilters = [
-    keyword && { key: 'keyword', label: `Từ khoá: ${keyword}` },
+    keyword && { key: 'keyword', label: `Keyword: ${keyword}` },
     activeCategory && { key: 'category', label: activeCategory.name },
     activeBrand && { key: 'brand', label: activeBrand.name },
   ].filter(Boolean)
 
   const title = keyword
-    ? `Kết quả cho “${keyword}”`
+    ? `Results for “${keyword}”`
     : activeCategory
       ? activeCategory.name
-      : 'Tất cả sản phẩm'
+      : 'All products'
 
   function FacetGroup({ heading, options, paramKey, active }) {
     return (
@@ -107,7 +107,7 @@ export default function ProductListPage() {
               onClick={() => updateFilter(paramKey, '')}
               className={`rounded-xs text-sm ${!active ? 'font-semibold text-primary' : 'text-muted hover:text-body'}`}
             >
-              Tất cả
+              All
             </button>
           </li>
           {options.map((option) => (
@@ -131,12 +131,12 @@ export default function ProductListPage() {
   const filterPanel = (
     <div className="space-y-6">
       {categories.length > 0 ? (
-        <FacetGroup heading="Danh mục" options={categories} paramKey="category" active={category} />
+        <FacetGroup heading="Category" options={categories} paramKey="category" active={category} />
       ) : (
         <Skeleton className="h-40" />
       )}
       {brands.length > 0 && (
-        <FacetGroup heading="Thương hiệu" options={brands} paramKey="brand" active={brand} />
+        <FacetGroup heading="Brand" options={brands} paramKey="brand" active={brand} />
       )}
     </div>
   )
@@ -144,13 +144,15 @@ export default function ProductListPage() {
   return (
     <div className="mx-auto max-w-wide px-4 py-8 sm:px-8">
       <Breadcrumb
-        items={[{ label: 'Trang chủ', to: '/' }, { label: activeCategory?.name || 'Sản phẩm' }]}
+        items={[{ label: 'Home', to: '/' }, { label: activeCategory?.name || 'Products' }]}
       />
 
       <div className="mt-3 flex flex-wrap items-baseline gap-3">
         <h1 className="text-h1">{title}</h1>
         {pagination && (
-          <p className="tabular text-sm text-muted">{pagination.total} sản phẩm</p>
+          <p className="tabular text-sm text-muted">
+            {pagination.total} {pagination.total === 1 ? 'product' : 'products'}
+          </p>
         )}
       </div>
 
@@ -171,11 +173,11 @@ export default function ProductListPage() {
               onClick={() => setFiltersOpen(true)}
               className="lg:hidden"
             >
-              Bộ lọc{activeFilters.length > 0 ? ` · ${activeFilters.length}` : ''}
+              Filters{activeFilters.length > 0 ? ` · ${activeFilters.length}` : ''}
             </Button>
 
             <label className="ml-auto flex items-center gap-2 text-sm text-muted">
-              Sắp xếp
+              Sort
               <select
                 value={sort}
                 onChange={(event) => updateFilter('sort', event.target.value)}
@@ -197,7 +199,7 @@ export default function ProductListPage() {
                   key={filter.key}
                   onClick={() => updateFilter(filter.key, '')}
                   className="rounded-full"
-                  aria-label={`Bỏ lọc ${filter.label}`}
+                  aria-label={`Remove filter ${filter.label}`}
                 >
                   <Badge tone="primary">
                     {filter.label}
@@ -206,13 +208,13 @@ export default function ProductListPage() {
                 </button>
               ))}
               <button onClick={clearAll} className="rounded-xs text-sm text-muted hover:text-body">
-                Xoá tất cả
+                Clear all
               </button>
             </div>
           )}
 
           {error && (
-            <Alert title="Không tải được danh sách sản phẩm" onRetry={() => updateFilter('page', String(page))}>
+            <Alert title="Could not load the product list" onRetry={() => updateFilter('page', String(page))}>
               {error}
             </Alert>
           )}
@@ -222,8 +224,8 @@ export default function ProductListPage() {
           {!loading && !error && products.length === 0 && (
             <EmptyState
               icon={SearchX}
-              title="Không có sản phẩm nào khớp bộ lọc"
-              description="Thử bỏ bớt một điều kiện lọc hoặc dùng từ khoá ngắn hơn."
+              title="No products match these filters"
+              description="Try removing one condition, or use a shorter keyword."
             />
           )}
 
@@ -253,14 +255,14 @@ export default function ProductListPage() {
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Bộ lọc sản phẩm"
+            aria-label="Product filters"
             className="h-full w-80 max-w-[85vw] overflow-y-auto bg-surface p-5"
           >
             <div className="mb-5 flex items-center justify-between">
-              <p className="text-h4">Bộ lọc</p>
+              <p className="text-h4">Filters</p>
               <button
                 onClick={() => setFiltersOpen(false)}
-                aria-label="Đóng bộ lọc"
+                aria-label="Close filters"
                 className="rounded-xs p-1 text-muted hover:bg-sunken"
               >
                 <X size={18} aria-hidden />

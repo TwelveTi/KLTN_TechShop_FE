@@ -72,7 +72,7 @@ export default function AdminUsersPage() {
   }
 
   async function handleDelete(user) {
-    if (!confirm(`Xoá tài khoản ${user.email}? Thao tác này không hoàn tác được.`)) return
+    if (!confirm(`Delete the account ${user.email}? This cannot be undone.`)) return
     try {
       await adminApi.deleteUser(user.id)
       loadUsers()
@@ -93,22 +93,22 @@ export default function AdminUsersPage() {
           className="flex gap-2"
         >
           <label htmlFor="user-search" className="sr-only">
-            Tìm người dùng
+            Search users
           </label>
           <input
             id="user-search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Tìm theo tên hoặc email…"
+            placeholder="Search by name or email…"
             className="h-10 w-64 rounded-sm border border-line-strong bg-surface px-3 text-base text-heading placeholder:text-faint"
           />
           <Button type="submit" variant="secondary" leadingIcon={Search}>
-            Tìm
+            Search
           </Button>
         </form>
 
         <label className="flex items-center gap-2 text-sm text-muted">
-          Vai trò
+          Role
           <select
             value={role}
             onChange={(event) => {
@@ -117,7 +117,7 @@ export default function AdminUsersPage() {
             }}
             className="h-10 rounded-sm border border-line-strong bg-surface px-2 text-sm text-heading"
           >
-            <option value="">Tất cả</option>
+            <option value="">All</option>
             {ROLES.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -139,17 +139,17 @@ export default function AdminUsersPage() {
         <Table>
           <thead>
             <tr>
-              <Th>Người dùng</Th>
-              <Th>Số điện thoại</Th>
-              <Th>Vai trò</Th>
-              <Th>Trạng thái</Th>
-              <Th>Ngày tạo</Th>
-              <Th align="right">Thao tác</Th>
+              <Th>User</Th>
+              <Th>Phone</Th>
+              <Th>Role</Th>
+              <Th>Status</Th>
+              <Th>Created</Th>
+              <Th align="right">Actions</Th>
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
-              <TableEmpty colSpan={6}>Không có người dùng nào khớp bộ lọc.</TableEmpty>
+              <TableEmpty colSpan={6}>No users match these filters.</TableEmpty>
             ) : (
               users.map((user) => (
                 <Tr key={user.id}>
@@ -174,7 +174,7 @@ export default function AdminUsersPage() {
                   <Td className="text-muted">{formatDate(user.createdAt || user.created_at)}</Td>
                   <RowActions>
                     <Button variant="ghost" size="sm" onClick={() => setForm(user)}>
-                      Sửa
+                      Edit
                     </Button>
                     <Button
                       variant="ghost"
@@ -182,7 +182,7 @@ export default function AdminUsersPage() {
                       onClick={() => handleDelete(user)}
                       className="!text-danger-strong"
                     >
-                      Xoá
+                      Delete
                     </Button>
                   </RowActions>
                 </Tr>
@@ -194,23 +194,23 @@ export default function AdminUsersPage() {
 
       <Pagination page={page} totalPages={pagination?.totalPages} onChange={setPage} />
 
-      <Modal open={!!form} onClose={() => setForm(null)} title="Sửa người dùng">
+      <Modal open={!!form} onClose={() => setForm(null)} title="Edit user">
         {form && (
           <form onSubmit={handleSave} className="space-y-4">
             <Input label="Email" value={form.email} disabled readOnly />
             <Input
-              label="Họ và tên"
+              label="Full name"
               value={form.fullName || ''}
               onChange={(event) => setForm({ ...form, fullName: event.target.value })}
             />
             <Input
-              label="Số điện thoại"
+              label="Phone number"
               value={form.phone || ''}
               onChange={(event) => setForm({ ...form, phone: event.target.value })}
             />
             <Input
               as="select"
-              label="Vai trò"
+              label="Role"
               value={form.role}
               onChange={(event) => setForm({ ...form, role: event.target.value })}
             >
@@ -222,7 +222,7 @@ export default function AdminUsersPage() {
             </Input>
             <Input
               as="select"
-              label="Trạng thái"
+              label="Status"
               value={form.status}
               onChange={(event) => setForm({ ...form, status: event.target.value })}
             >
@@ -235,10 +235,10 @@ export default function AdminUsersPage() {
 
             <div className="flex gap-3">
               <Button type="submit" variant="primary" isLoading={saving}>
-                Lưu thay đổi
+                Save changes
               </Button>
               <Button type="button" variant="secondary" onClick={() => setForm(null)}>
-                Huỷ
+                Cancel
               </Button>
             </div>
           </form>

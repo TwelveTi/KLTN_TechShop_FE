@@ -17,12 +17,12 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-page px-4 py-8 sm:px-8">
-        <h1 className="text-h1">Giỏ hàng</h1>
+        <h1 className="text-h1">Cart</h1>
         <EmptyState
           icon={ShoppingCart}
-          title="Giỏ hàng đang trống"
-          description="Những sản phẩm bạn thêm vào sẽ xuất hiện ở đây."
-          actionLabel="Xem sản phẩm"
+          title="Your cart is empty"
+          description="Anything you add will show up here."
+          actionLabel="Browse products"
           actionTo="/products"
         />
       </div>
@@ -35,13 +35,15 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-page px-4 py-8 sm:px-8">
-      <h1 className="text-h1">Giỏ hàng</h1>
-      <p className="tabular mt-1 text-sm text-muted">{items.length} sản phẩm</p>
+      <h1 className="text-h1">Cart</h1>
+      <p className="tabular mt-1 text-sm text-muted">
+        {items.length} {items.length === 1 ? 'item' : 'items'}
+      </p>
 
       {unavailable.length > 0 && (
         <div className="mt-5">
-          <Alert tone="warning" title="Một số sản phẩm đã hết hàng">
-            Bỏ chúng khỏi giỏ trước khi đặt hàng, nếu không đơn sẽ bị từ chối.
+          <Alert tone="warning" title="Some items are out of stock">
+            Remove them before checking out, otherwise the order will be rejected.
           </Alert>
         </div>
       )}
@@ -64,14 +66,14 @@ export default function CartPage() {
                   </p>
                   <p className="tabular mt-1 text-sm text-muted">{formatPrice(item.unitPrice)}</p>
                   {item.inStock === false && (
-                    <p className="mt-1 text-sm text-danger-strong">Sản phẩm đã hết hàng</p>
+                    <p className="mt-1 text-sm text-danger-strong">This item is out of stock</p>
                   )}
 
                   <div className="mt-3 flex items-center gap-3">
                     <div className="flex items-center rounded-sm border border-line-strong">
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        aria-label={`Giảm số lượng ${item.name}`}
+                        aria-label={`Decrease quantity of ${item.name}`}
                         className="grid size-8 place-items-center text-body hover:bg-sunken"
                       >
                         <Minus size={14} aria-hidden />
@@ -81,7 +83,7 @@ export default function CartPage() {
                       </span>
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        aria-label={`Tăng số lượng ${item.name}`}
+                        aria-label={`Increase quantity of ${item.name}`}
                         className="grid size-8 place-items-center text-body hover:bg-sunken"
                       >
                         <Plus size={14} aria-hidden />
@@ -95,7 +97,7 @@ export default function CartPage() {
                       onClick={() => removeItem(item.id)}
                       className="!text-muted"
                     >
-                      Xoá
+                      Remove
                     </Button>
                   </div>
                 </div>
@@ -109,38 +111,38 @@ export default function CartPage() {
 
           <div className="mt-4 flex flex-wrap gap-3">
             <LinkButton to="/products" variant="secondary">
-              Tiếp tục mua sắm
+              Keep shopping
             </LinkButton>
             <Button variant="ghost" onClick={clearCart} className="!text-muted">
-              Xoá toàn bộ giỏ hàng
+              Empty the cart
             </Button>
           </div>
         </div>
 
         <aside className="h-fit rounded-md border border-line bg-surface p-6 shadow-sm lg:sticky lg:top-24">
-          <h2 className="text-h4">Tóm tắt đơn hàng</h2>
+          <h2 className="text-h4">Order summary</h2>
 
           <dl className="mt-5 space-y-3 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted">Tạm tính</dt>
+              <dt className="text-muted">Subtotal</dt>
               <dd className="tabular text-heading">{formatPrice(subtotal)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted">Phí giao hàng</dt>
+              <dt className="text-muted">Delivery</dt>
               <dd className="tabular text-heading">
-                {shippingFee === 0 ? 'Miễn phí' : formatPrice(shippingFee)}
+                {shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}
               </dd>
             </div>
           </dl>
 
           {shippingFee > 0 && (
             <p className="mt-3 rounded-sm bg-sunken px-3 py-2 text-caption text-muted">
-              Mua thêm {formatPrice(FREE_SHIPPING_FROM - subtotal)} để được miễn phí giao hàng.
+              Add {formatPrice(FREE_SHIPPING_FROM - subtotal)} more to get free delivery.
             </p>
           )}
 
           <div className="mt-5 flex items-baseline justify-between border-t border-line pt-5">
-            <span className="font-semibold text-heading">Tổng cộng</span>
+            <span className="font-semibold text-heading">Total</span>
             <span className="tabular text-h3 text-heading">{formatPrice(total)}</span>
           </div>
 
@@ -151,7 +153,7 @@ export default function CartPage() {
             onClick={() => navigate('/checkout')}
             className="mt-5"
           >
-            Tiến hành đặt hàng
+            Proceed to checkout
           </Button>
         </aside>
       </div>

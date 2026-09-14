@@ -24,7 +24,7 @@ export function ProductGridSkeleton({ count = 8 }) {
   return (
     <div
       aria-busy="true"
-      aria-label="Đang tải sản phẩm"
+      aria-label="Loading products"
       className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4"
     >
       {Array.from({ length: count }).map((_, index) => (

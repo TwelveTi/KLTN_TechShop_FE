@@ -21,7 +21,7 @@ export default function DepartmentBar() {
   if (!loading && categories.length === 0) return null
 
   return (
-    <nav aria-label="Danh mục sản phẩm" className="border-b border-line bg-surface">
+    <nav aria-label="Product categories" className="border-b border-line bg-surface">
       <div className="mx-auto max-w-page px-4 sm:px-8">
         <div className="flex gap-1 overflow-x-auto py-2 [scrollbar-width:none]">
           {loading

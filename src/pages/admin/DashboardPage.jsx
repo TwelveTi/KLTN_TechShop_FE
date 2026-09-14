@@ -62,17 +62,17 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <Alert title="Không tải được số liệu" onRetry={loadData}>
+      <Alert title="Could not load the figures" onRetry={loadData}>
         {error}
       </Alert>
     )
   }
 
   const cards = [
-    { label: 'Tổng doanh thu', value: formatPrice(summary?.totalRevenue) },
-    { label: 'Số đơn hàng', value: String(summary?.totalOrders || 0) },
-    { label: 'Giá trị đơn trung bình', value: formatPrice(summary?.averageOrderValue) },
-    { label: 'Đơn chờ xác nhận', value: String(summary?.orderStatus?.pending || 0) },
+    { label: 'Total revenue', value: formatPrice(summary?.totalRevenue) },
+    { label: 'Orders', value: String(summary?.totalOrders || 0) },
+    { label: 'Average order value', value: formatPrice(summary?.averageOrderValue) },
+    { label: 'Awaiting confirmation', value: String(summary?.orderStatus?.pending || 0) },
   ]
 
   // Chuẩn hoá chiều cao cột theo ngày có doanh thu cao nhất.
@@ -92,10 +92,10 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="rounded-md border border-line bg-surface p-6 shadow-sm">
-          <h2 className="text-h4">Doanh thu 30 ngày gần nhất</h2>
+          <h2 className="text-h4">Revenue, last 30 days</h2>
 
           {dailyRevenue.length === 0 ? (
-            <p className="mt-6 text-sm text-muted">Chưa có doanh thu trong khoảng thời gian này.</p>
+            <p className="mt-6 text-sm text-muted">No revenue recorded in this period.</p>
           ) : (
             <div className="mt-6 flex h-40 items-end gap-1">
               {dailyRevenue.map((point, index) => (
@@ -111,10 +111,10 @@ export default function DashboardPage() {
         </section>
 
         <section className="rounded-md border border-line bg-surface p-6 shadow-sm">
-          <h2 className="text-h4">Sản phẩm bán chạy</h2>
+          <h2 className="text-h4">Best selling products</h2>
 
           {topProducts.length === 0 ? (
-            <p className="mt-6 text-sm text-muted">Chưa có đơn hàng nào được ghi nhận.</p>
+            <p className="mt-6 text-sm text-muted">No orders recorded yet.</p>
           ) : (
             <ul className="mt-5 space-y-4">
               {topProducts.map((product) => (
@@ -127,7 +127,7 @@ export default function DashboardPage() {
                   <div className="min-w-0 flex-1 text-sm">
                     <p className="line-clamp-1 text-heading">{product.productName}</p>
                     <p className="tabular text-caption text-muted">
-                      Đã bán {product.soldQuantity}
+                      {product.soldQuantity} sold
                     </p>
                   </div>
                   <span className="tabular text-sm font-medium text-heading">
@@ -142,7 +142,7 @@ export default function DashboardPage() {
 
       {statusEntries.length > 0 && (
         <section className="rounded-md border border-line bg-surface p-6 shadow-sm">
-          <h2 className="text-h4">Đơn hàng theo trạng thái</h2>
+          <h2 className="text-h4">Orders by status</h2>
 
           <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
             {statusEntries.map(([key, count]) => (

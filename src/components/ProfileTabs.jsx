@@ -2,14 +2,14 @@ import { NavLink } from 'react-router-dom'
 
 // Thanh chuyển giữa ba trang của khu vực tài khoản.
 const TABS = [
-  { to: '/profile', label: 'Thông tin' },
-  { to: '/my-orders', label: 'Đơn hàng' },
-  { to: '/addresses', label: 'Địa chỉ' },
+  { to: '/profile', label: 'Profile' },
+  { to: '/my-orders', label: 'Orders' },
+  { to: '/addresses', label: 'Addresses' },
 ]
 
 export default function ProfileTabs() {
   return (
-    <nav aria-label="Khu vực tài khoản" className="mt-6 flex gap-6 border-b border-line">
+    <nav aria-label="Account section" className="mt-6 flex gap-6 border-b border-line">
       {TABS.map((tab) => (
         <NavLink
           key={tab.to}

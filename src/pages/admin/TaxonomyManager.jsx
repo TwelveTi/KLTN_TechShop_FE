@@ -50,7 +50,7 @@ export default function TaxonomyManager({ noun, api, emptyText }) {
   }
 
   async function handleDelete(item) {
-    if (!confirm(`Xoá ${noun.toLowerCase()} “${item.name}”?`)) return
+    if (!confirm(`Delete the ${noun.toLowerCase()} “${item.name}”?`)) return
     try {
       await api.remove(item.id)
       loadItems()
@@ -63,7 +63,7 @@ export default function TaxonomyManager({ noun, api, emptyText }) {
     <div>
       <div className="mb-5 flex justify-end">
         <Button variant="primary" leadingIcon={Plus} onClick={() => setForm({ name: '', description: '' })}>
-          Thêm {noun.toLowerCase()}
+          Add {noun.toLowerCase()}
         </Button>
       </div>
 
@@ -79,10 +79,10 @@ export default function TaxonomyManager({ noun, api, emptyText }) {
         <Table>
           <thead>
             <tr>
-              <Th>Tên</Th>
-              <Th>Đường dẫn</Th>
-              <Th align="right">Số sản phẩm</Th>
-              <Th align="right">Thao tác</Th>
+              <Th>Name</Th>
+              <Th>Slug</Th>
+              <Th align="right">Products</Th>
+              <Th align="right">Actions</Th>
             </tr>
           </thead>
           <tbody>
@@ -98,7 +98,7 @@ export default function TaxonomyManager({ noun, api, emptyText }) {
                   </Td>
                   <RowActions>
                     <Button variant="ghost" size="sm" onClick={() => setForm(item)}>
-                      Sửa
+                      Edit
                     </Button>
                     <Button
                       variant="ghost"
@@ -106,7 +106,7 @@ export default function TaxonomyManager({ noun, api, emptyText }) {
                       onClick={() => handleDelete(item)}
                       className="!text-danger-strong"
                     >
-                      Xoá
+                      Delete
                     </Button>
                   </RowActions>
                 </Tr>
@@ -119,12 +119,12 @@ export default function TaxonomyManager({ noun, api, emptyText }) {
       <Modal
         open={!!form}
         onClose={() => setForm(null)}
-        title={form?.id ? `Sửa ${noun.toLowerCase()}` : `Thêm ${noun.toLowerCase()}`}
+        title={form?.id ? `Edit ${noun.toLowerCase()}` : `Add ${noun.toLowerCase()}`}
       >
         {form && (
           <form onSubmit={handleSave} className="space-y-4">
             <Input
-              label={`Tên ${noun.toLowerCase()}`}
+              label={`${noun} name`}
               required
               value={form.name}
               onChange={(event) => setForm({ ...form, name: event.target.value })}
@@ -132,17 +132,17 @@ export default function TaxonomyManager({ noun, api, emptyText }) {
             <Input
               as="textarea"
               rows={3}
-              label="Mô tả"
+              label="Description"
               value={form.description || ''}
               onChange={(event) => setForm({ ...form, description: event.target.value })}
             />
 
             <div className="flex gap-3">
               <Button type="submit" variant="primary" isLoading={saving}>
-                Lưu
+                Save
               </Button>
               <Button type="button" variant="secondary" onClick={() => setForm(null)}>
-                Huỷ
+                Cancel
               </Button>
             </div>
           </form>

@@ -17,24 +17,24 @@ const PAYMENT_METHODS = [
   {
     value: 'COD',
     icon: Banknote,
-    label: 'Thanh toán khi nhận hàng',
-    detail: 'Trả tiền mặt cho nhân viên giao hàng',
+    label: 'Cash on delivery',
+    detail: 'Pay the courier in cash when the order arrives',
   },
   {
     value: 'VNPAY',
     icon: CreditCard,
-    label: 'Thanh toán online qua VNPay',
-    detail: 'Thẻ ngân hàng nội địa, thẻ quốc tế hoặc ví VNPay',
+    label: 'Pay online with VNPay',
+    detail: 'Domestic card, international card or VNPay wallet',
   },
 ]
 
 const ADDRESS_FIELDS = [
-  ['receiverName', 'Họ tên người nhận'],
-  ['receiverPhone', 'Số điện thoại'],
-  ['province', 'Tỉnh / Thành phố'],
-  ['district', 'Quận / Huyện'],
-  ['ward', 'Phường / Xã'],
-  ['addressLine', 'Số nhà, tên đường'],
+  ['receiverName', 'Recipient name'],
+  ['receiverPhone', 'Phone number'],
+  ['province', 'Province / City'],
+  ['district', 'District'],
+  ['ward', 'Ward'],
+  ['addressLine', 'House number and street'],
 ]
 
 const EMPTY_ADDRESS = {
@@ -107,7 +107,7 @@ export default function CheckoutPage() {
 
   async function handlePlaceOrder() {
     if (!addressId) {
-      setError('Chọn địa chỉ giao hàng trước khi đặt hàng.')
+      setError('Choose a delivery address before placing the order.')
       return
     }
 
@@ -156,7 +156,7 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-page px-4 py-20 text-center text-muted sm:px-8">
-        Giỏ hàng trống, không có gì để đặt.
+        Your cart is empty, there is nothing to order.
       </div>
     )
   }
@@ -169,12 +169,12 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-page px-4 py-10 sm:px-8">
-      <h1 className="text-h1">Đặt hàng</h1>
+      <h1 className="text-h1">Checkout</h1>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
         <div className="space-y-6">
           <section className={sectionClass}>
-            <h2 className="text-h4">1. Địa chỉ giao hàng</h2>
+            <h2 className="text-h4">1. Delivery address</h2>
 
             {addresses.length > 0 ? (
               <div className="mt-4 space-y-2">
@@ -209,7 +209,7 @@ export default function CheckoutPage() {
             ) : (
               <form onSubmit={handleCreateAddress} className="mt-4 grid gap-4 sm:grid-cols-2">
                 <p className="text-sm text-muted sm:col-span-2">
-                  Bạn chưa lưu địa chỉ nào. Nhập địa chỉ nhận hàng bên dưới.
+                  You have no saved addresses. Enter a delivery address below.
                 </p>
                 {ADDRESS_FIELDS.map(([field, label]) => (
                   <Input
@@ -223,14 +223,14 @@ export default function CheckoutPage() {
                   />
                 ))}
                 <Button type="submit" variant="secondary" className="sm:col-span-2">
-                  Lưu địa chỉ
+                  Save address
                 </Button>
               </form>
             )}
           </section>
 
           <section className={sectionClass}>
-            <h2 className="text-h4">2. Phương thức thanh toán</h2>
+            <h2 className="text-h4">2. Payment method</h2>
 
             <div className="mt-4 space-y-2">
               {PAYMENT_METHODS.map(({ value, icon: Icon, label, detail }) => (
@@ -260,21 +260,21 @@ export default function CheckoutPage() {
           </section>
 
           <section className={sectionClass}>
-            <h2 className="text-h4">3. Ghi chú</h2>
+            <h2 className="text-h4">3. Notes</h2>
             <Input
               as="textarea"
               rows={3}
               className="mt-4"
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder="Ví dụ: giao ngoài giờ hành chính, gọi trước khi đến…"
-              hint="Không bắt buộc."
+              placeholder="For example: deliver outside office hours, call before arriving…"
+              hint="Optional."
             />
           </section>
         </div>
 
         <aside className="h-fit rounded-md border border-line bg-surface p-6 shadow-sm lg:sticky lg:top-24">
-          <h2 className="text-h4">Đơn hàng của bạn</h2>
+          <h2 className="text-h4">Your order</h2>
 
           <ul className="mt-4 space-y-2 text-sm">
             {items.map((item) => (
@@ -295,11 +295,11 @@ export default function CheckoutPage() {
                 className="flex-1"
                 value={discountCode}
                 onChange={(event) => setDiscountCode(event.target.value)}
-                placeholder="Mã giảm giá"
-                aria-label="Mã giảm giá"
+                placeholder="Discount code"
+                aria-label="Discount code"
               />
               <Button variant="secondary" onClick={handleApplyDiscount} className="mt-0 self-start">
-                Áp dụng
+                Apply
               </Button>
             </div>
             {discountError && <p className="mt-1.5 text-sm text-danger">{discountError}</p>}
@@ -307,25 +307,25 @@ export default function CheckoutPage() {
 
           <dl className="mt-5 space-y-3 border-t border-line pt-5 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted">Tạm tính</dt>
+              <dt className="text-muted">Subtotal</dt>
               <dd className="tabular text-heading">{formatPrice(subtotal)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted">Phí giao hàng</dt>
+              <dt className="text-muted">Delivery</dt>
               <dd className="tabular text-heading">
-                {shippingFee === 0 ? 'Miễn phí' : formatPrice(shippingFee)}
+                {shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}
               </dd>
             </div>
             {discountAmount > 0 && (
               <div className="flex justify-between text-success-strong">
-                <dt>Giảm giá ({discount.code})</dt>
+                <dt>Discount ({discount.code})</dt>
                 <dd className="tabular">−{formatPrice(discountAmount)}</dd>
               </div>
             )}
           </dl>
 
           <div className="mt-5 flex items-baseline justify-between border-t border-line pt-5">
-            <span className="font-semibold text-heading">Tổng cộng</span>
+            <span className="font-semibold text-heading">Total</span>
             <span className="tabular text-h3 text-heading">{formatPrice(total)}</span>
           </div>
 
@@ -344,12 +344,12 @@ export default function CheckoutPage() {
             onClick={handlePlaceOrder}
             className="mt-5"
           >
-            Đặt hàng
+            Place order
           </Button>
 
           <p className="mt-3 text-center text-caption text-muted">
-            Máy chủ tính lại tổng tiền khi tạo đơn, nên số cuối cùng luôn theo giá thật tại thời
-            điểm đặt.
+            The server recalculates the total when the order is created, so the final figure
+            always follows the real price at the time you order.
           </p>
         </aside>
       </div>
