@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Check, X } from 'lucide-react'
+import authApi from '../api/authApi'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -27,6 +28,27 @@ export default function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [emailTaken, setEmailTaken] = useState(false)
+  const emailTimer = useRef(null)
+
+  useEffect(() => {
+    setEmailTaken(false)
+    clearTimeout(emailTimer.current)
+
+    const email = form.email.trim()
+    if (!email || !/\S+@\S+\.\S+/.test(email)) return
+
+    emailTimer.current = setTimeout(async () => {
+      try {
+        const data = await authApi.checkEmail(email)
+        setEmailTaken(data?.exists === true)
+      } catch {
+        // Endpoint might fail; don't block registration.
+      }
+    }, 600)
+
+    return () => clearTimeout(emailTimer.current)
+  }, [form.email])
 
   function handleChange(event) {
     setForm({ ...form, [event.target.name]: event.target.value })
@@ -77,7 +99,8 @@ export default function RegisterPage() {
           autoComplete="email"
           value={form.email}
           onChange={handleChange}
-          hint="Used for your verification code and order updates."
+          error={emailTaken ? 'This email is already registered.' : ''}
+          hint={emailTaken ? '' : 'Used for your verification code and order updates.'}
         />
         <Input
           name="phone"

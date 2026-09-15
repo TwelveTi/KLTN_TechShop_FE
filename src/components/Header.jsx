@@ -1,11 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronDown, LogOut, Package, Search, Settings, ShoppingCart, User } from 'lucide-react'
+import {
+  ChevronDown,
+  Clock,
+  LogOut,
+  Package,
+  Search,
+  Settings,
+  ShoppingCart,
+  Trash2,
+  User,
+  X,
+} from 'lucide-react'
 import Avatar from './ui/Avatar'
 import BrandMark from './ui/BrandMark'
 import { LinkButton } from './ui/Button'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import userApi from '../api/userApi'
 
 // Thanh điều hướng trên cùng. Hai kiểu:
 //  - storefront: đầy đủ tìm kiếm + giỏ hàng + tài khoản
@@ -19,6 +31,10 @@ export default function Header({ variant = 'storefront' }) {
   const [keyword, setKeyword] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
+
+  const [searchFocused, setSearchFocused] = useState(false)
+  const [recentKeywords, setRecentKeywords] = useState([])
+  const searchRef = useRef(null)
 
   // Bấm ra ngoài hoặc nhấn Escape thì đóng menu tài khoản.
   useEffect(() => {
@@ -39,9 +55,51 @@ export default function Header({ variant = 'storefront' }) {
     }
   }, [menuOpen])
 
+  useEffect(() => {
+    if (!searchFocused) return
+
+    function onPointerDown(event) {
+      if (!searchRef.current?.contains(event.target)) setSearchFocused(false)
+    }
+
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [searchFocused])
+
+  async function loadRecentKeywords() {
+    if (!isLoggedIn) return
+    try {
+      const data = await userApi.getRecentKeywords(8)
+      setRecentKeywords(data?.items || [])
+    } catch {
+      // Search history might not exist; silently ignore.
+    }
+  }
+
+  function handleSearchFocus() {
+    setSearchFocused(true)
+    loadRecentKeywords()
+  }
+
   function handleSearch(event) {
     event.preventDefault()
+    setSearchFocused(false)
     navigate(`/products?keyword=${encodeURIComponent(keyword.trim())}`)
+  }
+
+  function handlePickKeyword(kw) {
+    setKeyword(kw)
+    setSearchFocused(false)
+    navigate(`/products?keyword=${encodeURIComponent(kw)}`)
+  }
+
+  async function handleClearHistory() {
+    try {
+      await userApi.clearSearchHistory()
+      setRecentKeywords([])
+    } catch {
+      // Ignore
+    }
   }
 
   async function handleLogout() {
@@ -67,12 +125,18 @@ export default function Header({ variant = 'storefront' }) {
     ...(isAdmin ? [{ to: '/admin', label: 'Admin dashboard', icon: Settings }] : []),
   ]
 
+  const showDropdown = searchFocused && !keyword && recentKeywords.length > 0
+
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface">
       <div className="mx-auto flex h-16 max-w-page items-center gap-4 px-4 sm:px-8">
         <BrandMark />
 
-        <form onSubmit={handleSearch} className="relative hidden flex-1 sm:block">
+        <form
+          ref={searchRef}
+          onSubmit={handleSearch}
+          className="relative hidden flex-1 sm:block"
+        >
           <label htmlFor="header-search" className="sr-only">
             Search products
           </label>
@@ -85,10 +149,41 @@ export default function Header({ variant = 'storefront' }) {
             id="header-search"
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
+            onFocus={handleSearchFocus}
             placeholder="Search laptops, phones, accessories…"
             className="h-10 w-full rounded-full border border-line-strong bg-sunken pl-9 pr-4 text-base
               text-heading placeholder:text-faint"
           />
+
+          {showDropdown && (
+            <div className="absolute left-0 right-0 top-full z-40 mt-1 overflow-hidden rounded-md border border-line bg-raised shadow-md">
+              <div className="flex items-center justify-between px-4 py-2">
+                <span className="text-caption font-medium text-muted">Recent searches</span>
+                <button
+                  type="button"
+                  onClick={handleClearHistory}
+                  className="flex items-center gap-1 text-caption text-muted hover:text-danger-strong"
+                >
+                  <Trash2 size={12} aria-hidden />
+                  Clear
+                </button>
+              </div>
+              <ul>
+                {recentKeywords.map((item) => (
+                  <li key={item.keyword}>
+                    <button
+                      type="button"
+                      onClick={() => handlePickKeyword(item.keyword)}
+                      className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-body hover:bg-sunken"
+                    >
+                      <Clock size={14} aria-hidden className="shrink-0 text-faint" />
+                      <span className="truncate">{item.keyword}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </form>
 
         <div className="ml-auto flex items-center gap-2 sm:ml-0">

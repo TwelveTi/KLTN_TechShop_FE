@@ -17,6 +17,13 @@ const userApi = {
   setDefaultAddress: (id) => axiosClient.put(`/addresses/me/${id}/default`),
 
   deleteAddress: (id) => axiosClient.delete(`/addresses/me/${id}`),
+
+  getRecentKeywords: (limit = 10) =>
+    axiosClient.get('/search-history/me/keywords', { params: { limit } }),
+
+  clearSearchHistory: () => axiosClient.delete('/search-history/me'),
+
+  deleteSearchEntry: (id) => axiosClient.delete(`/search-history/me/${id}`),
 }
 
 export default userApi

@@ -19,10 +19,53 @@ const STATUS_KEY_TO_CODE = {
   refunded: 'REFUNDED',
 }
 
+const MONTH_LABELS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+]
+
+const BAR_COLORS = [
+  'bg-primary', 'bg-[var(--color-success)]', 'bg-[var(--color-warning)]',
+  'bg-[var(--color-danger)]', 'bg-[var(--color-info,theme(colors.sky.500))]',
+  'bg-muted',
+]
+
+function HorizontalBarChart({ items, labelKey, valueKey, formatValue }) {
+  const max = Math.max(...items.map((item) => Number(item[valueKey]) || 0), 1)
+
+  return (
+    <ul className="mt-5 space-y-3">
+      {items.map((item, index) => {
+        const value = Number(item[valueKey]) || 0
+        const pct = (value / max) * 100
+        return (
+          <li key={item[labelKey] || index}>
+            <div className="flex items-baseline justify-between gap-2 text-sm">
+              <span className="line-clamp-1 text-heading">{item[labelKey]}</span>
+              <span className="tabular shrink-0 font-medium text-heading">
+                {formatValue(value)}
+              </span>
+            </div>
+            <div className="mt-1 h-2 rounded-full bg-sunken">
+              <div
+                className={`h-full rounded-full ${BAR_COLORS[index % BAR_COLORS.length]}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 export default function DashboardPage() {
   const [summary, setSummary] = useState(null)
   const [topProducts, setTopProducts] = useState([])
   const [dailyRevenue, setDailyRevenue] = useState([])
+  const [monthlyRevenue, setMonthlyRevenue] = useState([])
+  const [categoryRevenue, setCategoryRevenue] = useState([])
+  const [brandRevenue, setBrandRevenue] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -37,11 +80,17 @@ export default function DashboardPage() {
       adminApi.getRevenueSummary(),
       adminApi.getTopProducts(5),
       adminApi.getDailyRevenue('30d'),
+      adminApi.getMonthlyRevenue().catch(() => ({ items: [] })),
+      adminApi.getRevenueByCategory().catch(() => []),
+      adminApi.getRevenueByBrand().catch(() => []),
     ])
-      .then(([summaryData, topData, dailyData]) => {
+      .then(([summaryData, topData, dailyData, monthlyData, catData, brandData]) => {
         setSummary(summaryData)
         setTopProducts(topData || [])
         setDailyRevenue(dailyData || [])
+        setMonthlyRevenue(monthlyData?.items || monthlyData || [])
+        setCategoryRevenue(catData || [])
+        setBrandRevenue(brandData || [])
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
@@ -77,6 +126,7 @@ export default function DashboardPage() {
 
   // Chuẩn hoá chiều cao cột theo ngày có doanh thu cao nhất.
   const maxRevenue = Math.max(...dailyRevenue.map((point) => Number(point.revenue) || 0), 1)
+  const maxMonthly = Math.max(...monthlyRevenue.map((m) => Number(m.revenue) || 0), 1)
   const statusEntries = Object.entries(summary?.orderStatus || {})
 
   return (
@@ -138,6 +188,57 @@ export default function DashboardPage() {
             </ul>
           )}
         </section>
+      </div>
+
+      {monthlyRevenue.length > 0 && (
+        <section className="rounded-md border border-line bg-surface p-6 shadow-sm">
+          <h2 className="text-h4">Monthly revenue</h2>
+
+          <div className="mt-6 flex h-44 items-end gap-2">
+            {monthlyRevenue.map((month) => {
+              const rev = Number(month.revenue) || 0
+              const pct = (rev / maxMonthly) * 100
+              return (
+                <div key={month.month} className="flex min-w-0 flex-1 flex-col items-center gap-1">
+                  <div className="flex w-full flex-1 items-end justify-center">
+                    <div
+                      title={`${MONTH_LABELS[month.month - 1]}: ${formatPrice(rev)} (${month.orders} orders)`}
+                      style={{ height: `${pct}%` }}
+                      className="w-full max-w-8 min-h-0.5 rounded-t-xs bg-primary"
+                    />
+                  </div>
+                  <span className="text-caption text-muted">{MONTH_LABELS[month.month - 1]}</span>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        {categoryRevenue.length > 0 && (
+          <section className="rounded-md border border-line bg-surface p-6 shadow-sm">
+            <h2 className="text-h4">Revenue by category</h2>
+            <HorizontalBarChart
+              items={categoryRevenue}
+              labelKey="categoryName"
+              valueKey="revenue"
+              formatValue={formatPrice}
+            />
+          </section>
+        )}
+
+        {brandRevenue.length > 0 && (
+          <section className="rounded-md border border-line bg-surface p-6 shadow-sm">
+            <h2 className="text-h4">Revenue by brand</h2>
+            <HorizontalBarChart
+              items={brandRevenue}
+              labelKey="brandName"
+              valueKey="revenue"
+              formatValue={formatPrice}
+            />
+          </section>
+        )}
       </div>
 
       {statusEntries.length > 0 && (

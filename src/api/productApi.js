@@ -11,6 +11,10 @@ const productApi = {
   getCategories: () => axiosClient.get('/categories'),
 
   getBrands: () => axiosClient.get('/brands'),
+
+  getCategoryBySlug: (slug) => axiosClient.get(`/categories/${slug}`),
+
+  getBrandBySlug: (slug) => axiosClient.get(`/brands/${slug}`),
 }
 
 export default productApi

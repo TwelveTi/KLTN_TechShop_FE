@@ -11,6 +11,15 @@ const adminApi = {
   getTopProducts: (limit = 5) =>
     axiosClient.get('/admin/revenue/products', { params: { limit } }),
 
+  getMonthlyRevenue: (year) =>
+    axiosClient.get('/admin/revenue/monthly', { params: { year } }),
+
+  getRevenueByCategory: (from, to) =>
+    axiosClient.get('/admin/revenue/categories', { params: { from, to } }),
+
+  getRevenueByBrand: (from, to) =>
+    axiosClient.get('/admin/revenue/brands', { params: { from, to } }),
+
   // ----- Sản phẩm -----
   getProducts: (params = {}) => axiosClient.get('/admin/products', { params }),
 
@@ -60,6 +69,34 @@ const adminApi = {
   updateUser: (id, payload) => axiosClient.put(`/admin/users/${id}`, payload),
 
   deleteUser: (id) => axiosClient.delete(`/admin/users/${id}`),
+
+  // ----- Voucher -----
+  getDiscounts: (params = {}) => axiosClient.get('/admin/discounts', { params }),
+
+  createDiscount: (payload) => axiosClient.post('/admin/discounts', payload),
+
+  updateDiscount: (id, payload) => axiosClient.put(`/admin/discounts/${id}`, payload),
+
+  deleteDiscount: (id) => axiosClient.delete(`/admin/discounts/${id}`),
+
+  // ----- Thông số kỹ thuật -----
+  getSpecifications: (categoryId) =>
+    axiosClient.get(`/admin/categories/${categoryId}/specifications`),
+
+  createSpecification: (categoryId, payload) =>
+    axiosClient.post(`/admin/categories/${categoryId}/specifications`, payload),
+
+  updateSpecification: (id, payload) =>
+    axiosClient.put(`/admin/specifications/${id}`, payload),
+
+  deleteSpecification: (id) => axiosClient.delete(`/admin/specifications/${id}`),
+
+  // ----- Hệ gợi ý -----
+  getRecommendationStats: (since) =>
+    axiosClient.get('/admin/recommendations/stats', { params: { since } }),
+
+  rebuildSimilarity: (params = {}) =>
+    axiosClient.post('/admin/recommendations/similarity/rebuild', params),
 }
 
 export default adminApi

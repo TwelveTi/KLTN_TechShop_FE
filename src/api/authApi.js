@@ -30,6 +30,15 @@ const authApi = {
 
   changePassword: (currentPassword, newPassword) =>
     axiosClient.patch('/auth/change-password', { currentPassword, newPassword }),
+
+  checkEmail: (email) =>
+    axiosClient.get('/auth/check-email', { params: { email } }),
+
+  getSessions: () => axiosClient.get('/auth/sessions'),
+
+  revokeSession: (id) => axiosClient.delete(`/auth/sessions/${id}`),
+
+  revokeOtherSessions: () => axiosClient.post('/auth/sessions/revoke-others'),
 }
 
 export default authApi

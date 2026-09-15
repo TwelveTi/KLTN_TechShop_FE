@@ -3,9 +3,12 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   ArrowLeft,
   LayoutDashboard,
+  ListChecks,
   Menu,
   Package,
+  Percent,
   ShoppingBag,
+  Sparkles,
   Tag,
   Users,
   X,
@@ -19,8 +22,11 @@ const MENU = [
   { to: '/admin/products', label: 'Products', icon: Package },
   { to: '/admin/categories', label: 'Categories', icon: Tag },
   { to: '/admin/brands', label: 'Brands', icon: Tag },
+  { to: '/admin/specifications', label: 'Specifications', icon: ListChecks },
+  { to: '/admin/discounts', label: 'Vouchers', icon: Percent },
   { to: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { to: '/admin/users', label: 'Users', icon: Users },
+  { to: '/admin/recommendations', label: 'Recommendations', icon: Sparkles },
 ]
 
 // Khung trang quản trị: menu cố định bên trái, thanh tiêu đề dính trên cùng.

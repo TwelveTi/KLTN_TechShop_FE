@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
+import { Monitor, Smartphone, Tablet } from 'lucide-react'
 import authApi from '../api/authApi'
 import userApi from '../api/userApi'
 import ProfileTabs from '../components/ProfileTabs'
 import Alert from '../components/ui/Alert'
 import Avatar from '../components/ui/Avatar'
+import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { useAuth } from '../context/AuthContext'
+import { formatDateTime } from '../utils/format'
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth()
@@ -79,7 +82,56 @@ export default function ProfilePage() {
     }
   }
 
+  const [sessions, setSessions] = useState([])
+  const [sessionsLoading, setSessionsLoading] = useState(false)
+  const [sessionsError, setSessionsError] = useState('')
+  const [sessionsNotice, setSessionsNotice] = useState('')
+
+  useEffect(() => {
+    if (user) loadSessions()
+  }, [user])
+
+  async function loadSessions() {
+    setSessionsLoading(true)
+    setSessionsError('')
+    try {
+      const data = await authApi.getSessions()
+      setSessions(data?.sessions || [])
+    } catch {
+      // Sessions endpoint might not exist yet in older BE; silently skip.
+    } finally {
+      setSessionsLoading(false)
+    }
+  }
+
+  async function handleRevokeSession(id) {
+    setSessionsError('')
+    setSessionsNotice('')
+    try {
+      await authApi.revokeSession(id)
+      loadSessions()
+      setSessionsNotice('Session revoked.')
+    } catch (err) {
+      setSessionsError(err.message)
+    }
+  }
+
+  async function handleRevokeOthers() {
+    if (!confirm('Sign out from all other devices?')) return
+    setSessionsError('')
+    setSessionsNotice('')
+    try {
+      const data = await authApi.revokeOtherSessions()
+      loadSessions()
+      setSessionsNotice(`Signed out from ${data?.revokedCount || 0} other device(s).`)
+    } catch (err) {
+      setSessionsError(err.message)
+    }
+  }
+
   if (!user) return null
+
+  const DEVICE_ICON = { mobile: Smartphone, tablet: Tablet }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
@@ -163,6 +215,64 @@ export default function ProfilePage() {
           </Button>
         </form>
       </section>
+
+      {sessions.length > 0 && (
+        <section className="mt-6 rounded-md border border-line bg-surface p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <h2 className="text-h4">Active sessions</h2>
+            {sessions.length > 1 && (
+              <Button variant="ghost" size="sm" onClick={handleRevokeOthers}>
+                Sign out others
+              </Button>
+            )}
+          </div>
+
+          {sessionsError && (
+            <div className="mt-4">
+              <Alert>{sessionsError}</Alert>
+            </div>
+          )}
+          {sessionsNotice && (
+            <div className="mt-4">
+              <Alert tone="success">{sessionsNotice}</Alert>
+            </div>
+          )}
+
+          <ul className="mt-5 divide-y divide-line">
+            {sessions.map((session) => {
+              const DeviceIcon = DEVICE_ICON[session.deviceType] || Monitor
+              return (
+                <li key={session.id} className="flex items-center gap-4 py-3">
+                  <DeviceIcon size={20} className="shrink-0 text-muted" aria-hidden />
+                  <div className="min-w-0 flex-1 text-sm">
+                    <p className="font-medium text-heading">
+                      {session.device || 'Unknown device'}
+                      {session.current && (
+                        <Badge tone="success" className="ml-2">
+                          Current
+                        </Badge>
+                      )}
+                    </p>
+                    <p className="text-caption text-muted">
+                      {session.ipAddress || 'Unknown IP'} · {formatDateTime(session.createdAt)}
+                    </p>
+                  </div>
+                  {!session.current && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRevokeSession(session.id)}
+                      className="shrink-0 !text-danger-strong"
+                    >
+                      Revoke
+                    </Button>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   )
 }

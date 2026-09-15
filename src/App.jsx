@@ -8,7 +8,9 @@ import MainLayout from './layouts/MainLayout'
 
 import AddressPage from './pages/AddressPage'
 import AdvisorPage from './pages/AdvisorPage'
+import BrandPage from './pages/BrandPage'
 import CartPage from './pages/CartPage'
+import CategoryPage from './pages/CategoryPage'
 import CheckoutPage from './pages/CheckoutPage'
 import CheckoutResultPage from './pages/CheckoutResultPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
@@ -23,8 +25,11 @@ import RegisterPage from './pages/RegisterPage'
 
 import AdminBrandsPage from './pages/admin/AdminBrandsPage'
 import AdminCategoriesPage from './pages/admin/AdminCategoriesPage'
+import AdminDiscountsPage from './pages/admin/AdminDiscountsPage'
 import AdminOrdersPage from './pages/admin/AdminOrdersPage'
 import AdminProductsPage from './pages/admin/AdminProductsPage'
+import AdminRecommendationsPage from './pages/admin/AdminRecommendationsPage'
+import AdminSpecificationsPage from './pages/admin/AdminSpecificationsPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
 import DashboardPage from './pages/admin/DashboardPage'
 
@@ -41,6 +46,8 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/products" element={<ProductListPage />} />
           <Route path="/products/:id" element={<ProductDetailPage />} />
+          <Route path="/categories/:slug" element={<CategoryPage />} />
+          <Route path="/brands/:slug" element={<BrandPage />} />
           <Route path="/cart" element={<CartPage />} />
           <Route path="/advisor" element={<AdvisorPage />} />
           <Route path="/checkout/:result" element={<CheckoutResultPage />} />
@@ -102,8 +109,11 @@ export default function App() {
           <Route path="products" element={<AdminProductsPage />} />
           <Route path="categories" element={<AdminCategoriesPage />} />
           <Route path="brands" element={<AdminBrandsPage />} />
+          <Route path="discounts" element={<AdminDiscountsPage />} />
+          <Route path="specifications" element={<AdminSpecificationsPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="users" element={<AdminUsersPage />} />
+          <Route path="recommendations" element={<AdminRecommendationsPage />} />
         </Route>
       </Routes>
     </>
