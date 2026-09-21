@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bot, Database, Plus, Send } from 'lucide-react'
+import { Bot, BookOpen, ChevronDown, Database, MessageSquare, Package, Plus, Send } from 'lucide-react'
 import aiApi from '../api/aiApi'
 import ProductCard from '../components/ProductCard'
 import Alert from '../components/ui/Alert'
@@ -31,6 +31,60 @@ function renderBold(text) {
   return text
     .split('**')
     .map((part, index) => (index % 2 === 1 ? <strong key={index}>{part}</strong> : part))
+}
+
+const SOURCE_ICONS = {
+  POLICY: BookOpen,
+  PRODUCT: Package,
+  REVIEW: MessageSquare,
+}
+
+const SOURCE_LABELS = {
+  POLICY: 'Policy',
+  PRODUCT: 'Product info',
+  REVIEW: 'Customer review',
+}
+
+function SourceCards({ sources }) {
+  const [expanded, setExpanded] = useState(false)
+  const shown = expanded ? sources : sources.slice(0, 2)
+
+  return (
+    <div className="mt-3 space-y-1.5">
+      <p className="text-caption font-medium text-muted">Sources</p>
+      {shown.map((source, index) => {
+        const Icon = SOURCE_ICONS[source.sourceType] || BookOpen
+        return (
+          <div
+            key={index}
+            className="flex items-start gap-2 rounded-sm border border-line bg-surface px-3 py-2"
+          >
+            <Icon size={14} className="mt-0.5 shrink-0 text-muted" aria-hidden />
+            <div className="min-w-0">
+              <p className="text-caption font-medium text-heading">
+                {source.sourceName}
+                <span className="ml-2 text-faint">
+                  {SOURCE_LABELS[source.sourceType] || source.sourceType}
+                </span>
+              </p>
+              <p className="mt-0.5 line-clamp-2 text-caption text-muted">
+                {source.content}
+              </p>
+            </div>
+          </div>
+        )
+      })}
+      {sources.length > 2 && !expanded && (
+        <button
+          onClick={() => setExpanded(true)}
+          className="inline-flex items-center gap-1 text-caption text-primary hover:underline"
+        >
+          <ChevronDown size={12} aria-hidden />
+          {sources.length - 2} more {sources.length - 2 === 1 ? 'source' : 'sources'}
+        </button>
+      )}
+    </div>
+  )
 }
 
 export default function AdvisorPage() {
@@ -73,6 +127,7 @@ export default function AdvisorPage() {
           role: message.role?.toLowerCase() === 'user' ? 'user' : 'assistant',
           content: message.content || '',
           products: message.products || [],
+          sources: message.sources || [],
         })),
       )
     } catch (err) {
@@ -111,6 +166,7 @@ export default function AdvisorPage() {
           content: data.answer || '',
           products: data.products || [],
           toolCalls: data.grounding?.toolCalls || [],
+          sources: data.sources || [],
         },
       ])
       loadConversations()
@@ -225,12 +281,15 @@ export default function AdvisorPage() {
                     </div>
                   )}
 
-                  {/* Nói rõ câu trả lời dựa trên dữ liệu thật, không phải model tự nghĩ ra. */}
+                  {message.sources?.length > 0 && (
+                    <SourceCards sources={message.sources} />
+                  )}
+
                   {message.toolCalls?.length > 0 && (
                     <p className="mt-3 inline-flex items-center gap-1.5 text-caption text-muted">
                       <Database size={12} aria-hidden />
-                      Looked up the product database {message.toolCalls.length}{' '}
-                      {message.toolCalls.length === 1 ? 'time' : 'times'}
+                      Looked up {message.toolCalls.length}{' '}
+                      {message.toolCalls.length === 1 ? 'source' : 'sources'}
                     </p>
                   )}
                 </div>
