@@ -41,10 +41,10 @@ export function AuthProvider({ children }) {
     return data.user
   }
 
+  // Đăng ký xong CHƯA đăng nhập: backend chỉ tạo tài khoản rồi gửi mail xác minh,
+  // không cấp token nào. Phiên chỉ mở khi người dùng bấm link trong mail hoặc tự đăng nhập.
   async function register(payload) {
     const data = await authApi.register(payload)
-    setToken(data.accessToken)
-    setUser(data.user)
     return data.user
   }
 

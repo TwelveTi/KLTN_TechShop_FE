@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Check, X } from 'lucide-react'
 import authApi from '../api/authApi'
 import Alert from '../components/ui/Alert'
@@ -17,7 +17,6 @@ const PASSWORD_RULES = [
 
 export default function RegisterPage() {
   const { register } = useAuth()
-  const navigate = useNavigate()
 
   const [form, setForm] = useState({
     fullName: '',
@@ -29,6 +28,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [emailTaken, setEmailTaken] = useState(false)
+  // Địa chỉ vừa đăng ký. Có giá trị là chuyển sang màn "kiểm tra hộp thư".
+  const [sentTo, setSentTo] = useState('')
   const emailTimer = useRef(null)
 
   useEffect(() => {
@@ -63,18 +64,45 @@ export default function RegisterPage() {
     setLoading(true)
     setError('')
     try {
-      await register({
+      const user = await register({
         fullName: form.fullName,
         email: form.email,
         phone: form.phone,
         password: form.password,
       })
-      navigate('/', { replace: true })
+      setSentTo(user?.email || form.email.trim())
     } catch (err) {
       setError(err.message)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Đăng ký xong thì dừng ở đây, không đá về trang chủ: tài khoản đã tạo nhưng
+  // chưa có phiên nào, và email phải được xác minh trước khi đặt hàng.
+  if (sentTo) {
+    return (
+      <div role="status">
+        <h1 className="text-h1">Verify your email</h1>
+        <p className="mt-2 text-sm text-muted">
+          We sent a verification link to <span className="text-body">{sentTo}</span>. Open it to
+          finish setting up your account. The link works once and expires after 24 hours.
+        </p>
+
+        <div className="mt-6">
+          <Alert tone="info" title="You can look around first">
+            Browsing and building a cart need no verification. Placing an order does.
+          </Alert>
+        </div>
+
+        <p className="mt-6 text-center text-sm text-muted">
+          Already verified?{' '}
+          <Link to="/login" className="rounded-xs text-primary hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </div>
+    )
   }
 
   return (
