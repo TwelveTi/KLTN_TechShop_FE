@@ -21,6 +21,39 @@ const SORT_OPTIONS = [
 
 const LIMIT = 12
 
+// Phải nằm ngoài ProductListPage. Định nghĩa bên trong thì mỗi lần render là một
+// kiểu component mới, nên React gỡ cả panel lọc xuống rồi dựng lại từ đầu.
+function FacetGroup({ heading, options, paramKey, active, onSelect }) {
+  return (
+    <div>
+      <p className="mb-2 text-overline uppercase text-faint">{heading}</p>
+      <ul className="space-y-1">
+        <li>
+          <button
+            onClick={() => onSelect(paramKey, '')}
+            className={`rounded-xs text-sm ${!active ? 'font-semibold text-primary' : 'text-muted hover:text-body'}`}
+          >
+            All
+          </button>
+        </li>
+        {options.map((option) => (
+          <li key={option.id}>
+            <button
+              onClick={() => onSelect(paramKey, option.slug)}
+              className={`rounded-xs text-left text-sm ${
+                active === option.slug ? 'font-semibold text-primary' : 'text-muted hover:text-body'
+              }`}
+            >
+              {option.name}
+              <span className="tabular ml-1 text-faint">({option.productCount})</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 export default function ProductListPage() {
   // Mọi trạng thái của khung nhìn nằm trên URL, nên link chia sẻ được, F5 không
   // mất bộ lọc, và nút Back của trình duyệt hoạt động đúng.
@@ -97,46 +130,16 @@ export default function ProductListPage() {
       ? activeCategory.name
       : 'All products'
 
-  function FacetGroup({ heading, options, paramKey, active }) {
-    return (
-      <div>
-        <p className="mb-2 text-overline uppercase text-faint">{heading}</p>
-        <ul className="space-y-1">
-          <li>
-            <button
-              onClick={() => updateFilter(paramKey, '')}
-              className={`rounded-xs text-sm ${!active ? 'font-semibold text-primary' : 'text-muted hover:text-body'}`}
-            >
-              All
-            </button>
-          </li>
-          {options.map((option) => (
-            <li key={option.id}>
-              <button
-                onClick={() => updateFilter(paramKey, option.slug)}
-                className={`rounded-xs text-left text-sm ${
-                  active === option.slug ? 'font-semibold text-primary' : 'text-muted hover:text-body'
-                }`}
-              >
-                {option.name}
-                <span className="tabular ml-1 text-faint">({option.productCount})</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-    )
-  }
 
   const filterPanel = (
     <div className="space-y-6">
       {categories.length > 0 ? (
-        <FacetGroup heading="Category" options={categories} paramKey="category" active={category} />
+        <FacetGroup heading="Category" options={categories} paramKey="category" active={category} onSelect={updateFilter} />
       ) : (
         <Skeleton className="h-40" />
       )}
       {brands.length > 0 && (
-        <FacetGroup heading="Brand" options={brands} paramKey="brand" active={brand} />
+        <FacetGroup heading="Brand" options={brands} paramKey="brand" active={brand} onSelect={updateFilter} />
       )}
     </div>
   )

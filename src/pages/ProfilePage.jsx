@@ -83,7 +83,6 @@ export default function ProfilePage() {
   }
 
   const [sessions, setSessions] = useState([])
-  const [sessionsLoading, setSessionsLoading] = useState(false)
   const [sessionsError, setSessionsError] = useState('')
   const [sessionsNotice, setSessionsNotice] = useState('')
 
@@ -92,15 +91,12 @@ export default function ProfilePage() {
   }, [user])
 
   async function loadSessions() {
-    setSessionsLoading(true)
     setSessionsError('')
     try {
       const data = await authApi.getSessions()
       setSessions(data?.sessions || [])
     } catch {
       // Sessions endpoint might not exist yet in older BE; silently skip.
-    } finally {
-      setSessionsLoading(false)
     }
   }
 

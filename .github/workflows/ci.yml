@@ -1,0 +1,132 @@
+name: CI
+
+# Sáu chặng nối tiếp: build → lint → test → quét bảo mật → kiểm kích thước gói
+# → triển khai. Frontend không có chặng Docker như backend vì nó được phục vụ
+# dưới dạng tệp tĩnh trên Vercel, không đóng gói thành image.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+  # Ngưỡng kích thước gói sau khi build, tính bằng kilobyte.
+  BUNDLE_BUDGET_KB: 1200
+
+jobs:
+  build:
+    name: 1 · Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      # Giữ lại kết quả build để chặng kiểm kích thước dùng lại, khỏi build hai lần.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  lint:
+    name: 2 · Lint
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  test:
+    name: 3 · Test
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  security:
+    name: 4 · Quét bảo mật
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: npm audit
+        run: npm audit --audit-level=high
+
+      - name: Trivy quét mã nguồn và phụ thuộc
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
+  bundle-size:
+    name: 5 · Kích thước gói
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      # Ba bộ chữ đóng gói cùng app nên gói dễ phình mà không ai để ý. Ngưỡng này
+      # để một lần thêm thư viện nặng phải là quyết định có ý thức.
+      - name: So với ngưỡng
+        run: |
+          SIZE_KB=$(du -sk dist | cut -f1)
+          echo "Kích thước dist: ${SIZE_KB} KB (ngưỡng ${BUNDLE_BUDGET_KB} KB)"
+          echo "### Kích thước gói: ${SIZE_KB} KB / ${BUNDLE_BUDGET_KB} KB" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$SIZE_KB" -gt "$BUNDLE_BUDGET_KB" ]; then
+            echo "::error::Gói vượt ngưỡng ${BUNDLE_BUDGET_KB} KB."
+            exit 1
+          fi
+
+  deploy:
+    name: 6 · Triển khai staging
+    needs: [lint, test, security, bundle-size]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # Chưa cấu hình token thì bỏ qua chứ không báo đỏ.
+      - name: Đẩy lên Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::Chưa có VERCEL_TOKEN trong secrets, bỏ qua bước triển khai."
+            exit 0
+          fi
+          npx -y vercel@latest deploy --prod --yes --token "$VERCEL_TOKEN"
