@@ -29,27 +29,36 @@ export default function AdminSpecificationsPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
+  // Tăng số này để tải lại danh sách sau khi thêm/sửa/xoá.
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     adminApi.getCategories().then(setCategories).catch(() => {})
   }, [])
 
   useEffect(() => {
-    if (selectedCategory) loadSpecs()
-    else setSpecs([])
-  }, [selectedCategory])
-
-  async function loadSpecs() {
-    setLoading(true)
-    setError('')
-    try {
-      const data = await adminApi.getSpecifications(selectedCategory)
-      setSpecs(Array.isArray(data) ? data : [])
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+    if (!selectedCategory) return
+    async function loadSpecs() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await adminApi.getSpecifications(selectedCategory)
+        setSpecs(Array.isArray(data) ? data : [])
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
+    loadSpecs()
+  }, [selectedCategory, reloadKey])
+
+  const reloadSpecs = () => setReloadKey((key) => key + 1)
+
+  // Đổi danh mục thì xoá bảng cũ ngay, trước khi bảng mới tải xong.
+  function handleCategoryChange(categoryId) {
+    setSpecs([])
+    setSelectedCategory(categoryId)
   }
 
   function openCreateForm() {
@@ -83,7 +92,7 @@ export default function AdminSpecificationsPage() {
       if (form.id) await adminApi.updateSpecification(form.id, payload)
       else await adminApi.createSpecification(selectedCategory, payload)
       setForm(null)
-      loadSpecs()
+      reloadSpecs()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -95,7 +104,7 @@ export default function AdminSpecificationsPage() {
     if (!confirm(`Delete "${spec.name}"? It must not be in use by any product.`)) return
     try {
       await adminApi.deleteSpecification(spec.id)
-      loadSpecs()
+      reloadSpecs()
     } catch (err) {
       setError(err.message)
     }
@@ -110,7 +119,7 @@ export default function AdminSpecificationsPage() {
           Category
           <select
             value={selectedCategory}
-            onChange={(event) => setSelectedCategory(event.target.value)}
+            onChange={(event) => handleCategoryChange(event.target.value)}
             className="h-10 rounded-sm border border-line-strong bg-surface px-2 text-sm text-heading"
           >
             <option value="">— Choose a category —</option>

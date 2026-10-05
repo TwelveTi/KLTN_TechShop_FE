@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, X } from 'lucide-react'
 import authApi from '../api/authApi'
@@ -27,31 +27,30 @@ export default function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [emailTaken, setEmailTaken] = useState(false)
+  // Lỗi email báo từ BE khi đang gõ: đã có tài khoản, hoặc email dùng một lần.
+  const [emailIssue, setEmailIssue] = useState('')
   // Địa chỉ vừa đăng ký. Có giá trị là chuyển sang màn "kiểm tra hộp thư".
   const [sentTo, setSentTo] = useState('')
-  const emailTimer = useRef(null)
 
+  // Ngừng gõ 600ms mới hỏi BE; gõ tiếp thì cleanup huỷ lượt hỏi cũ.
   useEffect(() => {
-    setEmailTaken(false)
-    clearTimeout(emailTimer.current)
-
     const email = form.email.trim()
     if (!email || !/\S+@\S+\.\S+/.test(email)) return
 
-    emailTimer.current = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const data = await authApi.checkEmail(email)
-        setEmailTaken(data?.exists === true)
+        if (data?.status === 'taken' || data?.status === 'disposable') setEmailIssue(data.message)
       } catch {
         // Endpoint might fail; don't block registration.
       }
     }, 600)
 
-    return () => clearTimeout(emailTimer.current)
+    return () => clearTimeout(timer)
   }, [form.email])
 
   function handleChange(event) {
+    if (event.target.name === 'email') setEmailIssue('')
     setForm({ ...form, [event.target.name]: event.target.value })
   }
 
@@ -127,8 +126,8 @@ export default function RegisterPage() {
           autoComplete="email"
           value={form.email}
           onChange={handleChange}
-          error={emailTaken ? 'This email is already registered.' : ''}
-          hint={emailTaken ? '' : 'Used for your verification code and order updates.'}
+          error={emailIssue}
+          hint={emailIssue ? '' : 'Used for your verification code and order updates.'}
         />
         <Input
           name="phone"

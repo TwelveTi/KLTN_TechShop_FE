@@ -21,26 +21,25 @@ export default function CategoryPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    async function loadData() {
+      setLoading(true)
+      setError('')
+      try {
+        const [cat, prodData] = await Promise.all([
+          productApi.getCategoryBySlug(slug),
+          productApi.getProducts({ category: slug, page, limit: LIMIT }),
+        ])
+        setCategory(cat)
+        setProducts(prodData.items || [])
+        setPagination(prodData.pagination)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
     loadData()
   }, [slug, page])
-
-  async function loadData() {
-    setLoading(true)
-    setError('')
-    try {
-      const [cat, prodData] = await Promise.all([
-        productApi.getCategoryBySlug(slug),
-        productApi.getProducts({ category: slug, page, limit: LIMIT }),
-      ])
-      setCategory(cat)
-      setProducts(prodData.items || [])
-      setPagination(prodData.pagination)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   function handlePageChange(newPage) {
     setSearchParams({ page: String(newPage) })

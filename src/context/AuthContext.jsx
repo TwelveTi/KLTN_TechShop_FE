@@ -11,28 +11,27 @@ export function AuthProvider({ children }) {
 
   // Mở lại trang thì khôi phục phiên đăng nhập theo hai đường.
   useEffect(() => {
+    async function restoreSession() {
+      try {
+        if (getToken()) {
+          // Có token sẵn thì chỉ cần hỏi server xem còn dùng được không.
+          setUser(await authApi.getMe())
+        } else {
+          // Không có token nhưng có thể vừa quay về từ Google hoặc từ link xác
+          // minh email — hai luồng đó chỉ đặt cookie refresh, phải đổi lấy token.
+          const data = await authApi.refresh()
+          setToken(data.accessToken)
+          setUser(data.user)
+        }
+      } catch {
+        // Khách chưa đăng nhập cũng rơi vào đây, không có gì để dọn ngoài token hỏng.
+        clearToken()
+      } finally {
+        setLoading(false)
+      }
+    }
     restoreSession()
   }, [])
-
-  async function restoreSession() {
-    try {
-      if (getToken()) {
-        // Có token sẵn thì chỉ cần hỏi server xem còn dùng được không.
-        setUser(await authApi.getMe())
-      } else {
-        // Không có token nhưng có thể vừa quay về từ Google hoặc từ link xác
-        // minh email — hai luồng đó chỉ đặt cookie refresh, phải đổi lấy token.
-        const data = await authApi.refresh()
-        setToken(data.accessToken)
-        setUser(data.user)
-      }
-    } catch {
-      // Khách chưa đăng nhập cũng rơi vào đây, không có gì để dọn ngoài token hỏng.
-      clearToken()
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function login(email, password) {
     const data = await authApi.login(email, password)

@@ -66,21 +66,20 @@ export default function CheckoutPage() {
   const [newAddress, setNewAddress] = useState(EMPTY_ADDRESS)
 
   useEffect(() => {
+    async function loadAddresses() {
+      try {
+        const data = await userApi.getAddresses()
+        setAddresses(data || [])
+        const preferred = data?.find((item) => item.isDefault) || data?.[0]
+        if (preferred) setAddressId(preferred.id)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
     loadAddresses()
   }, [])
-
-  async function loadAddresses() {
-    try {
-      const data = await userApi.getAddresses()
-      setAddresses(data || [])
-      const preferred = data?.find((item) => item.isDefault) || data?.[0]
-      if (preferred) setAddressId(preferred.id)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function handleCreateAddress(event) {
     event.preventDefault()

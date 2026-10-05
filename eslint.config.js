@@ -25,23 +25,17 @@ export default [
       ...reactHooks.configs.recommended.rules,
       // Component viết hoa được coi là đã dùng, dù ESLint chỉ thấy nó trong JSX.
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' }],
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // File context xuất cả Provider lẫn hook đọc nó, nên khai báo hai hook này là hợp lệ.
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true, allowExportNames: ['useAuth', 'useCart'] },
+      ],
 
-      // Ba luật dưới đây hạ xuống mức cảnh báo, có lý do chứ không phải để cho xanh.
-      //
-      // `set-state-in-effect` và `exhaustive-deps` đánh vào đúng lối viết đã chọn
-      // cho dự án: gọi API trong useEffect rồi setState, cố ý không dùng thư viện
-      // cache. Sửa theo luật thì phải bọc mọi hàm tải dữ liệu trong useCallback,
-      // tức là thêm đúng lớp khái niệm mà lối viết này muốn tránh.
-      //
-      // `immutability` báo "Cannot access variable before it is declared" ở chỗ
-      // useEffect gọi một hàm khai báo bên dưới. Khai báo hàm được hoisting nên
-      // chạy đúng; luật đọc theo thứ tự dòng nên hiểu sai.
-      //
-      // Vẫn để mức cảnh báo để chúng hiện ra khi chạy lint, chỉ là không chặn CI.
-      'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/exhaustive-deps': 'warn',
-      'react-hooks/immutability': 'warn',
+      // Ba luật hook để mức lỗi, chặn CI. Không cần useCallback: hàm tải dữ liệu
+      // khai báo ngay trong useEffect, muốn tải lại thì tăng một state `reloadKey`.
+      'react-hooks/set-state-in-effect': 'error',
+      'react-hooks/exhaustive-deps': 'error',
+      'react-hooks/immutability': 'error',
     },
   },
   {

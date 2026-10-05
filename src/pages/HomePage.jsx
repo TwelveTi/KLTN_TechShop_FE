@@ -10,7 +10,6 @@ import EmptyState from '../components/ui/EmptyState'
 import SectionHead from '../components/ui/SectionHead'
 import { ProductGridSkeleton, Skeleton } from '../components/ui/Skeleton'
 import { useAuth } from '../context/AuthContext'
-import { getProductPrice } from '../utils/format'
 
 // Cam kết dịch vụ — là chính sách cửa hàng, không phải số liệu bịa ra.
 const SERVICE_HIGHLIGHTS = [
@@ -25,6 +24,7 @@ export default function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [products, setProducts] = useState([])
+  const [deals, setDeals] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -45,12 +45,17 @@ export default function HomePage() {
     setLoading(true)
     setError('')
     try {
-      // Hai lời gọi không phụ thuộc nhau nên chạy song song cho nhanh.
-      const [productData, categoryData] = await Promise.all([
+      // Ba lời gọi không phụ thuộc nhau nên chạy song song cho nhanh.
+      // Dải khuyến mãi lấy riêng từ API và bỏ món đã có ở dải bán chạy, để hai dải không trùng.
+      const [productData, dealData, categoryData] = await Promise.all([
         productApi.getProducts({ limit: 8, sort: 'bestSelling' }),
+        productApi.getProducts({ limit: 12, sort: 'bestSelling', onSale: true }),
         productApi.getCategories(),
       ])
-      setProducts(productData.items || [])
+      const bestSellers = productData.items || []
+      const shownIds = new Set(bestSellers.map((product) => product.id))
+      setProducts(bestSellers)
+      setDeals((dealData.items || []).filter((product) => !shownIds.has(product.id)))
       setCategories(categoryData.items || [])
     } catch (err) {
       setError(err.message)
@@ -58,9 +63,6 @@ export default function HomePage() {
       setLoading(false)
     }
   }
-
-  // Dải khuyến mãi chỉ hiện khi thật sự có sản phẩm đang giảm giá.
-  const deals = products.filter((product) => getProductPrice(product).onSale)
 
   return (
     <div className="mx-auto max-w-page px-4 sm:px-8">

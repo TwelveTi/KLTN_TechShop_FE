@@ -26,24 +26,27 @@ export default function ProductReviews({ productId }) {
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
+  // Tăng số này để tải lại danh sách sau khi viết/xoá review.
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    loadReviews()
-  }, [productId, page])
-
-  async function loadReviews() {
-    try {
-      const [list, sum] = await Promise.all([
-        reviewApi.getReviews(productId, page),
-        reviewApi.getSummary(productId),
-      ])
-      setReviews(list.items || [])
-      setPagination(list.pagination)
-      setSummary(sum)
-    } catch {
-      setReviews([])
+    async function loadReviews() {
+      try {
+        const [list, sum] = await Promise.all([
+          reviewApi.getReviews(productId, page),
+          reviewApi.getSummary(productId),
+        ])
+        setReviews(list.items || [])
+        setPagination(list.pagination)
+        setSummary(sum)
+      } catch {
+        setReviews([])
+      }
     }
-  }
+    loadReviews()
+  }, [productId, page, reloadKey])
+
+  const reloadReviews = () => setReloadKey((key) => key + 1)
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -55,7 +58,7 @@ export default function ProductReviews({ productId }) {
       setContent('')
       setRating(5)
       setPage(1)
-      loadReviews()
+      reloadReviews()
     } catch (err) {
       setFormError(err.message)
     } finally {
@@ -67,7 +70,7 @@ export default function ProductReviews({ productId }) {
     if (!confirm('Delete this review?')) return
     try {
       await reviewApi.deleteReview(reviewId)
-      loadReviews()
+      reloadReviews()
     } catch (err) {
       setFormError(err.message)
     }

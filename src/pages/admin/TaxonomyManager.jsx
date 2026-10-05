@@ -15,22 +15,25 @@ export default function TaxonomyManager({ noun, api, emptyText }) {
   const [error, setError] = useState('')
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
+  // Tăng số này để tải lại danh sách sau khi thêm/sửa/xoá.
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    loadItems()
-  }, [])
-
-  async function loadItems() {
-    setLoading(true)
-    setError('')
-    try {
-      setItems((await api.list()) || [])
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+    async function loadItems() {
+      setLoading(true)
+      setError('')
+      try {
+        setItems((await api.list()) || [])
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+    loadItems()
+  }, [api, reloadKey])
+
+  const reloadItems = () => setReloadKey((key) => key + 1)
 
   async function handleSave(event) {
     event.preventDefault()
@@ -41,7 +44,7 @@ export default function TaxonomyManager({ noun, api, emptyText }) {
       if (form.id) await api.update(form.id, payload)
       else await api.create(payload)
       setForm(null)
-      loadItems()
+      reloadItems()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -53,7 +56,7 @@ export default function TaxonomyManager({ noun, api, emptyText }) {
     if (!confirm(`Delete the ${noun.toLowerCase()} “${item.name}”?`)) return
     try {
       await api.remove(item.id)
-      loadItems()
+      reloadItems()
     } catch (err) {
       setError(err.message)
     }

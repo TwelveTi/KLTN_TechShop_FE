@@ -31,12 +31,12 @@ export function CartProvider({ children }) {
   useEffect(() => {
     if (authLoading) return
 
-    if (!isLoggedIn) {
-      setItems(readGuestCart())
-      return
-    }
-
     async function mergeAndLoad() {
+      if (!isLoggedIn) {
+        setItems(readGuestCart())
+        return
+      }
+
       const guestItems = readGuestCart()
       for (const item of guestItems) {
         try {

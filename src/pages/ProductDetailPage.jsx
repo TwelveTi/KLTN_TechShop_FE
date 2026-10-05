@@ -46,22 +46,25 @@ export default function ProductDetailPage() {
   const [cartError, setCartError] = useState('')
 
   useEffect(() => {
-    setLoading(true)
-    setError('')
-    setActiveImage(0)
-    setQuantity(1)
-    setAdded(false)
-
-    productApi
-      .getProductById(id)
-      .then((data) => {
+    async function loadProduct() {
+      setLoading(true)
+      setError('')
+      setActiveImage(0)
+      setQuantity(1)
+      setAdded(false)
+      try {
+        const data = await productApi.getProductById(id)
         setProduct(data)
         // Chọn sẵn biến thể mặc định nếu sản phẩm có nhiều phiên bản.
         const defaultVariant = data.variants?.find((item) => item.isDefault) || data.variants?.[0]
         setVariantId(defaultVariant?.id || null)
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProduct()
   }, [id])
 
   async function handleAddToCart(goToCart = false) {
@@ -250,7 +253,7 @@ export default function ProductDetailPage() {
               onClick={() => handleAddToCart(true)}
               className="flex-1"
             >
-              Mua ngay
+              Buy now
             </Button>
           </div>
 

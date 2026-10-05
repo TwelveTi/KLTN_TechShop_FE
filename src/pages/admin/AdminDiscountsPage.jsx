@@ -50,28 +50,31 @@ export default function AdminDiscountsPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
+  // Tăng số này để tải lại danh sách sau khi thêm/sửa/xoá.
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    loadDiscounts()
-  }, [page, status])
-
-  async function loadDiscounts() {
-    setLoading(true)
-    setError('')
-    try {
-      const data = await adminApi.getDiscounts({
-        page,
-        limit: 10,
-        status: status || undefined,
-      })
-      setDiscounts(data.items || [])
-      setPagination(data.pagination)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+    async function loadDiscounts() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await adminApi.getDiscounts({
+          page,
+          limit: 10,
+          status: status || undefined,
+        })
+        setDiscounts(data.items || [])
+        setPagination(data.pagination)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+    loadDiscounts()
+  }, [page, status, reloadKey])
+
+  const reloadDiscounts = () => setReloadKey((key) => key + 1)
 
   function openCreateForm() {
     setForm({ ...EMPTY_DISCOUNT })
@@ -118,7 +121,7 @@ export default function AdminDiscountsPage() {
       if (form.id) await adminApi.updateDiscount(form.id, payload)
       else await adminApi.createDiscount(payload)
       setForm(null)
-      loadDiscounts()
+      reloadDiscounts()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -131,7 +134,7 @@ export default function AdminDiscountsPage() {
       return
     try {
       await adminApi.deleteDiscount(discount.id)
-      loadDiscounts()
+      reloadDiscounts()
     } catch (err) {
       setError(err.message)
     }

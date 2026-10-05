@@ -14,7 +14,8 @@ import { formatDateTime } from '../utils/format'
 export default function ProfilePage() {
   const { user, setUser } = useAuth()
 
-  const [form, setForm] = useState({ fullName: '', phone: '' })
+  // ProtectedRoute chỉ render trang này khi đã có user, nên lấy luôn làm giá trị đầu.
+  const [form, setForm] = useState({ fullName: user?.fullName || '', phone: user?.phone || '' })
   const [profileNotice, setProfileNotice] = useState('')
   const [profileError, setProfileError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -23,11 +24,6 @@ export default function ProfilePage() {
   const [passwordNotice, setPasswordNotice] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [changing, setChanging] = useState(false)
-
-  // Đổ dữ liệu người dùng vào form khi đã lấy được từ server.
-  useEffect(() => {
-    if (user) setForm({ fullName: user.fullName || '', phone: user.phone || '' })
-  }, [user])
 
   async function handleSaveProfile(event) {
     event.preventDefault()

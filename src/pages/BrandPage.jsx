@@ -21,26 +21,25 @@ export default function BrandPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    async function loadData() {
+      setLoading(true)
+      setError('')
+      try {
+        const [br, prodData] = await Promise.all([
+          productApi.getBrandBySlug(slug),
+          productApi.getProducts({ brands: slug, page, limit: LIMIT }),
+        ])
+        setBrand(br)
+        setProducts(prodData.items || [])
+        setPagination(prodData.pagination)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
     loadData()
   }, [slug, page])
-
-  async function loadData() {
-    setLoading(true)
-    setError('')
-    try {
-      const [br, prodData] = await Promise.all([
-        productApi.getBrandBySlug(slug),
-        productApi.getProducts({ brands: slug, page, limit: LIMIT }),
-      ])
-      setBrand(br)
-      setProducts(prodData.items || [])
-      setPagination(prodData.pagination)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   function handlePageChange(newPage) {
     setSearchParams({ page: String(newPage) })

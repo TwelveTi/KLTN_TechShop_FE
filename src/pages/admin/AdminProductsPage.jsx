@@ -24,6 +24,8 @@ const EMPTY_PRODUCT = {
   status: 'ACTIVE',
   isFeatured: false,
   images: [],
+  // { [definitionId]: { value, text } }, xem toSpecValues.
+  specValues: {},
 }
 
 const STATUS_OPTIONS = ['DRAFT', 'ACTIVE', 'INACTIVE', 'OUT_OF_STOCK']
@@ -33,6 +35,112 @@ const STATUS_TONE = {
   DRAFT: 'neutral',
   INACTIVE: 'neutral',
   OUT_OF_STOCK: 'warning',
+}
+
+// Đổi thông số đã lưu của sản phẩm thành giá trị cho ô nhập, theo kiểu dữ liệu.
+// NUMBER giữ hai phần: con số để lọc/so sánh, và chữ hiển thị cho khách.
+function toSpecValues(specifications = []) {
+  const values = {}
+  specifications.forEach((spec) => {
+    const type = spec.definition?.dataType
+    let value = spec.valueText ?? ''
+    // Cột DECIMAL về dưới dạng chuỗi "32.0000", đổi qua Number để ô hiện 32.
+    if (type === 'NUMBER') value = spec.valueNumber == null ? '' : Number(spec.valueNumber)
+    if (type === 'BOOLEAN') value = spec.valueBoolean === true ? 'yes' : spec.valueBoolean === false ? 'no' : ''
+    if (type === 'JSON') value = spec.valueJson ? JSON.stringify(spec.valueJson) : ''
+    values[spec.specificationDefinitionId] = {
+      value: String(value),
+      text: type === 'NUMBER' ? spec.valueText || '' : '',
+    }
+  })
+  return values
+}
+
+// Ngược lại: chỉ gửi ô đã điền, gắn definitionId để backend không tạo định nghĩa trùng.
+function toSpecPayload(definitions, specValues) {
+  return definitions
+    .map((definition) => {
+      const entry = specValues[definition.id] || { value: '', text: '' }
+      const value = String(entry.value).trim()
+      const text = String(entry.text || '').trim()
+      const base = { definitionId: definition.id, name: definition.name }
+
+      if (definition.dataType === 'BOOLEAN') {
+        return value ? { ...base, value: value === 'yes' } : null
+      }
+      if (definition.dataType === 'NUMBER') {
+        if (value) return { ...base, value: Number(value), ...(text ? { valueText: text } : {}) }
+        // Chỉ điền chữ thì để backend tự tách số, ví dụ "16 GB".
+        return text ? { ...base, value: text } : null
+      }
+      return value ? { ...base, value } : null
+    })
+    .filter(Boolean)
+}
+
+// Một ô cho mỗi định nghĩa thông số của danh mục, kiểu ô theo dataType.
+function SpecificationFields({ definitions, values, onChange }) {
+  if (definitions.length === 0) {
+    return (
+      <p className="text-sm text-muted">
+        This category has no specification fields yet. Add them under Specifications.
+      </p>
+    )
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {definitions.map((definition) => {
+        const entry = values[definition.id] || { value: '', text: '' }
+        const label = definition.unit ? `${definition.name} (${definition.unit})` : definition.name
+
+        if (definition.dataType === 'BOOLEAN') {
+          return (
+            <Input
+              key={definition.id}
+              as="select"
+              label={label}
+              value={entry.value}
+              onChange={(event) => onChange(definition.id, 'value', event.target.value)}
+            >
+              <option value="">—</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </Input>
+          )
+        }
+
+        if (definition.dataType === 'NUMBER') {
+          return (
+            <div key={definition.id} className="grid grid-cols-[7rem_1fr] gap-2">
+              <Input
+                type="number"
+                step="any"
+                label={label}
+                value={entry.value}
+                onChange={(event) => onChange(definition.id, 'value', event.target.value)}
+              />
+              <Input
+                label="Shown as"
+                placeholder="e.g. 16GB DDR5"
+                value={entry.text}
+                onChange={(event) => onChange(definition.id, 'text', event.target.value)}
+              />
+            </div>
+          )
+        }
+
+        return (
+          <Input
+            key={definition.id}
+            label={label}
+            value={entry.value}
+            onChange={(event) => onChange(definition.id, 'value', event.target.value)}
+          />
+        )
+      })}
+    </div>
+  )
 }
 
 export default function AdminProductsPage() {
@@ -51,33 +159,68 @@ export default function AdminProductsPage() {
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  // Tăng số này để tải lại danh sách sau khi thêm/sửa/xoá.
+  const [reloadKey, setReloadKey] = useState(0)
+  // Định nghĩa thông số của danh mục đang chọn trong form. Lưu kèm categoryId để
+  // không hiện nhầm định nghĩa của danh mục cũ trong lúc đang tải danh mục mới.
+  const [specDefs, setSpecDefs] = useState({ categoryId: '', items: [] })
 
   useEffect(() => {
     adminApi.getCategories().then(setCategories).catch(() => {})
     adminApi.getBrands().then(setBrands).catch(() => {})
   }, [])
 
-  useEffect(() => {
-    loadProducts()
-  }, [page, appliedSearch])
+  const formCategoryId = form?.categoryId || ''
 
-  async function loadProducts() {
-    setLoading(true)
-    setError('')
-    try {
-      const data = await adminApi.getProducts({
-        page,
-        limit: 10,
-        keyword: appliedSearch || undefined,
-      })
-      setProducts(data.items || [])
-      setPagination(data.pagination)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    if (!formCategoryId) return
+    async function loadDefinitions() {
+      try {
+        const data = await adminApi.getSpecifications(formCategoryId)
+        const items = (Array.isArray(data) ? data : []).sort((a, b) => a.sortOrder - b.sortOrder)
+        setSpecDefs({ categoryId: formCategoryId, items })
+      } catch {
+        setSpecDefs({ categoryId: formCategoryId, items: [] })
+      }
     }
+    loadDefinitions()
+  }, [formCategoryId])
+
+  // null = chưa tải xong, lúc đó không gửi specifications để khỏi đè thông số đang có.
+  const definitions = formCategoryId && specDefs.categoryId === formCategoryId ? specDefs.items : null
+
+  function handleSpecChange(definitionId, field, value) {
+    setForm((prev) => ({
+      ...prev,
+      specValues: {
+        ...prev.specValues,
+        [definitionId]: { ...(prev.specValues[definitionId] || { value: '', text: '' }), [field]: value },
+      },
+    }))
   }
+
+  useEffect(() => {
+    async function loadProducts() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await adminApi.getProducts({
+          page,
+          limit: 10,
+          keyword: appliedSearch || undefined,
+        })
+        setProducts(data.items || [])
+        setPagination(data.pagination)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProducts()
+  }, [page, appliedSearch, reloadKey])
+
+  const reloadProducts = () => setReloadKey((key) => key + 1)
 
   // Mở form sửa: phải gọi API chi tiết vì danh sách không trả về thông số kỹ thuật.
   async function openEditForm(productId) {
@@ -89,6 +232,7 @@ export default function AdminProductsPage() {
         ...product,
         salePrice: product.salePrice ?? '',
         images: product.images || [],
+        specValues: toSpecValues(product.specifications),
       })
     } catch (err) {
       setError(err.message)
@@ -142,13 +286,16 @@ export default function AdminProductsPage() {
         publicId: image.publicId,
         isPrimary: !!image.isPrimary,
       })),
+      // Backend thay toàn bộ thông số khi nhận mảng khác rỗng, nên chỉ gửi khi đã
+      // có danh sách định nghĩa; mảng rỗng thì backend giữ nguyên thông số cũ.
+      ...(definitions ? { specifications: toSpecPayload(definitions, form.specValues) } : {}),
     }
 
     try {
       if (form.id) await adminApi.updateProduct(form.id, payload)
       else await adminApi.createProduct(payload)
       setForm(null)
-      loadProducts()
+      reloadProducts()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -160,7 +307,7 @@ export default function AdminProductsPage() {
     if (!confirm(`Delete the product “${name}”? This cannot be undone.`)) return
     try {
       await adminApi.deleteProduct(id)
-      loadProducts()
+      reloadProducts()
     } catch (err) {
       setError(err.message)
     }
@@ -390,6 +537,25 @@ export default function AdminProductsPage() {
               onChange={(event) => setForm({ ...form, description: event.target.value })}
               className="sm:col-span-2"
             />
+
+            <fieldset className="sm:col-span-2 rounded-md border border-line p-4">
+              <legend className="px-1 text-sm font-medium text-heading">Specifications</legend>
+              <p className="mb-4 text-sm text-muted">
+                The AI advisor and product comparison read these values, so fill in numbers where a
+                field has a unit.
+              </p>
+              {!formCategoryId && (
+                <p className="text-sm text-muted">Choose a category to see its specification fields.</p>
+              )}
+              {formCategoryId && !definitions && <Skeleton className="h-24" />}
+              {definitions && (
+                <SpecificationFields
+                  definitions={definitions}
+                  values={form.specValues}
+                  onChange={handleSpecChange}
+                />
+              )}
+            </fieldset>
 
             <div className="sm:col-span-2">
               <span className="mb-1.5 block text-sm font-medium text-heading">Images</span>

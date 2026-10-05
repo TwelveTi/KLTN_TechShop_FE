@@ -36,35 +36,36 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [expandedId, setExpandedId] = useState(null)
+  // Tăng số này để tải lại danh sách sau khi đổi trạng thái đơn.
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    loadOrders()
-  }, [page, status, appliedSearch])
-
-  async function loadOrders() {
-    setLoading(true)
-    setError('')
-    try {
-      const data = await adminApi.getOrders({
-        page,
-        limit: 10,
-        status: status || undefined,
-        search: appliedSearch || undefined,
-      })
-      setOrders(data.items || [])
-      setPagination(data.pagination)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+    async function loadOrders() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await adminApi.getOrders({
+          page,
+          limit: 10,
+          status: status || undefined,
+          search: appliedSearch || undefined,
+        })
+        setOrders(data.items || [])
+        setPagination(data.pagination)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+    loadOrders()
+  }, [page, status, appliedSearch, reloadKey])
 
   async function handleChangeStatus(orderId, newStatus) {
     setError('')
     try {
       await adminApi.updateOrderStatus(orderId, newStatus)
-      loadOrders()
+      setReloadKey((key) => key + 1)
     } catch (err) {
       setError(err.message)
     }

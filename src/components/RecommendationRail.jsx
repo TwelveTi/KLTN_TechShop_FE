@@ -34,16 +34,21 @@ export default function RecommendationRail({
   useEffect(() => {
     if (mode === 'similar' && !productId) return
 
-    setLoading(true)
-    const request =
-      mode === 'similar'
-        ? recommendationApi.getSimilar(productId, limit)
-        : recommendationApi.getForMe(limit)
-
-    request
-      .then((data) => setItems(data?.items || []))
-      .catch(() => setItems([]))
-      .finally(() => setLoading(false))
+    async function loadItems() {
+      setLoading(true)
+      try {
+        const data =
+          mode === 'similar'
+            ? await recommendationApi.getSimilar(productId, limit)
+            : await recommendationApi.getForMe(limit)
+        setItems(data?.items || [])
+      } catch {
+        setItems([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadItems()
   }, [mode, productId, limit])
 
   // Bấm vào một gợi ý thì gửi hai tín hiệu khác nhau về server:

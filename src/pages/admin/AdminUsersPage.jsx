@@ -13,7 +13,7 @@ import { RowActions, Table, TableEmpty, Td, Th, Tr } from '../../components/ui/T
 import { formatDate } from '../../utils/format'
 
 const ROLES = ['CUSTOMER', 'ADMIN']
-const STATUSES = ['ACTIVE', 'INACTIVE', 'BANNED']
+const STATUSES = ['ACTIVE', 'INACTIVE', 'BLOCKED']
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([])
@@ -27,29 +27,32 @@ export default function AdminUsersPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
+  // Tăng số này để tải lại danh sách sau khi sửa/xoá.
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    loadUsers()
-  }, [page, role, appliedSearch])
-
-  async function loadUsers() {
-    setLoading(true)
-    setError('')
-    try {
-      const data = await adminApi.getUsers({
-        page,
-        limit: 10,
-        q: appliedSearch || undefined,
-        role: role || undefined,
-      })
-      setUsers(data.items || [])
-      setPagination(data.pagination)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+    async function loadUsers() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await adminApi.getUsers({
+          page,
+          limit: 10,
+          q: appliedSearch || undefined,
+          role: role || undefined,
+        })
+        setUsers(data.items || [])
+        setPagination(data.pagination)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+    loadUsers()
+  }, [page, role, appliedSearch, reloadKey])
+
+  const reloadUsers = () => setReloadKey((key) => key + 1)
 
   async function handleSave(event) {
     event.preventDefault()
@@ -63,7 +66,7 @@ export default function AdminUsersPage() {
         status: form.status,
       })
       setForm(null)
-      loadUsers()
+      reloadUsers()
     } catch (err) {
       setError(err.message)
     } finally {
@@ -75,7 +78,7 @@ export default function AdminUsersPage() {
     if (!confirm(`Delete the account ${user.email}? This cannot be undone.`)) return
     try {
       await adminApi.deleteUser(user.id)
-      loadUsers()
+      reloadUsers()
     } catch (err) {
       setError(err.message)
     }

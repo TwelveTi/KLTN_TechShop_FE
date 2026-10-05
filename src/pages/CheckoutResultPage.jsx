@@ -1,24 +1,18 @@
-import { useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { LinkButton } from '../components/ui/Button'
-import { useCart } from '../context/CartContext'
 
 // Trang hiện sau khi đặt hàng xong, hoặc khi VNPay trả trình duyệt về.
 // URL có dạng /checkout/success hoặc /checkout/failed.
+// Không cần dọn giỏ ở đây: COD đã dọn trước khi chuyển trang, còn VNPay tải lại
+// cả trang và giỏ trên server đã được xoá ngay lúc tạo đơn.
 export default function CheckoutResultPage() {
   const { result } = useParams()
   const [searchParams] = useSearchParams()
-  const { clearCart } = useCart()
 
   const success = result === 'success'
   const orderCode = searchParams.get('orderCode')
   const reason = searchParams.get('reason')
-
-  // Thanh toán xong thì backend đã dọn giỏ trên server, dọn nốt phía client.
-  useEffect(() => {
-    if (success) clearCart()
-  }, [success])
 
   const Icon = success ? CheckCircle2 : XCircle
 
