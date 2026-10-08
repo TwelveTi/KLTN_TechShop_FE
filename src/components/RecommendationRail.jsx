@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import recommendationApi from '../api/recommendationApi'
+import { useAuth } from '../context/AuthContext'
 import ProductCard from './ProductCard'
 import Badge from './ui/Badge'
 import SectionHead from './ui/SectionHead'
@@ -25,6 +26,7 @@ export default function RecommendationRail({
   productId,
   limit = 8,
 }) {
+  const { isLoggedIn } = useAuth()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   // Lời giải thích của AI, lưu theo itemId để bấm lại không phải gọi API nữa.
@@ -41,7 +43,14 @@ export default function RecommendationRail({
           mode === 'similar'
             ? await recommendationApi.getSimilar(productId, limit)
             : await recommendationApi.getForMe(limit)
-        setItems(data?.items || [])
+        const loaded = data?.items || []
+        setItems(loaded)
+        // Lời giải thích đã lưu ở server thì hiện ngay, F5 không phải hỏi lại AI.
+        const stored = {}
+        loaded.forEach((item) => {
+          if (item.itemId && item.reasonMetadata?.explanation) stored[item.itemId] = item.reasonMetadata.explanation
+        })
+        setExplanations(stored)
       } catch {
         setItems([])
       } finally {
@@ -49,7 +58,8 @@ export default function RecommendationRail({
       }
     }
     loadItems()
-  }, [mode, productId, limit])
+    // Tải lại khi đăng nhập hoặc đăng xuất để dải thuộc đúng tài khoản đang xem.
+  }, [mode, productId, limit, isLoggedIn])
 
   // Bấm vào một gợi ý thì gửi hai tín hiệu khác nhau về server:
   //  - recordOutcome: gắn vào đúng dòng gợi ý đã sinh ra cú bấm, dùng để ĐO CTR
@@ -99,7 +109,8 @@ export default function RecommendationRail({
               {explanations[item.itemId] ? (
                 <p className="mt-1.5 text-caption text-muted">{explanations[item.itemId]}</p>
               ) : (
-                item.itemId && (
+                // Chỉ người đã đăng nhập mới hỏi được AI vì sao được gợi ý.
+                isLoggedIn && item.itemId && (
                   <button
                     type="button"
                     onClick={() => handleExplain(item)}
