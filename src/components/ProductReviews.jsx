@@ -26,6 +26,8 @@ export default function ProductReviews({ productId }) {
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
+  // Id review đang sửa; null là đang viết mới.
+  const [editingId, setEditingId] = useState(null)
   // Tăng số này để tải lại danh sách sau khi viết/xoá review.
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -53,10 +55,9 @@ export default function ProductReviews({ productId }) {
     setSubmitting(true)
     setFormError('')
     try {
-      await reviewApi.createReview(productId, { rating, title, content })
-      setTitle('')
-      setContent('')
-      setRating(5)
+      if (editingId) await reviewApi.updateReview(editingId, { rating, title, content })
+      else await reviewApi.createReview(productId, { rating, title, content })
+      resetForm()
       setPage(1)
       reloadReviews()
     } catch (err) {
@@ -66,11 +67,28 @@ export default function ProductReviews({ productId }) {
     }
   }
 
+  function resetForm() {
+    setEditingId(null)
+    setTitle('')
+    setContent('')
+    setRating(5)
+    setFormError('')
+  }
+
+  // Đổ review của mình vào form để sửa.
+  function startEdit(review) {
+    setEditingId(review.id)
+    setRating(review.rating)
+    setTitle(review.title || '')
+    setContent(review.content || '')
+    setFormError('')
+  }
+
   async function handleDelete(reviewId) {
     if (!confirm('Delete this review?')) return
     try {
       await reviewApi.deleteReview(reviewId)
-      setFormError('')
+      resetForm()
       reloadReviews()
     } catch (err) {
       setFormError(err.message)
@@ -119,16 +137,16 @@ export default function ProductReviews({ productId }) {
             </div>
           )}
 
-          {isLoggedIn && hasMyReview ? (
+          {isLoggedIn && hasMyReview && !editingId ? (
             <div className="rounded-md border border-line bg-surface p-6 text-sm text-muted shadow-sm">
-              You have reviewed this product. Delete your review to write a new one.
+              You have reviewed this product. Use Edit on your review to change it.
             </div>
           ) : isLoggedIn ? (
             <form
               onSubmit={handleSubmit}
               className="space-y-4 rounded-md border border-line bg-surface p-6 shadow-sm"
             >
-              <p className="text-h4">Write your review</p>
+              <p className="text-h4">{editingId ? 'Edit your review' : 'Write your review'}</p>
 
               <div>
                 <span className="mb-1.5 block text-sm font-medium text-heading">Your rating</span>
@@ -154,8 +172,13 @@ export default function ProductReviews({ productId }) {
               {formError && <Alert>{formError}</Alert>}
 
               <Button type="submit" variant="primary" isLoading={submitting} fullWidth>
-                Submit review
+                {editingId ? 'Save changes' : 'Submit review'}
               </Button>
+              {editingId && (
+                <Button type="button" variant="ghost" onClick={resetForm} fullWidth>
+                  Cancel
+                </Button>
+              )}
             </form>
           ) : (
             <div className="rounded-md border border-line bg-surface p-6 text-sm shadow-sm">
@@ -202,14 +225,19 @@ export default function ProductReviews({ productId }) {
                       <p className="mt-1 text-body">{review.content}</p>
 
                       {user && review.user?.id === user.id && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(review.id)}
-                          className="mt-2 !text-danger-strong"
-                        >
-                          Delete my review
-                        </Button>
+                        <div className="mt-2 flex gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => startEdit(review)}>
+                            Edit
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(review.id)}
+                            className="!text-danger-strong"
+                          >
+                            Delete my review
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>

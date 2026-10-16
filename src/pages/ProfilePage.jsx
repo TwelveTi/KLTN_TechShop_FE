@@ -25,11 +25,26 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState('')
   const [changing, setChanging] = useState(false)
 
+  const [sessions, setSessions] = useState([])
+  const [sessionsError, setSessionsError] = useState('')
+  const [sessionsNotice, setSessionsNotice] = useState('')
+  // Tăng số này để tải lại danh sách phiên sau khi thu hồi.
+  const [sessionsKey, setSessionsKey] = useState(0)
+
+  // Mỗi thao tác mới xoá hết thông báo cũ của cả trang, kể cả của khối khác.
+  function clearNotices() {
+    setProfileError('')
+    setProfileNotice('')
+    setPasswordError('')
+    setPasswordNotice('')
+    setSessionsError('')
+    setSessionsNotice('')
+  }
+
   async function handleSaveProfile(event) {
     event.preventDefault()
     setSaving(true)
-    setProfileError('')
-    setProfileNotice('')
+    clearNotices()
     try {
       setUser(await userApi.updateProfile(form))
       setProfileNotice('Your details have been saved.')
@@ -43,7 +58,7 @@ export default function ProfilePage() {
   async function handleUploadAvatar(event) {
     const file = event.target.files?.[0]
     if (!file) return
-    setProfileError('')
+    clearNotices()
     try {
       setUser(await userApi.uploadAvatar(file))
     } catch (err) {
@@ -54,8 +69,7 @@ export default function ProfilePage() {
   async function handleChangePassword(event) {
     event.preventDefault()
     setChanging(true)
-    setPasswordError('')
-    setPasswordNotice('')
+    clearNotices()
     try {
       await authApi.changePassword(passwords.currentPassword, passwords.newPassword)
       setPasswords({ currentPassword: '', newPassword: '' })
@@ -68,7 +82,7 @@ export default function ProfilePage() {
   }
 
   async function handleResendVerification() {
-    setProfileError('')
+    clearNotices()
     try {
       await authApi.resendVerification()
       // Backend đẩy mail qua hàng đợi rồi trả về ngay, nên chỉ nói là "đang gửi".
@@ -78,30 +92,26 @@ export default function ProfilePage() {
     }
   }
 
-  const [sessions, setSessions] = useState([])
-  const [sessionsError, setSessionsError] = useState('')
-  const [sessionsNotice, setSessionsNotice] = useState('')
-
   useEffect(() => {
-    if (user) loadSessions()
-  }, [user])
-
-  async function loadSessions() {
-    setSessionsError('')
-    try {
-      const data = await authApi.getSessions()
-      setSessions(data?.sessions || [])
-    } catch {
-      // Sessions endpoint might not exist yet in older BE; silently skip.
+    if (!user) return
+    async function loadSessions() {
+      try {
+        const data = await authApi.getSessions()
+        setSessions(data?.sessions || [])
+      } catch {
+        // Sessions endpoint might not exist yet in older BE; silently skip.
+      }
     }
-  }
+    loadSessions()
+  }, [user, sessionsKey])
+
+  const reloadSessions = () => setSessionsKey((key) => key + 1)
 
   async function handleRevokeSession(id) {
-    setSessionsError('')
-    setSessionsNotice('')
+    clearNotices()
     try {
       await authApi.revokeSession(id)
-      loadSessions()
+      reloadSessions()
       setSessionsNotice('Session revoked.')
     } catch (err) {
       setSessionsError(err.message)
@@ -110,11 +120,10 @@ export default function ProfilePage() {
 
   async function handleRevokeOthers() {
     if (!confirm('Sign out from all other devices?')) return
-    setSessionsError('')
-    setSessionsNotice('')
+    clearNotices()
     try {
       const data = await authApi.revokeOtherSessions()
-      loadSessions()
+      reloadSessions()
       setSessionsNotice(`Signed out from ${data?.revokedCount || 0} other device(s).`)
     } catch (err) {
       setSessionsError(err.message)

@@ -127,12 +127,22 @@ export default function MyOrdersPage() {
             </ul>
 
             <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-4">
-              <p className="text-sm">
-                <span className="text-muted">Total: </span>
-                <span className="tabular text-h4 text-heading">
-                  {formatPrice(order.totalPrice)}
-                </span>
-              </p>
+              <div className="text-sm">
+                {/* Có phí giao hàng hoặc giảm giá thì ghi rõ, để tổng không lệch với tổng các món mà không giải thích. */}
+                {(Number(order.discountAmount) > 0 || Number(order.shippingFee) > 0) && (
+                  <p className="tabular text-muted">
+                    {Number(order.shippingFee) > 0 && <>Delivery {formatPrice(order.shippingFee)}</>}
+                    {Number(order.shippingFee) > 0 && Number(order.discountAmount) > 0 && ' · '}
+                    {Number(order.discountAmount) > 0 && <>Discount −{formatPrice(order.discountAmount)}</>}
+                  </p>
+                )}
+                <p>
+                  <span className="text-muted">Total: </span>
+                  <span className="tabular text-h4 text-heading">
+                    {formatPrice(order.totalPrice)}
+                  </span>
+                </p>
+              </div>
 
               {/* Chỉ đơn chưa xác nhận mới cho khách tự huỷ. */}
               {order.status === 'PENDING' && (

@@ -214,6 +214,7 @@ export default function Header({ variant = 'storefront' }) {
               <button
                 type="button"
                 onClick={() => setMenuOpen(!menuOpen)}
+                aria-label="Account menu"
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
                 className="flex items-center gap-1.5 rounded-full p-0.5 pr-2 hover:bg-sunken"

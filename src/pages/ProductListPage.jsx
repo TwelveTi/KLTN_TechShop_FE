@@ -327,7 +327,18 @@ export default function ProductListPage() {
 
           {loading && <ProductGridSkeleton count={LIMIT} />}
 
-          {!loading && !error && products.length === 0 && (
+          {/* Trang vượt quá số trang, thường do link cũ: bộ lọc vẫn có kết quả, chỉ cần quay về trang cuối. */}
+          {!loading && !error && products.length === 0 && pagination?.totalPages > 0 && (
+            <EmptyState
+              icon={SearchX}
+              title={`Page ${page} is past the last page`}
+              description={`These filters have ${pagination.totalPages} page(s) of results.`}
+              actionLabel={`Go to page ${pagination.totalPages}`}
+              actionTo={`?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(pagination.totalPages) })}`}
+            />
+          )}
+
+          {!loading && !error && products.length === 0 && !(pagination?.totalPages > 0) && (
             <EmptyState
               icon={SearchX}
               title="No products match these filters"
