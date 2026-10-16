@@ -31,6 +31,15 @@ const adminApi = {
 
   deleteProduct: (id) => axiosClient.delete(`/admin/products/${id}`),
 
+  // Biến thể sửa từng cái, giữ nguyên id để giỏ hàng và đơn hàng không mất liên kết.
+  createVariant: (productId, payload) => axiosClient.post(`/admin/products/${productId}/variants`, payload),
+
+  updateVariant: (productId, variantId, payload) =>
+    axiosClient.put(`/admin/products/${productId}/variants/${variantId}`, payload),
+
+  deleteVariant: (productId, variantId) =>
+    axiosClient.delete(`/admin/products/${productId}/variants/${variantId}`),
+
   uploadProductImages: (files) => {
     const formData = new FormData()
     files.forEach((file) => formData.append('images', file))

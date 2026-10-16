@@ -10,6 +10,7 @@ import Modal from '../../components/ui/Modal'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { RowActions, Table, TableEmpty, Td, Th, Tr } from '../../components/ui/Table'
 import { formatPrice, PLACEHOLDER_IMAGE } from '../../utils/format'
+import VariantManager from './VariantManager'
 
 const EMPTY_PRODUCT = {
   name: '',
@@ -171,6 +172,13 @@ export default function AdminProductsPage() {
   }, [])
 
   const formCategoryId = form?.categoryId || ''
+  const hasVariants = (form?.variants?.length || 0) > 0
+
+  // Lưới biến thể lưu xong thì cập nhật form: danh sách mới và tồn kho tổng do backend tính.
+  function handleVariantsChanged(product) {
+    setForm((prev) => ({ ...prev, variants: product.variants || [], stockQuantity: product.stockQuantity }))
+    reloadProducts()
+  }
 
   useEffect(() => {
     if (!formCategoryId) return
@@ -276,7 +284,8 @@ export default function AdminProductsPage() {
       brandId: form.brandId,
       basePrice: Number(form.basePrice),
       salePrice: form.salePrice === '' ? null : Number(form.salePrice),
-      stockQuantity: Number(form.stockQuantity),
+      // Có biến thể thì tồn kho do biến thể quyết định, không gửi ô tồn kho của sản phẩm.
+      ...(hasVariants ? {} : { stockQuantity: Number(form.stockQuantity) }),
       shortDescription: form.shortDescription || null,
       description: form.description || null,
       status: form.status,
@@ -505,7 +514,9 @@ export default function AdminProductsPage() {
             <Input
               type="number"
               label="Stock quantity"
-              required
+              required={!hasVariants}
+              disabled={hasVariants}
+              hint={hasVariants ? 'Sum of the variants below. Edit stock per variant.' : undefined}
               value={form.stockQuantity}
               onChange={(event) => setForm({ ...form, stockQuantity: event.target.value })}
             />
@@ -556,6 +567,19 @@ export default function AdminProductsPage() {
                 />
               )}
             </fieldset>
+
+            {/* Chỉ sản phẩm đã có id mới thêm biến thể được, vì mỗi biến thể lưu riêng theo id sản phẩm. */}
+            {form.id && (
+              <fieldset className="sm:col-span-2 rounded-md border border-line p-4">
+                <legend className="px-1 text-sm font-medium text-heading">Variants</legend>
+                <VariantManager
+                  key={form.id}
+                  productId={form.id}
+                  variants={form.variants || []}
+                  onChanged={handleVariantsChanged}
+                />
+              </fieldset>
+            )}
 
             <div className="sm:col-span-2">
               <span className="mb-1.5 block text-sm font-medium text-heading">Images</span>
