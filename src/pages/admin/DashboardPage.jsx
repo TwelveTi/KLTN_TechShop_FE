@@ -119,7 +119,7 @@ export default function DashboardPage() {
 
   const cards = [
     { label: 'Total revenue', value: formatPrice(summary?.totalRevenue) },
-    { label: 'Orders', value: String(summary?.totalOrders || 0) },
+    { label: 'Paid orders', value: String(summary?.totalOrders || 0) },
     { label: 'Average order value', value: formatPrice(summary?.averageOrderValue) },
     { label: 'Awaiting confirmation', value: String(summary?.orderStatus?.pending || 0) },
   ]

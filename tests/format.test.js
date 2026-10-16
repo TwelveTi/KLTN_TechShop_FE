@@ -6,6 +6,8 @@ import {
   formatDateTime,
   getProductImage,
   getProductPrice,
+  getVariantPrice,
+  getVariantStock,
   PLACEHOLDER_IMAGE,
   ORDER_STATUS,
   ORDER_STATUS_LABEL,
@@ -25,6 +27,30 @@ describe('formatPrice', () => {
     expect(formatPrice(null)).toBe('0₫')
     expect(formatPrice(undefined)).toBe('0₫')
     expect(formatPrice('abc')).toBe('0₫')
+  })
+
+  test('làm tròn số lẻ, như giá trị trung bình đơn hàng', () => {
+    expect(formatPrice(23297777.778)).toBe('23,297,778₫')
+  })
+})
+
+describe('getVariantPrice / getVariantStock', () => {
+  const product = { basePrice: '34990000.00', salePrice: '29990000.00', stockQuantity: 50 }
+
+  test('biến thể tự đặt giá thì dùng giá sale của chính nó', () => {
+    const variant = { price: '40990000.00', salePrice: '35990000.00', stockQuantity: 10 }
+    expect(getVariantPrice(product, variant).price).toBe(35990000)
+    expect(getVariantStock(product, variant)).toBe(10)
+  })
+
+  test('biến thể không tự đặt giá thì kế thừa giá của sản phẩm', () => {
+    const variant = { price: null, salePrice: null, stockQuantity: 3 }
+    expect(getVariantPrice(product, variant).price).toBe(29990000)
+  })
+
+  test('không có biến thể thì dùng giá và tồn kho của sản phẩm', () => {
+    expect(getVariantPrice(product, null).price).toBe(29990000)
+    expect(getVariantStock(product, null)).toBe(50)
   })
 })
 

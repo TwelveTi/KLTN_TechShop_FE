@@ -83,8 +83,9 @@ export default function CartPage() {
                       </span>
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        disabled={item.stock != null && item.quantity >= item.stock}
                         aria-label={`Increase quantity of ${item.name}`}
-                        className="grid size-8 place-items-center text-body hover:bg-sunken"
+                        className="grid size-8 place-items-center text-body hover:bg-sunken disabled:opacity-40"
                       >
                         <Plus size={14} aria-hidden />
                       </button>

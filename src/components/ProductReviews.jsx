@@ -70,6 +70,7 @@ export default function ProductReviews({ productId }) {
     if (!confirm('Delete this review?')) return
     try {
       await reviewApi.deleteReview(reviewId)
+      setFormError('')
       reloadReviews()
     } catch (err) {
       setFormError(err.message)
@@ -77,6 +78,8 @@ export default function ProductReviews({ productId }) {
   }
 
   const total = summary?.totalReviews || 0
+  // Mỗi người một review cho một sản phẩm, nên đã viết rồi thì ẩn form thay vì để gửi rồi mới báo lỗi.
+  const hasMyReview = Boolean(user) && reviews.some((review) => review.user?.id === user.id)
 
   return (
     <section className="mt-16">
@@ -116,7 +119,11 @@ export default function ProductReviews({ productId }) {
             </div>
           )}
 
-          {isLoggedIn ? (
+          {isLoggedIn && hasMyReview ? (
+            <div className="rounded-md border border-line bg-surface p-6 text-sm text-muted shadow-sm">
+              You have reviewed this product. Delete your review to write a new one.
+            </div>
+          ) : isLoggedIn ? (
             <form
               onSubmit={handleSubmit}
               className="space-y-4 rounded-md border border-line bg-surface p-6 shadow-sm"

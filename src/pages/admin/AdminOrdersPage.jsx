@@ -15,6 +15,9 @@ import {
   PAYMENT_STATUS_LABEL,
 } from '../../utils/format'
 
+// Khớp TERMINAL_STATUSES ở adminOrderService của backend.
+const TERMINAL_STATUSES = ['DELIVERED', 'CANCELLED', 'REFUNDED']
+
 const STATUS_TONE = {
   PENDING: 'warning',
   PAID: 'primary',
@@ -171,8 +174,10 @@ export default function AdminOrdersPage() {
                         <select
                           value={order.status}
                           onChange={(event) => handleChangeStatus(order.id, event.target.value)}
+                          // Đơn đã giao, đã huỷ hoặc đã hoàn tiền thì backend không cho đổi nữa.
+                          disabled={TERMINAL_STATUSES.includes(order.status)}
                           aria-label={`Change the status of order ${order.orderCode}`}
-                          className="h-8 rounded-sm border border-line-strong bg-surface px-1.5 text-caption text-heading"
+                          className="h-8 rounded-sm border border-line-strong bg-surface px-1.5 text-caption text-heading disabled:opacity-50"
                         >
                           {ORDER_STATUS.map((option) => (
                             <option key={option} value={option}>

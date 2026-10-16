@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import cartApi from '../api/cartApi'
-import { getProductImage, getProductPrice } from '../utils/format'
+import { getProductImage, getVariantPrice, getVariantStock } from '../utils/format'
 import { useAuth } from './AuthContext'
 
 // Giỏ hàng có hai chế độ:
@@ -42,7 +42,9 @@ export function CartProvider({ children }) {
         try {
           await cartApi.addItem(item.productId, item.variantId, item.quantity)
         } catch {
-          // Sản phẩm hết hàng hoặc đã gỡ thì bỏ qua, không chặn cả giỏ.
+          // Tồn kho có thể đã giảm từ lúc thêm vào giỏ: thử lại với một chiếc thay vì bỏ mất cả dòng.
+          // Sản phẩm đã gỡ hoặc hết hẳn hàng thì mới bỏ qua.
+          await cartApi.addItem(item.productId, item.variantId, 1).catch(() => {})
         }
       }
       localStorage.removeItem(GUEST_CART_KEY)
@@ -63,25 +65,29 @@ export function CartProvider({ children }) {
       return
     }
 
-    // Giỏ khách: gộp dòng trùng sản phẩm, rồi ghi lại localStorage.
-    const { price } = getProductPrice(product)
+    // Giỏ khách: giá, tồn kho và tên lấy theo biến thể đang chọn, số lượng không vượt tồn kho.
+    const variant = product.variants?.find((item) => item.id === variantId) || null
+    const { price } = getVariantPrice(product, variant)
+    const stock = getVariantStock(product, variant)
+    if (stock <= 0) throw new Error('This product is out of stock')
     const lineId = `${product.id}-${variantId || 'default'}`
     const next = [...readGuestCart()]
     const found = next.find((item) => item.id === lineId)
 
     if (found) {
-      found.quantity += quantity
+      found.quantity = Math.min(found.quantity + quantity, stock)
     } else {
       next.unshift({
         id: lineId,
         productId: product.id,
         variantId,
         name: product.name,
+        variantName: variant?.variantName || null,
         imageUrl: getProductImage(product),
         unitPrice: price,
-        quantity,
-        stock: Number(product.stockQuantity) || 99,
-        inStock: true,
+        quantity: Math.min(quantity, stock),
+        stock,
+        inStock: stock > 0,
       })
     }
     writeGuestCart(next)
@@ -98,7 +104,7 @@ export function CartProvider({ children }) {
     }
 
     const next = readGuestCart().map((item) =>
-      item.id === itemId ? { ...item, quantity } : item,
+      item.id === itemId ? { ...item, quantity: Math.min(quantity, item.stock ?? quantity) } : item,
     )
     writeGuestCart(next)
     setItems(next)

@@ -2,7 +2,8 @@
 
 // Backend trả tiền dạng số hoặc chuỗi "12500000.00" nên phải ép về số trước.
 export function formatPrice(value) {
-  const number = Number(value) || 0
+  // VND không có phần lẻ, làm tròn để số trung bình không hiện ba chữ số thập phân.
+  const number = Math.round(Number(value) || 0)
   return number.toLocaleString('en-US') + '₫'
 }
 
@@ -40,6 +41,18 @@ export function getProductPrice(product) {
   const sale = product?.salePrice == null ? null : Number(product.salePrice)
   const onSale = sale !== null && sale > 0 && sale < base
   return { price: onSale ? sale : base, oldPrice: onSale ? base : null, onSale }
+}
+
+// Giá theo biến thể, cùng luật với pricing.resolveUnitPrice ở backend: biến thể tự đặt giá
+// thì dùng giá sale của chính nó, không thì kế thừa giá của sản phẩm.
+export function getVariantPrice(product, variant) {
+  if (!variant || variant.price == null) return getProductPrice(product)
+  return getProductPrice({ basePrice: variant.price, salePrice: variant.salePrice })
+}
+
+// Tồn kho nằm ở biến thể khi có biến thể, không thì ở sản phẩm.
+export function getVariantStock(product, variant) {
+  return Number(variant ? variant.stockQuantity : product?.stockQuantity) || 0
 }
 
 // Nhãn hiển thị cho trạng thái đơn hàng. Danh sách mã lấy từ enum của

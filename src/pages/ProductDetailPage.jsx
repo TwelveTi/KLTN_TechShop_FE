@@ -11,7 +11,7 @@ import Breadcrumb from '../components/ui/Breadcrumb'
 import Button from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Skeleton'
 import { useCart } from '../context/CartContext'
-import { formatPrice, getProductPrice, PLACEHOLDER_IMAGE } from '../utils/format'
+import { formatPrice, getVariantPrice, getVariantStock, PLACEHOLDER_IMAGE } from '../utils/format'
 
 const ASSURANCES = [
   { icon: Truck, text: 'Free delivery on orders over 1,000,000₫' },
@@ -112,9 +112,12 @@ export default function ProductDetailPage() {
 
   if (!product) return null
 
-  const { price, oldPrice, onSale } = getProductPrice(product)
+  // Giá và tồn kho đi theo biến thể đang chọn, khớp với số tiền giỏ hàng sẽ tính.
+  const variant = product.variants?.find((item) => item.id === variantId) || null
+  const { price, oldPrice, onSale } = getVariantPrice(product, variant)
+  const stock = getVariantStock(product, variant)
   const images = product.images?.length ? product.images : [{ imageUrl: PLACEHOLDER_IMAGE }]
-  const outOfStock = product.status === 'OUT_OF_STOCK' || Number(product.stockQuantity) <= 0
+  const outOfStock = product.status === 'OUT_OF_STOCK' || stock <= 0
   const discount = onSale ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0
 
   return (
@@ -195,7 +198,10 @@ export default function ProductDetailPage() {
                 {product.variants.map((variant) => (
                   <button
                     key={variant.id}
-                    onClick={() => setVariantId(variant.id)}
+                    onClick={() => {
+                      setVariantId(variant.id)
+                      setQuantity(1)
+                    }}
                     aria-pressed={variantId === variant.id}
                     className={`rounded-sm border px-3 py-2 text-sm ${
                       variantId === variant.id
@@ -221,7 +227,8 @@ export default function ProductDetailPage() {
               </button>
               <span className="tabular w-10 text-center text-heading">{quantity}</span>
               <button
-                onClick={() => setQuantity(quantity + 1)}
+                onClick={() => setQuantity(Math.min(stock, quantity + 1))}
+                disabled={quantity >= stock}
                 aria-label="Increase quantity"
                 className="grid size-10 place-items-center text-body hover:bg-sunken"
               >
@@ -230,7 +237,7 @@ export default function ProductDetailPage() {
             </div>
 
             <span className="text-sm text-muted">
-              {outOfStock ? 'Out of stock' : `${product.stockQuantity} left in stock`}
+              {outOfStock ? 'Out of stock' : `${stock} left in stock`}
             </span>
           </div>
 

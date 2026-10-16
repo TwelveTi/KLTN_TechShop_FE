@@ -294,6 +294,11 @@ export default function CheckoutPage() {
                 className="flex-1"
                 value={discountCode}
                 onChange={(event) => setDiscountCode(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter') return
+                  event.preventDefault()
+                  handleApplyDiscount()
+                }}
                 placeholder="Discount code"
                 aria-label="Discount code"
               />
