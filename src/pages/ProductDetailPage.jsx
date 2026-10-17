@@ -11,21 +11,22 @@ import Breadcrumb from '../components/ui/Breadcrumb'
 import Button from '../components/ui/Button'
 import { Skeleton } from '../components/ui/Skeleton'
 import { useCart } from '../context/CartContext'
+import { useLanguage } from '../context/LanguageContext'
 import { formatPrice, getVariantPrice, getVariantStock, PLACEHOLDER_IMAGE } from '../utils/format'
 
 const ASSURANCES = [
-  { icon: Truck, text: 'Free delivery on orders over 1,000,000₫' },
+  { icon: Truck, text: 'Free delivery on orders over {amount}' },
   { icon: RotateCcw, text: 'Returns within 30 days for technical faults' },
   { icon: ShieldCheck, text: 'Manufacturer warranty up to 24 months' },
 ]
 
 // Một thông số được lưu ở 3 cột khác nhau tuỳ kiểu dữ liệu, nên phải chọn đúng cột.
-function formatSpecValue(spec) {
+function formatSpecValue(spec, t) {
   if (spec.valueText) return spec.valueText
   if (spec.valueNumber != null) {
     return `${Number(spec.valueNumber)}${spec.definition?.unit ? ` ${spec.definition.unit}` : ''}`
   }
-  if (spec.valueBoolean != null) return spec.valueBoolean ? 'Yes' : 'No'
+  if (spec.valueBoolean != null) return spec.valueBoolean ? t('Yes') : t('No')
   return '—'
 }
 
@@ -33,6 +34,7 @@ export default function ProductDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { addToCart } = useCart()
+  const { t } = useLanguage()
 
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -105,7 +107,7 @@ export default function ProductDetailPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-page px-4 py-16 sm:px-8">
-        <Alert title="Could not open this product">{error}</Alert>
+        <Alert title={t('Could not open this product')}>{error}</Alert>
       </div>
     )
   }
@@ -124,8 +126,8 @@ export default function ProductDetailPage() {
     <div className="mx-auto max-w-page px-4 py-8 sm:px-8">
       <Breadcrumb
         items={[
-          { label: 'Home', to: '/' },
-          { label: product.category?.name || 'Products', to: '/products' },
+          { label: t('Home'), to: '/' },
+          { label: product.category?.name || t('Products'), to: '/products' },
           { label: product.name },
         ]}
       />
@@ -146,7 +148,7 @@ export default function ProductDetailPage() {
                 <button
                   key={index}
                   onClick={() => setActiveImage(index)}
-                  aria-label={`View image ${index + 1}`}
+                  aria-label={t('View image {number}', { number: index + 1 })}
                   aria-pressed={index === activeImage}
                   className={`size-16 overflow-hidden rounded-sm border bg-surface ${
                     index === activeImage ? 'border-primary' : 'border-line'
@@ -169,8 +171,10 @@ export default function ProductDetailPage() {
             <div className="mt-3 flex items-center gap-2">
               <StarRating value={Number(product.averageRating)} size={15} />
               <span className="tabular text-sm text-muted">
-                {Number(product.averageRating).toFixed(1)} · {product.reviewCount}{' '}
-                {product.reviewCount === 1 ? 'review' : 'reviews'}
+                {Number(product.averageRating).toFixed(1)} ·{' '}
+                {t(product.reviewCount === 1 ? '{count} review' : '{count} reviews', {
+                  count: product.reviewCount,
+                })}
               </span>
             </div>
           )}
@@ -182,7 +186,7 @@ export default function ProductDetailPage() {
                 <span className="tabular text-lead text-faint line-through">
                   {formatPrice(oldPrice)}
                 </span>
-                <Badge tone="danger">{discount}% off</Badge>
+                <Badge tone="danger">{t('{discount}% off', { discount })}</Badge>
               </>
             )}
           </div>
@@ -193,7 +197,7 @@ export default function ProductDetailPage() {
 
           {product.variants?.length > 1 && (
             <fieldset className="mt-6">
-              <legend className="mb-2 text-sm font-medium text-heading">Version</legend>
+              <legend className="mb-2 text-sm font-medium text-heading">{t('Version')}</legend>
               <div className="flex flex-wrap gap-2">
                 {product.variants.map((variant) => (
                   <button
@@ -220,7 +224,7 @@ export default function ProductDetailPage() {
             <div className="flex items-center rounded-sm border border-line-strong">
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                aria-label="Decrease quantity"
+                aria-label={t('Decrease quantity')}
                 className="grid size-10 place-items-center text-body hover:bg-sunken"
               >
                 <Minus size={15} aria-hidden />
@@ -229,7 +233,7 @@ export default function ProductDetailPage() {
               <button
                 onClick={() => setQuantity(Math.min(stock, quantity + 1))}
                 disabled={quantity >= stock}
-                aria-label="Increase quantity"
+                aria-label={t('Increase quantity')}
                 className="grid size-10 place-items-center text-body hover:bg-sunken"
               >
                 <Plus size={15} aria-hidden />
@@ -237,7 +241,7 @@ export default function ProductDetailPage() {
             </div>
 
             <span className="text-sm text-muted">
-              {outOfStock ? 'Out of stock' : `${stock} left in stock`}
+              {outOfStock ? t('Out of stock') : t('{count} left in stock', { count: stock })}
             </span>
           </div>
 
@@ -251,7 +255,7 @@ export default function ProductDetailPage() {
               onClick={() => handleAddToCart(false)}
               className="flex-1"
             >
-              {added ? 'Added to cart' : 'Add to cart'}
+              {added ? t('Added to cart') : t('Add to cart')}
             </Button>
             <Button
               variant="secondary"
@@ -260,7 +264,7 @@ export default function ProductDetailPage() {
               onClick={() => handleAddToCart(true)}
               className="flex-1"
             >
-              Buy now
+              {t('Buy now')}
             </Button>
           </div>
 
@@ -274,7 +278,7 @@ export default function ProductDetailPage() {
             {ASSURANCES.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-2.5 text-sm text-muted">
                 <Icon size={16} aria-hidden className="shrink-0" />
-                {text}
+                {t(text, { amount: formatPrice(1000000) })}
               </li>
             ))}
           </ul>
@@ -283,14 +287,14 @@ export default function ProductDetailPage() {
 
       {product.description && (
         <section className="mt-16 rounded-md border border-line bg-surface p-8">
-          <h2 className="text-h2">Product description</h2>
+          <h2 className="text-h2">{t('Product description')}</h2>
           <p className="mt-4 whitespace-pre-line text-body">{product.description}</p>
         </section>
       )}
 
       {product.specifications?.length > 0 && (
         <section className="mt-6 rounded-md border border-line bg-surface p-8">
-          <h2 className="text-h2">Specifications</h2>
+          <h2 className="text-h2">{t('Specifications')}</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">
               <tbody>
@@ -299,7 +303,7 @@ export default function ProductDetailPage() {
                     <th scope="row" className="w-1/3 py-3 pr-4 text-left font-medium text-muted">
                       {spec.definition?.name || spec.name}
                     </th>
-                    <td className="py-3 text-heading">{formatSpecValue(spec)}</td>
+                    <td className="py-3 text-heading">{formatSpecValue(spec, t)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -308,7 +312,7 @@ export default function ProductDetailPage() {
         </section>
       )}
 
-      <RecommendationRail title="Similar products" mode="similar" productId={product.id} />
+      <RecommendationRail title={t('Similar products')} mode="similar" productId={product.id} />
 
       <ProductReviews productId={product.id} />
     </div>

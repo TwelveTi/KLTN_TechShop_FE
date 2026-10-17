@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { useLanguage } from '../context/LanguageContext'
 
 // Thanh chuyển giữa ba trang của khu vực tài khoản.
 const TABS = [
@@ -8,8 +9,10 @@ const TABS = [
 ]
 
 export default function ProfileTabs() {
+  const { t } = useLanguage()
+
   return (
-    <nav aria-label="Account section" className="mt-6 flex gap-6 border-b border-line">
+    <nav aria-label={t('Account section')} className="mt-6 flex gap-6 border-b border-line">
       {TABS.map((tab) => (
         <NavLink
           key={tab.to}
@@ -23,7 +26,7 @@ export default function ProfileTabs() {
             }`
           }
         >
-          {tab.label}
+          {t(tab.label)}
         </NavLink>
       ))}
     </nav>

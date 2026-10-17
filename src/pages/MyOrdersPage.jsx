@@ -7,6 +7,7 @@ import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import { Skeleton } from '../components/ui/Skeleton'
+import { useLanguage } from '../context/LanguageContext'
 import {
   formatDateTime,
   formatPrice,
@@ -27,6 +28,7 @@ const STATUS_TONE = {
 }
 
 export default function MyOrdersPage() {
+  const { t } = useLanguage()
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -49,7 +51,7 @@ export default function MyOrdersPage() {
   }
 
   async function handleCancel(orderId) {
-    if (!confirm('Are you sure you want to cancel this order?')) return
+    if (!confirm(t('Are you sure you want to cancel this order?'))) return
     try {
       await orderApi.cancelOrder(orderId, 'Cancelled by the customer')
       loadOrders()
@@ -60,12 +62,12 @@ export default function MyOrdersPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
-      <h1 className="text-h1">My orders</h1>
+      <h1 className="text-h1">{t('My orders')}</h1>
       <ProfileTabs />
 
       {error && (
         <div className="mt-6">
-          <Alert title="Could not load your orders" onRetry={loadOrders}>
+          <Alert title={t('Could not load your orders')} onRetry={loadOrders}>
             {error}
           </Alert>
         </div>
@@ -81,9 +83,9 @@ export default function MyOrdersPage() {
       {!loading && !error && orders.length === 0 && (
         <EmptyState
           icon={PackageOpen}
-          title="You have no orders yet"
-          description="Once you place an order it will appear here with its delivery status."
-          actionLabel="Browse products"
+          title={t('You have no orders yet')}
+          description={t('Once you place an order it will appear here with its delivery status.')}
+          actionLabel={t('Browse products')}
           actionTo="/products"
         />
       )}
@@ -99,9 +101,9 @@ export default function MyOrdersPage() {
 
               <div className="flex flex-wrap gap-2">
                 <Badge tone={STATUS_TONE[order.status] || 'neutral'}>
-                  {ORDER_STATUS_LABEL[order.status] || order.status}
+                  {t(ORDER_STATUS_LABEL[order.status] || order.status)}
                 </Badge>
-                <Badge>{PAYMENT_STATUS_LABEL[order.paymentStatus] || order.paymentStatus}</Badge>
+                <Badge>{t(PAYMENT_STATUS_LABEL[order.paymentStatus] || order.paymentStatus)}</Badge>
               </div>
             </header>
 
@@ -131,13 +133,13 @@ export default function MyOrdersPage() {
                 {/* Có phí giao hàng hoặc giảm giá thì ghi rõ, để tổng không lệch với tổng các món mà không giải thích. */}
                 {(Number(order.discountAmount) > 0 || Number(order.shippingFee) > 0) && (
                   <p className="tabular text-muted">
-                    {Number(order.shippingFee) > 0 && <>Delivery {formatPrice(order.shippingFee)}</>}
+                    {Number(order.shippingFee) > 0 && <>{t('Delivery')} {formatPrice(order.shippingFee)}</>}
                     {Number(order.shippingFee) > 0 && Number(order.discountAmount) > 0 && ' · '}
-                    {Number(order.discountAmount) > 0 && <>Discount −{formatPrice(order.discountAmount)}</>}
+                    {Number(order.discountAmount) > 0 && <>{t('Discount')} −{formatPrice(order.discountAmount)}</>}
                   </p>
                 )}
                 <p>
-                  <span className="text-muted">Total: </span>
+                  <span className="text-muted">{t('Total')}: </span>
                   <span className="tabular text-h4 text-heading">
                     {formatPrice(order.totalPrice)}
                   </span>
@@ -147,7 +149,7 @@ export default function MyOrdersPage() {
               {/* Chỉ đơn chưa xác nhận mới cho khách tự huỷ. */}
               {order.status === 'PENDING' && (
                 <Button variant="ghost" size="sm" onClick={() => handleCancel(order.id)} className="!text-danger-strong">
-                  Cancel order
+                  {t('Cancel order')}
                 </Button>
               )}
             </footer>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Button from './Button'
 import { googleAuthUrl } from '../../api/authApi'
+import { useLanguage } from '../../context/LanguageContext'
 
 // Dấu G của Google. Đây là logo thương hiệu nên phải vẽ đúng bốn màu gốc,
 // không thay bằng icon Lucide được.
@@ -30,10 +31,12 @@ function GoogleMark({ size = 16 }) {
 // Vạch ngăn "or" đặt giữa form và nút Google, để lối đăng nhập bằng mật khẩu
 // vẫn là lối chính.
 export function OrDivider() {
+  const { t } = useLanguage()
+
   return (
     <div className="my-6 flex items-center gap-4">
       <span className="h-px flex-1 bg-line" />
-      <span className="text-caption text-muted">or</span>
+      <span className="text-caption text-muted">{t('or')}</span>
       <span className="h-px flex-1 bg-line" />
     </div>
   )
@@ -43,6 +46,7 @@ export function OrDivider() {
 // cookie refresh rồi đá về trang chủ kèm ?login=google.
 export default function OAuthButton() {
   const [redirecting, setRedirecting] = useState(false)
+  const { t } = useLanguage()
 
   function handleClick() {
     setRedirecting(true)
@@ -59,7 +63,7 @@ export default function OAuthButton() {
       isLoading={redirecting}
       leadingIcon={GoogleMark}
     >
-      {redirecting ? 'Redirecting to Google…' : 'Continue with Google'}
+      {redirecting ? t('Redirecting to Google…') : t('Continue with Google')}
     </Button>
   )
 }

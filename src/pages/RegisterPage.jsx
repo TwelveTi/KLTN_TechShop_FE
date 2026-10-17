@@ -7,6 +7,7 @@ import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import OAuthButton, { OrDivider } from '../components/ui/OAuthButton'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 
 // Điều kiện mật khẩu, hiện thành danh sách tick để người dùng biết còn thiếu gì.
 const PASSWORD_RULES = [
@@ -17,6 +18,7 @@ const PASSWORD_RULES = [
 
 export default function RegisterPage() {
   const { register } = useAuth()
+  const { t } = useLanguage()
 
   const [form, setForm] = useState({
     fullName: '',
@@ -82,22 +84,22 @@ export default function RegisterPage() {
   if (sentTo) {
     return (
       <div role="status">
-        <h1 className="text-h1">Verify your email</h1>
+        <h1 className="text-h1">{t('Verify your email')}</h1>
         <p className="mt-2 text-sm text-muted">
-          We sent a verification link to <span className="text-body">{sentTo}</span>. Open it to
-          finish setting up your account. The link works once and expires after 24 hours.
+          {t('We sent a verification link to')} <span className="text-body">{sentTo}</span>.{' '}
+          {t('Open it to finish setting up your account. The link works once and expires after 24 hours.')}
         </p>
 
         <div className="mt-6">
-          <Alert tone="info" title="You can look around first">
-            Browsing and building a cart need no verification. Placing an order does.
+          <Alert tone="info" title={t('You can look around first')}>
+            {t('Browsing and building a cart need no verification. Placing an order does.')}
           </Alert>
         </div>
 
         <p className="mt-6 text-center text-sm text-muted">
-          Already verified?{' '}
+          {t('Already verified?')}{' '}
           <Link to="/login" className="rounded-xs text-primary hover:underline">
-            Sign in
+            {t('Sign in')}
           </Link>
         </p>
       </div>
@@ -106,13 +108,13 @@ export default function RegisterPage() {
 
   return (
     <>
-      <h1 className="text-h1">Create an account</h1>
-      <p className="mt-2 text-sm text-muted">It takes less than a minute.</p>
+      <h1 className="text-h1">{t('Create an account')}</h1>
+      <p className="mt-2 text-sm text-muted">{t('It takes less than a minute.')}</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <Input
           name="fullName"
-          label="Full name"
+          label={t('Full name')}
           required
           autoComplete="name"
           value={form.fullName}
@@ -126,13 +128,13 @@ export default function RegisterPage() {
           autoComplete="email"
           value={form.email}
           onChange={handleChange}
-          error={emailIssue}
-          hint={emailIssue ? '' : 'Used for your verification code and order updates.'}
+          error={t(emailIssue)}
+          hint={emailIssue ? '' : t('Used for your verification code and order updates.')}
         />
         <Input
           name="phone"
           type="tel"
-          label="Phone number"
+          label={t('Phone number')}
           required
           autoComplete="tel"
           value={form.phone}
@@ -143,7 +145,7 @@ export default function RegisterPage() {
           <Input
             name="password"
             type="password"
-            label="Password"
+            label={t('Password')}
             required
             autoComplete="new-password"
             value={form.password}
@@ -160,7 +162,7 @@ export default function RegisterPage() {
                   }`}
                 >
                   {passed ? <Check size={13} aria-hidden /> : <X size={13} aria-hidden />}
-                  {rule.label}
+                  {t(rule.label)}
                 </li>
               )
             })}
@@ -170,18 +172,18 @@ export default function RegisterPage() {
         <Input
           name="confirmPassword"
           type="password"
-          label="Confirm password"
+          label={t('Confirm password')}
           required
           autoComplete="new-password"
           value={form.confirmPassword}
           onChange={handleChange}
-          error={mismatch ? 'The two passwords do not match.' : ''}
+          error={mismatch ? t('The two passwords do not match.') : ''}
         />
 
         {error && <Alert>{error}</Alert>}
 
         <Button type="submit" variant="primary" size="lg" fullWidth isLoading={loading}>
-          Create account
+          {t('Create account')}
         </Button>
       </form>
 
@@ -189,9 +191,9 @@ export default function RegisterPage() {
       <OAuthButton />
 
       <p className="mt-5 text-center text-sm text-muted">
-        Already have an account?{' '}
+        {t('Already have an account?')}{' '}
         <Link to="/login" className="rounded-xs text-primary hover:underline">
-          Sign in
+          {t('Sign in')}
         </Link>
       </p>
     </>

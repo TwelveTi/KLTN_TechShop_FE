@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
+import { useLanguage } from '../../context/LanguageContext'
 
 // Hộp thoại duy nhất của app. Escape để đóng, khoá cuộn nền, trả focus về
 // chỗ vừa bấm, và bấm ra ngoài thì đóng.
 export default function Modal({ open, onClose, title, size = 'md', children }) {
   const triggerRef = useRef(null)
   const panelRef = useRef(null)
+  const { t } = useLanguage()
 
   useEffect(() => {
     if (!open) return
@@ -48,7 +50,7 @@ export default function Modal({ open, onClose, title, size = 'md', children }) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('Close')}
             className="rounded-xs p-1 text-muted hover:bg-sunken hover:text-heading"
           >
             <X size={18} aria-hidden />

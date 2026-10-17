@@ -1,14 +1,17 @@
 // Các hàm định dạng dùng chung cho toàn app.
 
+// Tiền và ngày cố ý KHÔNG đổi theo ngôn ngữ giao diện: tiền là VND nên luôn ghi kiểu
+// Việt Nam 12.500.000₫, khớp với cách backend và trợ lý AI ghi giá.
+
 // Backend trả tiền dạng số hoặc chuỗi "12500000.00" nên phải ép về số trước.
 export function formatPrice(value) {
   // VND không có phần lẻ, làm tròn để số trung bình không hiện ba chữ số thập phân.
   const number = Math.round(Number(value) || 0)
-  return number.toLocaleString('en-US') + '₫'
+  return number.toLocaleString('vi-VN') + '₫'
 }
 
-// Dùng en-GB chứ không phải en-US: vẫn là ngày/tháng/năm như cũ, chỉ đổi cách
-// ngăn nhóm số. Đổi sang en-US sẽ lật thành tháng/ngày và đọc sai ngày đơn hàng.
+// Dùng en-GB chứ không phải en-US: vẫn là ngày/tháng/năm như cách người Việt đọc,
+// đổi sang en-US sẽ lật thành tháng/ngày và đọc sai ngày đơn hàng.
 export function formatDate(value) {
   if (!value) return ''
   return new Date(value).toLocaleDateString('en-GB', {

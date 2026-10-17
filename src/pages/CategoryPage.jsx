@@ -6,12 +6,14 @@ import ProductCard from '../components/ProductCard'
 import Alert from '../components/ui/Alert'
 import Breadcrumb from '../components/ui/Breadcrumb'
 import { ProductGridSkeleton, Skeleton } from '../components/ui/Skeleton'
+import { useLanguage } from '../context/LanguageContext'
 
 const LIMIT = 12
 
 export default function CategoryPage() {
   const { slug } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { t } = useLanguage()
   const page = Number(searchParams.get('page')) || 1
 
   const [category, setCategory] = useState(null)
@@ -49,8 +51,8 @@ export default function CategoryPage() {
     <div className="mx-auto max-w-page px-4 py-8 sm:px-8">
       <Breadcrumb
         items={[
-          { label: 'Home', to: '/' },
-          { label: 'Products', to: '/products' },
+          { label: t('Home'), to: '/' },
+          { label: t('Products'), to: '/products' },
           { label: category?.name || slug },
         ]}
       />
@@ -70,13 +72,15 @@ export default function CategoryPage() {
               <p className="mt-2 text-body">{category.description}</p>
             )}
             <p className="mt-1 text-sm text-muted">
-              {category?.productCount || 0} {category?.productCount === 1 ? 'product' : 'products'}
+              {t(category?.productCount === 1 ? '{count} product' : '{count} products', {
+                count: category?.productCount || 0,
+              })}
             </p>
           </div>
 
           {products.length === 0 ? (
             <p className="mt-12 text-center text-sm text-muted">
-              No products in this category yet.
+              {t('No products in this category yet.')}
             </p>
           ) : (
             <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

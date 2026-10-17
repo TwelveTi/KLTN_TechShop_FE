@@ -6,12 +6,14 @@ import ProductCard from '../components/ProductCard'
 import Alert from '../components/ui/Alert'
 import Breadcrumb from '../components/ui/Breadcrumb'
 import { ProductGridSkeleton, Skeleton } from '../components/ui/Skeleton'
+import { useLanguage } from '../context/LanguageContext'
 
 const LIMIT = 12
 
 export default function BrandPage() {
   const { slug } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { t } = useLanguage()
   const page = Number(searchParams.get('page')) || 1
 
   const [brand, setBrand] = useState(null)
@@ -49,8 +51,8 @@ export default function BrandPage() {
     <div className="mx-auto max-w-page px-4 py-8 sm:px-8">
       <Breadcrumb
         items={[
-          { label: 'Home', to: '/' },
-          { label: 'Products', to: '/products' },
+          { label: t('Home'), to: '/' },
+          { label: t('Products'), to: '/products' },
           { label: brand?.name || slug },
         ]}
       />
@@ -78,14 +80,16 @@ export default function BrandPage() {
                 <p className="mt-1 text-body">{brand.description}</p>
               )}
               <p className="mt-0.5 text-sm text-muted">
-                {brand?.productCount || 0} {brand?.productCount === 1 ? 'product' : 'products'}
+                {t(brand?.productCount === 1 ? '{count} product' : '{count} products', {
+                  count: brand?.productCount || 0,
+                })}
               </p>
             </div>
           </div>
 
           {products.length === 0 ? (
             <p className="mt-12 text-center text-sm text-muted">
-              No products from this brand yet.
+              {t('No products from this brand yet.')}
             </p>
           ) : (
             <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

@@ -9,10 +9,12 @@ import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import { formatDateTime } from '../utils/format'
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth()
+  const { t } = useLanguage()
 
   // ProtectedRoute chỉ render trang này khi đã có user, nên lấy luôn làm giá trị đầu.
   const [form, setForm] = useState({ fullName: user?.fullName || '', phone: user?.phone || '' })
@@ -112,19 +114,21 @@ export default function ProfilePage() {
     try {
       await authApi.revokeSession(id)
       reloadSessions()
-      setSessionsNotice('Session revoked.')
+      setSessionsNotice(t('Session revoked.'))
     } catch (err) {
       setSessionsError(err.message)
     }
   }
 
   async function handleRevokeOthers() {
-    if (!confirm('Sign out from all other devices?')) return
+    if (!confirm(t('Sign out from all other devices?'))) return
     clearNotices()
     try {
       const data = await authApi.revokeOtherSessions()
       reloadSessions()
-      setSessionsNotice(`Signed out from ${data?.revokedCount || 0} other device(s).`)
+      setSessionsNotice(
+        t('Signed out from {count} other device(s).', { count: data?.revokedCount || 0 }),
+      )
     } catch (err) {
       setSessionsError(err.message)
     }
@@ -136,29 +140,29 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
-      <h1 className="text-h1">My account</h1>
+      <h1 className="text-h1">{t('My account')}</h1>
       <ProfileTabs />
 
       {!user.emailVerifiedAt && (
         <div className="mt-6">
           <Alert
             tone="warning"
-            title="Email not verified"
+            title={t('Email not verified')}
             onRetry={handleResendVerification}
-            retryLabel="Resend verification email"
+            retryLabel={t('Resend verification email')}
           >
-            You need to verify your email before placing an order.
+            {t('You need to verify your email before placing an order.')}
           </Alert>
         </div>
       )}
 
       <section className="mt-6 rounded-md border border-line bg-surface p-6 shadow-sm">
-        <h2 className="text-h4">Personal details</h2>
+        <h2 className="text-h4">{t('Personal details')}</h2>
 
         <div className="mt-5 flex items-center gap-5">
           <Avatar name={user.fullName || user.email} src={user.avatarUrl} size="lg" />
           <label className="cursor-pointer rounded-xs text-sm text-primary hover:underline">
-            Change avatar
+            {t('Change avatar')}
             <input type="file" accept="image/*" onChange={handleUploadAvatar} className="sr-only" />
           </label>
         </div>
@@ -166,12 +170,12 @@ export default function ProfilePage() {
         <form onSubmit={handleSaveProfile} className="mt-6 space-y-5">
           <Input label="Email" value={user.email} disabled readOnly />
           <Input
-            label="Full name"
+            label={t('Full name')}
             value={form.fullName}
             onChange={(event) => setForm({ ...form, fullName: event.target.value })}
           />
           <Input
-            label="Phone number"
+            label={t('Phone number')}
             value={form.phone}
             onChange={(event) => setForm({ ...form, phone: event.target.value })}
           />
@@ -180,18 +184,18 @@ export default function ProfilePage() {
           {profileNotice && <Alert tone="success">{profileNotice}</Alert>}
 
           <Button type="submit" variant="primary" isLoading={saving}>
-            Save details
+            {t('Save details')}
           </Button>
         </form>
       </section>
 
       <section className="mt-6 rounded-md border border-line bg-surface p-6 shadow-sm">
-        <h2 className="text-h4">Change password</h2>
+        <h2 className="text-h4">{t('Change password')}</h2>
 
         <form onSubmit={handleChangePassword} className="mt-5 space-y-5">
           <Input
             type="password"
-            label="Current password"
+            label={t('Current password')}
             required
             autoComplete="current-password"
             value={passwords.currentPassword}
@@ -201,7 +205,7 @@ export default function ProfilePage() {
           />
           <Input
             type="password"
-            label="New password"
+            label={t('New password')}
             required
             autoComplete="new-password"
             value={passwords.newPassword}
@@ -212,7 +216,7 @@ export default function ProfilePage() {
           {passwordNotice && <Alert tone="success">{passwordNotice}</Alert>}
 
           <Button type="submit" variant="secondary" isLoading={changing}>
-            Change password
+            {t('Change password')}
           </Button>
         </form>
       </section>
@@ -220,10 +224,10 @@ export default function ProfilePage() {
       {sessions.length > 0 && (
         <section className="mt-6 rounded-md border border-line bg-surface p-6 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="text-h4">Active sessions</h2>
+            <h2 className="text-h4">{t('Active sessions')}</h2>
             {sessions.length > 1 && (
               <Button variant="ghost" size="sm" onClick={handleRevokeOthers}>
-                Sign out others
+                {t('Sign out others')}
               </Button>
             )}
           </div>
@@ -247,15 +251,15 @@ export default function ProfilePage() {
                   <DeviceIcon size={20} className="shrink-0 text-muted" aria-hidden />
                   <div className="min-w-0 flex-1 text-sm">
                     <p className="font-medium text-heading">
-                      {session.device || 'Unknown device'}
+                      {session.device || t('Unknown device')}
                       {session.current && (
                         <Badge tone="success" className="ml-2">
-                          Current
+                          {t('Current')}
                         </Badge>
                       )}
                     </p>
                     <p className="text-caption text-muted">
-                      {session.ipAddress || 'Unknown IP'} · {formatDateTime(session.createdAt)}
+                      {session.ipAddress || t('Unknown IP')} · {formatDateTime(session.createdAt)}
                     </p>
                   </div>
                   {!session.current && (
@@ -265,7 +269,7 @@ export default function ProfilePage() {
                       onClick={() => handleRevokeSession(session.id)}
                       className="shrink-0 !text-danger-strong"
                     >
-                      Revoke
+                      {t('Revoke')}
                     </Button>
                   )}
                 </li>

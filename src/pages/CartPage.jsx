@@ -4,6 +4,7 @@ import Alert from '../components/ui/Alert'
 import Button, { LinkButton } from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import { useCart } from '../context/CartContext'
+import { useLanguage } from '../context/LanguageContext'
 import { formatPrice, PLACEHOLDER_IMAGE } from '../utils/format'
 
 // Phí giao hàng do backend quyết định; đây chỉ là bản xem trước cho khách.
@@ -12,17 +13,18 @@ const FREE_SHIPPING_FROM = 1000000
 
 export default function CartPage() {
   const { items, subtotal, updateQuantity, removeItem, clearCart } = useCart()
+  const { t } = useLanguage()
   const navigate = useNavigate()
 
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-page px-4 py-8 sm:px-8">
-        <h1 className="text-h1">Cart</h1>
+        <h1 className="text-h1">{t('Cart')}</h1>
         <EmptyState
           icon={ShoppingCart}
-          title="Your cart is empty"
-          description="Anything you add will show up here."
-          actionLabel="Browse products"
+          title={t('Your cart is empty')}
+          description={t('Anything you add will show up here.')}
+          actionLabel={t('Browse products')}
           actionTo="/products"
         />
       </div>
@@ -35,15 +37,15 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-page px-4 py-8 sm:px-8">
-      <h1 className="text-h1">Cart</h1>
+      <h1 className="text-h1">{t('Cart')}</h1>
       <p className="tabular mt-1 text-sm text-muted">
-        {items.length} {items.length === 1 ? 'item' : 'items'}
+        {t(items.length === 1 ? '{count} item' : '{count} items', { count: items.length })}
       </p>
 
       {unavailable.length > 0 && (
         <div className="mt-5">
-          <Alert tone="warning" title="Some items are out of stock">
-            Remove them before checking out, otherwise the order will be rejected.
+          <Alert tone="warning" title={t('Some items are out of stock')}>
+            {t('Remove them before checking out, otherwise the order will be rejected.')}
           </Alert>
         </div>
       )}
@@ -66,14 +68,14 @@ export default function CartPage() {
                   </p>
                   <p className="tabular mt-1 text-sm text-muted">{formatPrice(item.unitPrice)}</p>
                   {item.inStock === false && (
-                    <p className="mt-1 text-sm text-danger-strong">This item is out of stock</p>
+                    <p className="mt-1 text-sm text-danger-strong">{t('This item is out of stock')}</p>
                   )}
 
                   <div className="mt-3 flex items-center gap-3">
                     <div className="flex items-center rounded-sm border border-line-strong">
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        aria-label={`Decrease quantity of ${item.name}`}
+                        aria-label={t('Decrease quantity of {name}', { name: item.name })}
                         className="grid size-8 place-items-center text-body hover:bg-sunken"
                       >
                         <Minus size={14} aria-hidden />
@@ -84,7 +86,7 @@ export default function CartPage() {
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
                         disabled={item.stock != null && item.quantity >= item.stock}
-                        aria-label={`Increase quantity of ${item.name}`}
+                        aria-label={t('Increase quantity of {name}', { name: item.name })}
                         className="grid size-8 place-items-center text-body hover:bg-sunken disabled:opacity-40"
                       >
                         <Plus size={14} aria-hidden />
@@ -98,7 +100,7 @@ export default function CartPage() {
                       onClick={() => removeItem(item.id)}
                       className="!text-muted"
                     >
-                      Remove
+                      {t('Remove')}
                     </Button>
                   </div>
                 </div>
@@ -112,38 +114,40 @@ export default function CartPage() {
 
           <div className="mt-4 flex flex-wrap gap-3">
             <LinkButton to="/products" variant="secondary">
-              Keep shopping
+              {t('Keep shopping')}
             </LinkButton>
             <Button variant="ghost" onClick={clearCart} className="!text-muted">
-              Empty the cart
+              {t('Empty the cart')}
             </Button>
           </div>
         </div>
 
         <aside className="h-fit rounded-md border border-line bg-surface p-6 shadow-sm lg:sticky lg:top-24">
-          <h2 className="text-h4">Order summary</h2>
+          <h2 className="text-h4">{t('Order summary')}</h2>
 
           <dl className="mt-5 space-y-3 text-sm">
             <div className="flex justify-between">
-              <dt className="text-muted">Subtotal</dt>
+              <dt className="text-muted">{t('Subtotal')}</dt>
               <dd className="tabular text-heading">{formatPrice(subtotal)}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-muted">Delivery</dt>
+              <dt className="text-muted">{t('Delivery')}</dt>
               <dd className="tabular text-heading">
-                {shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}
+                {shippingFee === 0 ? t('Free') : formatPrice(shippingFee)}
               </dd>
             </div>
           </dl>
 
           {shippingFee > 0 && (
             <p className="mt-3 rounded-sm bg-sunken px-3 py-2 text-caption text-muted">
-              Add {formatPrice(FREE_SHIPPING_FROM - subtotal)} more to get free delivery.
+              {t('Add {amount} more to get free delivery.', {
+                amount: formatPrice(FREE_SHIPPING_FROM - subtotal),
+              })}
             </p>
           )}
 
           <div className="mt-5 flex items-baseline justify-between border-t border-line pt-5">
-            <span className="font-semibold text-heading">Total</span>
+            <span className="font-semibold text-heading">{t('Total')}</span>
             <span className="tabular text-h3 text-heading">{formatPrice(total)}</span>
           </div>
 
@@ -154,7 +158,7 @@ export default function CartPage() {
             onClick={() => navigate('/checkout')}
             className="mt-5"
           >
-            Proceed to checkout
+            {t('Proceed to checkout')}
           </Button>
         </aside>
       </div>

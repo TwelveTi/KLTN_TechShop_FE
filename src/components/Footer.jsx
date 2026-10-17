@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { CreditCard, ShieldCheck, Truck } from 'lucide-react'
 import BrandMark from './ui/BrandMark'
+import { useLanguage } from '../context/LanguageContext'
 
 // Kết trang. Chỉ liệt kê những đường dẫn CÓ THẬT trong app — không dựng
 // một sơ đồ trang web tưởng tượng để lấp chỗ trống.
@@ -30,13 +31,15 @@ const TRUST_MARKS = [
 ]
 
 export default function Footer({ variant = 'full' }) {
+  const { t } = useLanguage()
+
   if (variant === 'focused') {
     return (
       <footer className="mt-auto border-t border-line py-6">
         <div className="mx-auto flex max-w-page flex-wrap items-center justify-center gap-4 px-4 text-caption text-muted">
           <span className="inline-flex items-center gap-1.5">
             <ShieldCheck size={14} aria-hidden />
-            Your details are encrypted in transit
+            {t('Your details are encrypted in transit')}
           </span>
           <span>© {new Date().getFullYear()} TechShop</span>
         </div>
@@ -51,19 +54,19 @@ export default function Footer({ variant = 'full' }) {
           <div className="max-w-xs">
             <BrandMark />
             <p className="mt-3 text-sm text-muted">
-              A tech store with an AI advisor that reads the real specifications in stock.
+              {t('A tech store with an AI advisor that reads the real specifications in stock.')}
             </p>
           </div>
 
           <div className="flex flex-wrap gap-10">
             {LINK_GROUPS.map((group) => (
-              <nav key={group.heading} aria-label={`Footer — ${group.heading}`}>
-                <p className="mb-3 text-overline uppercase text-faint">{group.heading}</p>
+              <nav key={group.heading} aria-label={`Footer — ${t(group.heading)}`}>
+                <p className="mb-3 text-overline uppercase text-faint">{t(group.heading)}</p>
                 <ul className="space-y-2 text-sm">
                   {group.links.map((link) => (
                     <li key={link.to}>
                       <Link to={link.to} className="text-muted hover:text-body">
-                        {link.label}
+                        {t(link.label)}
                       </Link>
                     </li>
                   ))}
@@ -80,13 +83,13 @@ export default function Footer({ variant = 'full' }) {
             {TRUST_MARKS.map(({ icon: Icon, label }) => (
               <li key={label} className="inline-flex items-center gap-1.5">
                 <Icon size={14} aria-hidden />
-                {label}
+                {t(label)}
               </li>
             ))}
           </ul>
 
           <p className="text-caption text-faint">
-            Graduation thesis — TechShop {new Date().getFullYear()}
+            {t('Graduation thesis')} — TechShop {new Date().getFullYear()}
           </p>
         </div>
       </div>

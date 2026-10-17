@@ -9,6 +9,7 @@ import EmptyState from '../components/ui/EmptyState'
 import Input from '../components/ui/Input'
 import Modal from '../components/ui/Modal'
 import { Skeleton } from '../components/ui/Skeleton'
+import { useLanguage } from '../context/LanguageContext'
 
 const FIELDS = [
   ['receiverName', 'Recipient name'],
@@ -29,6 +30,7 @@ const EMPTY_FORM = {
 }
 
 export default function AddressPage() {
+  const { t } = useLanguage()
   const [addresses, setAddresses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -79,7 +81,7 @@ export default function AddressPage() {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this address?')) return
+    if (!confirm(t('Delete this address?'))) return
     try {
       await userApi.deleteAddress(id)
       loadAddresses()
@@ -90,7 +92,7 @@ export default function AddressPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8">
-      <h1 className="text-h1">Delivery addresses</h1>
+      <h1 className="text-h1">{t('Delivery addresses')}</h1>
       <ProfileTabs />
 
       {error && (
@@ -107,8 +109,8 @@ export default function AddressPage() {
       ) : addresses.length === 0 ? (
         <EmptyState
           icon={MapPinOff}
-          title="No addresses yet"
-          description="Save an address now to make future orders quicker."
+          title={t('No addresses yet')}
+          description={t('Save an address now to make future orders quicker.')}
         />
       ) : (
         <ul className="mt-6 space-y-3">
@@ -120,7 +122,7 @@ export default function AddressPage() {
               <div className="text-sm">
                 <p className="flex flex-wrap items-center gap-2 font-medium text-heading">
                   {address.receiverName} · {address.receiverPhone}
-                  {address.isDefault && <Badge tone="primary">Default</Badge>}
+                  {address.isDefault && <Badge tone="primary">{t('Default')}</Badge>}
                 </p>
                 <p className="mt-1 text-muted">
                   {address.addressLine}, {address.ward}, {address.district}, {address.province}
@@ -130,7 +132,7 @@ export default function AddressPage() {
               <div className="flex gap-1">
                 {!address.isDefault && (
                   <Button variant="ghost" size="sm" onClick={() => handleSetDefault(address.id)}>
-                    Set as default
+                    {t('Set as default')}
                   </Button>
                 )}
                 <Button
@@ -139,7 +141,7 @@ export default function AddressPage() {
                   onClick={() => handleDelete(address.id)}
                   className="!text-danger-strong"
                 >
-                  Delete
+                  {t('Delete')}
                 </Button>
               </div>
             </li>
@@ -153,15 +155,15 @@ export default function AddressPage() {
         onClick={() => setModalOpen(true)}
         className="mt-6"
       >
-        Add a new address
+        {t('Add a new address')}
       </Button>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Add a delivery address">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={t('Add a delivery address')}>
         <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-2">
           {FIELDS.map(([field, label]) => (
             <Input
               key={field}
-              label={label}
+              label={t(label)}
               required
               value={form[field]}
               onChange={(event) => setForm({ ...form, [field]: event.target.value })}
@@ -171,10 +173,10 @@ export default function AddressPage() {
 
           <div className="flex gap-3 sm:col-span-2">
             <Button type="submit" variant="primary" isLoading={saving}>
-              Save address
+              {t('Save address')}
             </Button>
             <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
-              Cancel
+              {t('Cancel')}
             </Button>
           </div>
         </form>

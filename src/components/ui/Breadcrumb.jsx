@@ -1,10 +1,13 @@
 import { ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
+import { useLanguage } from '../../context/LanguageContext'
 
 // Đường dẫn "bạn đang ở đâu". Mục cuối là trang hiện tại nên không phải link.
 export default function Breadcrumb({ items }) {
+  const { t } = useLanguage()
+
   return (
-    <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-sm text-muted">
+    <nav aria-label={t('Breadcrumb')} className="flex flex-wrap items-center gap-1 text-sm text-muted">
       {items.map((item, index) => {
         const isLast = index === items.length - 1
         return (

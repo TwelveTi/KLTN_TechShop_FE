@@ -12,15 +12,16 @@ import {
   ORDER_STATUS,
   ORDER_STATUS_LABEL,
 } from '../src/utils/format'
+import vi from '../src/i18n/vi'
 
 describe('formatPrice', () => {
   test('nhận chuỗi từ backend và vẫn ra đúng số', () => {
     // Backend trả DECIMAL dưới dạng chuỗi "12500000.00".
-    expect(formatPrice('12500000.00')).toBe('12,500,000₫')
+    expect(formatPrice('12500000.00')).toBe('12.500.000₫')
   })
 
   test('nhận số', () => {
-    expect(formatPrice(990000)).toBe('990,000₫')
+    expect(formatPrice(990000)).toBe('990.000₫')
   })
 
   test('giá trị rỗng hoặc hỏng thì hiển thị 0 chứ không phải NaN', () => {
@@ -30,7 +31,7 @@ describe('formatPrice', () => {
   })
 
   test('làm tròn số lẻ, như giá trị trung bình đơn hàng', () => {
-    expect(formatPrice(23297777.778)).toBe('23,297,778₫')
+    expect(formatPrice(23297777.778)).toBe('23.297.778₫')
   })
 })
 
@@ -60,6 +61,7 @@ describe('formatDate', () => {
   test('theo thứ tự ngày/tháng/năm, không phải tháng/ngày', () => {
     expect(formatDate('2026-03-09T10:00:00Z')).toBe('09/03/2026')
   })
+
 
   test('giá trị rỗng trả về chuỗi rỗng thay vì Invalid Date', () => {
     expect(formatDate(null)).toBe('')
@@ -130,6 +132,12 @@ describe('nhãn trạng thái đơn hàng', () => {
   test('mọi trạng thái trong enum đều có nhãn hiển thị', () => {
     ORDER_STATUS.forEach((status) => {
       expect(ORDER_STATUS_LABEL[status], `thiếu nhãn cho ${status}`).toBeTruthy()
+    })
+  })
+
+  test('mọi nhãn trạng thái đều có bản tiếng Việt', () => {
+    ORDER_STATUS.forEach((status) => {
+      expect(vi[ORDER_STATUS_LABEL[status]], `thiếu bản dịch cho ${status}`).toBeTruthy()
     })
   })
 })

@@ -1,6 +1,7 @@
 import { useParams, useSearchParams } from 'react-router-dom'
 import { CheckCircle2, XCircle } from 'lucide-react'
 import { LinkButton } from '../components/ui/Button'
+import { useLanguage } from '../context/LanguageContext'
 
 // Trang hiện sau khi đặt hàng xong, hoặc khi VNPay trả trình duyệt về.
 // URL có dạng /checkout/success hoặc /checkout/failed.
@@ -9,6 +10,7 @@ import { LinkButton } from '../components/ui/Button'
 export default function CheckoutResultPage() {
   const { result } = useParams()
   const [searchParams] = useSearchParams()
+  const { t } = useLanguage()
 
   const success = result === 'success'
   const orderCode = searchParams.get('orderCode')
@@ -27,28 +29,28 @@ export default function CheckoutResultPage() {
       </div>
 
       <h1 className="mt-5 text-h1">
-        {success ? 'Order placed' : 'Payment failed'}
+        {success ? t('Order placed') : t('Payment failed')}
       </h1>
 
       {orderCode && (
         <p className="mt-3 text-body">
-          Your order code is{' '}
+          {t('Your order code is')}{' '}
           <span className="font-mono font-semibold text-heading">{orderCode}</span>
         </p>
       )}
 
       <p className="mt-2 text-sm text-muted">
         {success
-          ? 'We have received your order and will contact you to confirm it.'
-          : reason || 'The transaction was cancelled or declined. You can place this order again.'}
+          ? t('We have received your order and will contact you to confirm it.')
+          : t(reason || 'The transaction was cancelled or declined. You can place this order again.')}
       </p>
 
       <div className="mt-8 flex justify-center gap-3">
         <LinkButton to="/my-orders" variant="primary">
-          View my orders
+          {t('View my orders')}
         </LinkButton>
         <LinkButton to="/products" variant="secondary">
-          Keep shopping
+          {t('Keep shopping')}
         </LinkButton>
       </div>
     </div>

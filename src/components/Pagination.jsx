@@ -1,7 +1,10 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useLanguage } from '../context/LanguageContext'
 
 // Thanh phân trang. Chỉ hiện tối đa 5 số quanh trang hiện tại cho gọn.
 export default function Pagination({ page, totalPages, onChange }) {
+  const { t } = useLanguage()
+
   if (!totalPages || totalPages <= 1) return null
 
   const start = Math.max(1, Math.min(page - 2, totalPages - 4))
@@ -12,11 +15,11 @@ export default function Pagination({ page, totalPages, onChange }) {
     text-body hover:bg-sunken disabled:pointer-events-none disabled:opacity-40`
 
   return (
-    <nav aria-label="Pagination" className="flex items-center justify-center gap-1.5 py-8">
+    <nav aria-label={t('Pagination')} className="flex items-center justify-center gap-1.5 py-8">
       <button
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
-        aria-label="Previous page"
+        aria-label={t('Previous page')}
         className={arrow}
       >
         <ChevronLeft size={16} aria-hidden />
@@ -40,7 +43,7 @@ export default function Pagination({ page, totalPages, onChange }) {
       <button
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
-        aria-label="Next page"
+        aria-label={t('Next page')}
         className={arrow}
       >
         <ChevronRight size={16} aria-hidden />

@@ -10,6 +10,7 @@ import Breadcrumb from '../components/ui/Breadcrumb'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
 import { ProductGridSkeleton, Skeleton } from '../components/ui/Skeleton'
+import { useLanguage } from '../context/LanguageContext'
 import { formatPrice } from '../utils/format'
 
 const SORT_OPTIONS = [
@@ -25,6 +26,8 @@ const LIMIT = 12
 // Phải nằm ngoài ProductListPage. Định nghĩa bên trong thì mỗi lần render là một
 // kiểu component mới, nên React gỡ cả panel lọc xuống rồi dựng lại từ đầu.
 function FacetGroup({ heading, options, paramKey, active, onSelect }) {
+  const { t } = useLanguage()
+
   return (
     <div>
       <p className="mb-2 text-overline uppercase text-faint">{heading}</p>
@@ -34,7 +37,7 @@ function FacetGroup({ heading, options, paramKey, active, onSelect }) {
             onClick={() => onSelect(paramKey, '')}
             className={`rounded-xs text-sm ${!active ? 'font-semibold text-primary' : 'text-muted hover:text-body'}`}
           >
-            All
+            {t('All')}
           </button>
         </li>
         {options.map((option) => (
@@ -60,6 +63,8 @@ const MILLION = 1000000
 // Ô lọc giá, nhập theo triệu đồng. Áp dụng khi rời ô hoặc nhấn Enter, không gọi
 // API theo từng phím. Trang cha đổi `key` khi URL đổi để ô nhận lại giá trị mới.
 function PriceFilter({ minPrice, maxPrice, onApply }) {
+  const { t } = useLanguage()
+
   function apply(form) {
     const min = Number(form.elements.minPrice.value) || 0
     const max = Number(form.elements.maxPrice.value) || 0
@@ -83,7 +88,7 @@ function PriceFilter({ minPrice, maxPrice, onApply }) {
         apply(event.currentTarget)
       }}
     >
-      <p className="mb-2 text-overline uppercase text-faint">Price (million ₫)</p>
+      <p className="mb-2 text-overline uppercase text-faint">{t('Price (million ₫)')}</p>
       <div className="flex items-center gap-2">
         <input
           name="minPrice"
@@ -91,8 +96,8 @@ function PriceFilter({ minPrice, maxPrice, onApply }) {
           min="0"
           step="0.5"
           inputMode="decimal"
-          placeholder="Min"
-          aria-label="Minimum price in million dong"
+          placeholder={t('Min')}
+          aria-label={t('Minimum price in million dong')}
           defaultValue={minPrice ? minPrice / MILLION : ''}
           className={inputClass}
         />
@@ -105,30 +110,31 @@ function PriceFilter({ minPrice, maxPrice, onApply }) {
           min="0"
           step="0.5"
           inputMode="decimal"
-          placeholder="Max"
-          aria-label="Maximum price in million dong"
+          placeholder={t('Max')}
+          aria-label={t('Maximum price in million dong')}
           defaultValue={maxPrice ? maxPrice / MILLION : ''}
           className={inputClass}
         />
       </div>
       {/* Nút ẩn để Enter trong ô nhập gửi được form. */}
       <button type="submit" className="sr-only">
-        Apply price
+        {t('Apply price')}
       </button>
     </form>
   )
 }
 
-function priceLabel(min, max) {
+function priceLabel(t, min, max) {
   if (min && max) return `${formatPrice(min)} – ${formatPrice(max)}`
-  if (min) return `From ${formatPrice(min)}`
-  return `Up to ${formatPrice(max)}`
+  if (min) return t('From {price}', { price: formatPrice(min) })
+  return t('Up to {price}', { price: formatPrice(max) })
 }
 
 export default function ProductListPage() {
   // Mọi trạng thái của khung nhìn nằm trên URL, nên link chia sẻ được, F5 không
   // mất bộ lọc, và nút Back của trình duyệt hoạt động đúng.
   const [searchParams, setSearchParams] = useSearchParams()
+  const { t } = useLanguage()
 
   const keyword = searchParams.get('keyword') || ''
   const category = searchParams.get('category') || ''
@@ -209,10 +215,10 @@ export default function ProductListPage() {
 
   // Các chip cho biết truy vấn hiện tại đang gồm những gì, bấm chữ X để bỏ từng cái.
   const activeFilters = [
-    keyword && { key: 'keyword', label: `Keyword: ${keyword}` },
+    keyword && { key: 'keyword', label: t('Keyword: {keyword}', { keyword }) },
     activeCategory && { key: 'category', label: activeCategory.name },
     activeBrand && { key: 'brand', label: activeBrand.name },
-    (minPrice || maxPrice) && { key: 'price', label: priceLabel(minPrice, maxPrice) },
+    (minPrice || maxPrice) && { key: 'price', label: priceLabel(t, minPrice, maxPrice) },
   ].filter(Boolean)
 
   // Chip giá gói hai tham số URL, nên bỏ chip là xoá cả hai.
@@ -222,21 +228,20 @@ export default function ProductListPage() {
   }
 
   const title = keyword
-    ? `Results for “${keyword}”`
+    ? t('Results for “{keyword}”', { keyword })
     : activeCategory
       ? activeCategory.name
-      : 'All products'
-
+      : t('All products')
 
   const filterPanel = (
     <div className="space-y-6">
       {categories.length > 0 ? (
-        <FacetGroup heading="Category" options={categories} paramKey="category" active={category} onSelect={updateFilter} />
+        <FacetGroup heading={t('Category')} options={categories} paramKey="category" active={category} onSelect={updateFilter} />
       ) : (
         <Skeleton className="h-40" />
       )}
       {brands.length > 0 && (
-        <FacetGroup heading="Brand" options={brands} paramKey="brand" active={brand} onSelect={updateFilter} />
+        <FacetGroup heading={t('Brand')} options={brands} paramKey="brand" active={brand} onSelect={updateFilter} />
       )}
       <PriceFilter
         key={`${minPrice}-${maxPrice}`}
@@ -250,14 +255,16 @@ export default function ProductListPage() {
   return (
     <div className="mx-auto max-w-wide px-4 py-8 sm:px-8">
       <Breadcrumb
-        items={[{ label: 'Home', to: '/' }, { label: activeCategory?.name || 'Products' }]}
+        items={[{ label: t('Home'), to: '/' }, { label: activeCategory?.name || t('Products') }]}
       />
 
       <div className="mt-3 flex flex-wrap items-baseline gap-3">
         <h1 className="text-h1">{title}</h1>
         {pagination && (
           <p className="tabular text-sm text-muted">
-            {pagination.total} {pagination.total === 1 ? 'product' : 'products'}
+            {t(pagination.total === 1 ? '{count} product' : '{count} products', {
+              count: pagination.total,
+            })}
           </p>
         )}
       </div>
@@ -279,11 +286,12 @@ export default function ProductListPage() {
               onClick={() => setFiltersOpen(true)}
               className="lg:hidden"
             >
-              Filters{activeFilters.length > 0 ? ` · ${activeFilters.length}` : ''}
+              {t('Filters')}
+              {activeFilters.length > 0 ? ` · ${activeFilters.length}` : ''}
             </Button>
 
             <label className="ml-auto flex items-center gap-2 text-sm text-muted">
-              Sort
+              {t('Sort')}
               <select
                 value={sort}
                 onChange={(event) => updateFilter('sort', event.target.value)}
@@ -291,7 +299,7 @@ export default function ProductListPage() {
               >
                 {SORT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.label)}
                   </option>
                 ))}
               </select>
@@ -305,7 +313,7 @@ export default function ProductListPage() {
                   key={filter.key}
                   onClick={() => removeFilter(filter.key)}
                   className="rounded-full"
-                  aria-label={`Remove filter ${filter.label}`}
+                  aria-label={t('Remove filter {label}', { label: filter.label })}
                 >
                   <Badge tone="primary">
                     {filter.label}
@@ -314,13 +322,13 @@ export default function ProductListPage() {
                 </button>
               ))}
               <button onClick={clearAll} className="rounded-xs text-sm text-muted hover:text-body">
-                Clear all
+                {t('Clear all')}
               </button>
             </div>
           )}
 
           {error && (
-            <Alert title="Could not load the product list" onRetry={() => updateFilter('page', String(page))}>
+            <Alert title={t('Could not load the product list')} onRetry={() => updateFilter('page', String(page))}>
               {error}
             </Alert>
           )}
@@ -331,9 +339,11 @@ export default function ProductListPage() {
           {!loading && !error && products.length === 0 && pagination?.totalPages > 0 && (
             <EmptyState
               icon={SearchX}
-              title={`Page ${page} is past the last page`}
-              description={`These filters have ${pagination.totalPages} page(s) of results.`}
-              actionLabel={`Go to page ${pagination.totalPages}`}
+              title={t('Page {page} is past the last page', { page })}
+              description={t('These filters have {count} page(s) of results.', {
+                count: pagination.totalPages,
+              })}
+              actionLabel={t('Go to page {page}', { page: pagination.totalPages })}
               actionTo={`?${new URLSearchParams({ ...Object.fromEntries(searchParams), page: String(pagination.totalPages) })}`}
             />
           )}
@@ -341,8 +351,8 @@ export default function ProductListPage() {
           {!loading && !error && products.length === 0 && !(pagination?.totalPages > 0) && (
             <EmptyState
               icon={SearchX}
-              title="No products match these filters"
-              description="Try removing one condition, or use a shorter keyword."
+              title={t('No products match these filters')}
+              description={t('Try removing one condition, or use a shorter keyword.')}
             />
           )}
 
@@ -372,14 +382,14 @@ export default function ProductListPage() {
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Product filters"
+            aria-label={t('Product filters')}
             className="h-full w-80 max-w-[85vw] overflow-y-auto bg-surface p-5"
           >
             <div className="mb-5 flex items-center justify-between">
-              <p className="text-h4">Filters</p>
+              <p className="text-h4">{t('Filters')}</p>
               <button
                 onClick={() => setFiltersOpen(false)}
-                aria-label="Close filters"
+                aria-label={t('Close filters')}
                 className="rounded-xs p-1 text-muted hover:bg-sunken"
               >
                 <X size={18} aria-hidden />

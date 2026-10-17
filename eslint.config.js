@@ -25,10 +25,10 @@ export default [
       ...reactHooks.configs.recommended.rules,
       // Component viết hoa được coi là đã dùng, dù ESLint chỉ thấy nó trong JSX.
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_' }],
-      // File context xuất cả Provider lẫn hook đọc nó, nên khai báo hai hook này là hợp lệ.
+      // File context xuất cả Provider lẫn hook đọc nó, nên khai báo các hook này là hợp lệ.
       'react-refresh/only-export-components': [
         'warn',
-        { allowConstantExport: true, allowExportNames: ['useAuth', 'useCart'] },
+        { allowConstantExport: true, allowExportNames: ['useAuth', 'useCart', 'useLanguage'] },
       ],
 
       // Ba luật hook để mức lỗi, chặn CI. Không cần useCallback: hàm tải dữ liệu

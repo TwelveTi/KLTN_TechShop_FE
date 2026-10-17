@@ -4,12 +4,14 @@ import authApi from '../api/authApi'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import { useLanguage } from '../context/LanguageContext'
 
 // Quên mật khẩu gồm 3 bước: nhập email → nhập mã OTP → đặt mật khẩu mới.
 const STEPS = ['Enter email', 'Enter the code', 'Set a new password']
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate()
+  const { t } = useLanguage()
 
   const [step, setStep] = useState(1)
   const [email, setEmail] = useState('')
@@ -70,9 +72,9 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <h1 className="text-h1">Forgot password</h1>
+      <h1 className="text-h1">{t('Forgot password')}</h1>
 
-      <ol className="mt-4 flex gap-2" aria-label="Progress">
+      <ol className="mt-4 flex gap-2" aria-label={t('Progress')}>
         {STEPS.map((label, index) => (
           <li key={label} className="flex-1">
             <div
@@ -84,7 +86,7 @@ export default function ForgotPasswordPage() {
                 index + 1 === step ? 'font-medium text-heading' : 'text-faint'
               }`}
             >
-              {label}
+              {t(label)}
             </p>
           </li>
         ))}
@@ -100,14 +102,14 @@ export default function ForgotPasswordPage() {
         <form onSubmit={handleSendOtp} className="mt-6 space-y-5">
           <Input
             type="email"
-            label="Account email"
+            label={t('Account email')}
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
           {error && <Alert>{error}</Alert>}
           <Button type="submit" variant="primary" size="lg" fullWidth isLoading={loading}>
-            Send verification code
+            {t('Send verification code')}
           </Button>
         </form>
       )}
@@ -115,7 +117,7 @@ export default function ForgotPasswordPage() {
       {step === 2 && (
         <form onSubmit={handleVerifyOtp} className="mt-6 space-y-5">
           <Input
-            label="6-digit verification code"
+            label={t('6-digit verification code')}
             required
             inputMode="numeric"
             maxLength={6}
@@ -125,7 +127,7 @@ export default function ForgotPasswordPage() {
           />
           {error && <Alert>{error}</Alert>}
           <Button type="submit" variant="primary" size="lg" fullWidth isLoading={loading}>
-            Verify code
+            {t('Verify code')}
           </Button>
           <Button
             type="button"
@@ -133,7 +135,7 @@ export default function ForgotPasswordPage() {
             fullWidth
             onClick={() => authApi.resendResetOtp(email).catch(() => {})}
           >
-            Resend code
+            {t('Resend code')}
           </Button>
         </form>
       )}
@@ -142,23 +144,23 @@ export default function ForgotPasswordPage() {
         <form onSubmit={handleResetPassword} className="mt-6 space-y-5">
           <Input
             type="password"
-            label="New password"
+            label={t('New password')}
             required
             autoComplete="new-password"
             value={newPassword}
             onChange={(event) => setNewPassword(event.target.value)}
-            hint="At least 8 characters, with upper case, lower case and a digit."
+            hint={t('At least 8 characters, with upper case, lower case and a digit.')}
           />
           {error && <Alert>{error}</Alert>}
           <Button type="submit" variant="primary" size="lg" fullWidth isLoading={loading}>
-            Set new password
+            {t('Set new password')}
           </Button>
         </form>
       )}
 
       <p className="mt-5 text-center text-sm">
         <Link to="/login" className="rounded-xs text-primary hover:underline">
-          Back to sign in
+          {t('Back to sign in')}
         </Link>
       </p>
     </>

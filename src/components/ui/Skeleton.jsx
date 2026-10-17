@@ -1,3 +1,5 @@
+import { useLanguage } from '../../context/LanguageContext'
+
 // Khối xám thay chỗ nội dung đang tải. Dùng skeleton thay vòng xoay ở những
 // chỗ đã biết trước bố cục, để trang không nhảy khi dữ liệu về.
 export function Skeleton({ className = '' }) {
@@ -21,10 +23,12 @@ export function ProductCardSkeleton() {
 
 // Lưới skeleton, số lượng khớp với số thẻ sắp hiện ra.
 export function ProductGridSkeleton({ count = 8 }) {
+  const { t } = useLanguage()
+
   return (
     <div
       aria-busy="true"
-      aria-label="Loading products"
+      aria-label={t('Loading products')}
       className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4"
     >
       {Array.from({ length: count }).map((_, index) => (

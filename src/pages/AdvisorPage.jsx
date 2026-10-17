@@ -4,6 +4,7 @@ import aiApi from '../api/aiApi'
 import ProductCard from '../components/ProductCard'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
+import { useLanguage } from '../context/LanguageContext'
 
 // Trang hỏi đáp với trợ lý AI. Hai chế độ dùng chung một giao diện:
 //  - advisor:    tư vấn chọn sản phẩm
@@ -46,12 +47,14 @@ const SOURCE_LABELS = {
 }
 
 function SourceCards({ sources }) {
+  const { t } = useLanguage()
   const [expanded, setExpanded] = useState(false)
   const shown = expanded ? sources : sources.slice(0, 2)
+  const hidden = sources.length - 2
 
   return (
     <div className="mt-3 space-y-1.5">
-      <p className="text-caption font-medium text-muted">Sources</p>
+      <p className="text-caption font-medium text-muted">{t('Sources')}</p>
       {shown.map((source, index) => {
         const Icon = SOURCE_ICONS[source.sourceType] || BookOpen
         return (
@@ -64,7 +67,7 @@ function SourceCards({ sources }) {
               <p className="text-caption font-medium text-heading">
                 {source.sourceName}
                 <span className="ml-2 text-faint">
-                  {SOURCE_LABELS[source.sourceType] || source.sourceType}
+                  {t(SOURCE_LABELS[source.sourceType] || source.sourceType)}
                 </span>
               </p>
               <p className="mt-0.5 line-clamp-2 text-caption text-muted">
@@ -74,13 +77,13 @@ function SourceCards({ sources }) {
           </div>
         )
       })}
-      {sources.length > 2 && !expanded && (
+      {hidden > 0 && !expanded && (
         <button
           onClick={() => setExpanded(true)}
           className="inline-flex items-center gap-1 text-caption text-primary hover:underline"
         >
           <ChevronDown size={12} aria-hidden />
-          {sources.length - 2} more {sources.length - 2 === 1 ? 'source' : 'sources'}
+          {t(hidden === 1 ? '{count} more source' : '{count} more sources', { count: hidden })}
         </button>
       )}
     </div>
@@ -88,6 +91,7 @@ function SourceCards({ sources }) {
 }
 
 export default function AdvisorPage() {
+  const { t } = useLanguage()
   const [mode, setMode] = useState('advisor')
   const [messages, setMessages] = useState([])
   const [conversationId, setConversationId] = useState(null)
@@ -182,13 +186,13 @@ export default function AdvisorPage() {
       <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
         <aside className="hidden lg:block">
           <Button variant="secondary" fullWidth leadingIcon={Plus} onClick={startNewChat}>
-            New conversation
+            {t('New conversation')}
           </Button>
 
-          <p className="mb-2 mt-6 text-overline uppercase text-faint">History</p>
+          <p className="mb-2 mt-6 text-overline uppercase text-faint">{t('History')}</p>
 
           {conversations.length === 0 ? (
-            <p className="text-sm text-muted">No conversations yet.</p>
+            <p className="text-sm text-muted">{t('No conversations yet.')}</p>
           ) : (
             <ul className="space-y-0.5">
               {conversations.map((conversation) => (
@@ -201,7 +205,7 @@ export default function AdvisorPage() {
                         : 'text-muted hover:bg-sunken hover:text-body'
                     }`}
                   >
-                    {conversation.title || 'Conversation'}
+                    {conversation.title || t('Conversation')}
                   </button>
                 </li>
               ))}
@@ -210,7 +214,7 @@ export default function AdvisorPage() {
         </aside>
 
         <div className="min-w-0">
-          <div className="mb-5 flex gap-2" role="tablist" aria-label="Assistant mode">
+          <div className="mb-5 flex gap-2" role="tablist" aria-label={t('Assistant mode')}>
             {MODES.map((item) => (
               <button
                 key={item.key}
@@ -226,7 +230,7 @@ export default function AdvisorPage() {
                     : 'border border-line-strong text-body hover:bg-sunken'
                 }`}
               >
-                {item.label}
+                {t(item.label)}
               </button>
             ))}
           </div>
@@ -237,21 +241,23 @@ export default function AdvisorPage() {
                 <div className="mx-auto grid size-12 place-items-center rounded-full bg-primary-soft text-primary">
                   <Bot size={24} aria-hidden />
                 </div>
-                <h1 className="mt-4 text-h3">The TechShop AI advisor</h1>
+                <h1 className="mt-4 text-h3">{t('The TechShop AI advisor')}</h1>
                 <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-                  The advisor answers from the real specifications of products in stock, so it
-                  will not talk about products the store does not sell.
+                  {t(
+                    'The advisor answers from the real specifications of products in stock, so it will not talk about products the store does not sell.',
+                  )}
                 </p>
 
                 <div className="mt-7 flex flex-col items-center gap-2">
+                  {/* Câu gợi ý gửi đi đúng như đang hiển thị, theo ngôn ngữ đang chọn. */}
                   {SUGGESTIONS[mode].map((suggestion) => (
                     <button
                       key={suggestion}
-                      onClick={() => handleSend(null, suggestion)}
+                      onClick={() => handleSend(null, t(suggestion))}
                       className="rounded-full border border-line-strong px-4 py-2 text-sm text-body
                         hover:border-primary hover:text-primary"
                     >
-                      {suggestion}
+                      {t(suggestion)}
                     </button>
                   ))}
                 </div>
@@ -288,8 +294,12 @@ export default function AdvisorPage() {
                   {message.toolCalls?.length > 0 && (
                     <p className="mt-3 inline-flex items-center gap-1.5 text-caption text-muted">
                       <Database size={12} aria-hidden />
-                      Looked up {message.toolCalls.length}{' '}
-                      {message.toolCalls.length === 1 ? 'source' : 'sources'}
+                      {t(
+                        message.toolCalls.length === 1
+                          ? 'Looked up {count} source'
+                          : 'Looked up {count} sources',
+                        { count: message.toolCalls.length },
+                      )}
                     </p>
                   )}
                 </div>
@@ -297,7 +307,7 @@ export default function AdvisorPage() {
 
               {sending && (
                 <p className="text-sm text-muted" aria-live="polite">
-                  The advisor is looking things up and writing an answer…
+                  {t('The advisor is looking things up and writing an answer…')}
                 </p>
               )}
             </div>
@@ -307,20 +317,20 @@ export default function AdvisorPage() {
 
           {error && (
             <div className="mt-4">
-              <Alert title="No answer came back">{error}</Alert>
+              <Alert title={t('No answer came back')}>{error}</Alert>
             </div>
           )}
 
           <form onSubmit={handleSend} className="mt-4 flex gap-2">
             <label htmlFor="advisor-input" className="sr-only">
-              Your question
+              {t('Your question')}
             </label>
             <input
               id="advisor-input"
               value={input}
               onChange={(event) => setInput(event.target.value)}
               maxLength={1000}
-              placeholder="Type your question…"
+              placeholder={t('Type your question…')}
               className="h-12 flex-1 rounded-full border border-line-strong bg-surface px-5 text-base
                 text-heading placeholder:text-faint"
             />
@@ -332,7 +342,7 @@ export default function AdvisorPage() {
               disabled={!input.trim()}
               isLoading={sending}
             >
-              Send
+              {t('Send')}
             </Button>
           </form>
         </div>

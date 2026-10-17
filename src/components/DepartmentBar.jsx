@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import productApi from '../api/productApi'
+import { useLanguage } from '../context/LanguageContext'
 import { Skeleton } from './ui/Skeleton'
 
 // Dải danh mục ngay dưới header, cho người thích bấm hơn gõ tìm kiếm.
@@ -8,6 +9,7 @@ import { Skeleton } from './ui/Skeleton'
 export default function DepartmentBar() {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const { t } = useLanguage()
 
   useEffect(() => {
     productApi
@@ -21,7 +23,7 @@ export default function DepartmentBar() {
   if (!loading && categories.length === 0) return null
 
   return (
-    <nav aria-label="Product categories" className="border-b border-line bg-surface">
+    <nav aria-label={t('Product categories')} className="border-b border-line bg-surface">
       <div className="mx-auto max-w-page px-4 sm:px-8">
         <div className="flex gap-1 overflow-x-auto py-2 [scrollbar-width:none]">
           {loading

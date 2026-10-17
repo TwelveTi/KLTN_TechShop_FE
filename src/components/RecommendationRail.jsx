@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import recommendationApi from '../api/recommendationApi'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import ProductCard from './ProductCard'
 import Badge from './ui/Badge'
 import SectionHead from './ui/SectionHead'
@@ -27,6 +28,7 @@ export default function RecommendationRail({
   limit = 8,
 }) {
   const { isLoggedIn } = useAuth()
+  const { t } = useLanguage()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   // Lời giải thích của AI, lưu theo itemId để bấm lại không phải gọi API nữa.
@@ -76,7 +78,7 @@ export default function RecommendationRail({
       const data = await recommendationApi.explain(item.itemId)
       setExplanations((prev) => ({ ...prev, [item.itemId]: data?.explanation || '' }))
     } catch {
-      setExplanations((prev) => ({ ...prev, [item.itemId]: 'No explanation available right now.' }))
+      setExplanations((prev) => ({ ...prev, [item.itemId]: t('No explanation available right now.') }))
     } finally {
       setExplaining(null)
     }
@@ -104,7 +106,7 @@ export default function RecommendationRail({
             <ProductCard product={item.product} onClick={() => handleClick(item)} />
 
             <div className="px-1">
-              <Badge tone="primary">{REASON_LABEL[item.reasonCode] || 'Picked for you'}</Badge>
+              <Badge tone="primary">{t(REASON_LABEL[item.reasonCode] || 'Picked for you')}</Badge>
 
               {explanations[item.itemId] ? (
                 <p className="mt-1.5 text-caption text-muted">{explanations[item.itemId]}</p>
@@ -119,7 +121,7 @@ export default function RecommendationRail({
                       hover:text-primary disabled:opacity-60"
                   >
                     <Sparkles size={12} aria-hidden />
-                    {explaining === item.itemId ? 'Asking the AI…' : 'Why this product?'}
+                    {explaining === item.itemId ? t('Asking the AI…') : t('Why this product?')}
                   </button>
                 )
               )}

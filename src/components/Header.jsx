@@ -15,8 +15,10 @@ import {
 import Avatar from './ui/Avatar'
 import BrandMark from './ui/BrandMark'
 import { LinkButton } from './ui/Button'
+import LanguageToggle from './LanguageToggle'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import { useLanguage } from '../context/LanguageContext'
 import userApi from '../api/userApi'
 
 // Thanh điều hướng trên cùng. Hai kiểu:
@@ -26,6 +28,7 @@ import userApi from '../api/userApi'
 export default function Header({ variant = 'storefront' }) {
   const { user, isLoggedIn, isAdmin, loading, logout } = useAuth()
   const { totalQuantity } = useCart()
+  const { t } = useLanguage()
   const navigate = useNavigate()
 
   const [keyword, setKeyword] = useState('')
@@ -113,16 +116,19 @@ export default function Header({ variant = 'storefront' }) {
       <header className="border-b border-line bg-surface">
         <div className="mx-auto flex h-16 max-w-page items-center justify-between px-4 sm:px-8">
           <BrandMark />
-          <span className="text-sm text-muted">Encrypted connection</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted">{t('Encrypted connection')}</span>
+            <LanguageToggle />
+          </div>
         </div>
       </header>
     )
   }
 
   const menuItems = [
-    { to: '/profile', label: 'My account', icon: User },
-    { to: '/my-orders', label: 'My orders', icon: Package },
-    ...(isAdmin ? [{ to: '/admin', label: 'Admin dashboard', icon: Settings }] : []),
+    { to: '/profile', label: t('My account'), icon: User },
+    { to: '/my-orders', label: t('My orders'), icon: Package },
+    ...(isAdmin ? [{ to: '/admin', label: t('Admin dashboard'), icon: Settings }] : []),
   ]
 
   const showDropdown = searchFocused && !keyword && recentKeywords.length > 0
@@ -138,7 +144,7 @@ export default function Header({ variant = 'storefront' }) {
           className="relative hidden flex-1 sm:block"
         >
           <label htmlFor="header-search" className="sr-only">
-            Search products
+            {t('Search products')}
           </label>
           <Search
             size={16}
@@ -150,7 +156,7 @@ export default function Header({ variant = 'storefront' }) {
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
             onFocus={handleSearchFocus}
-            placeholder="Search laptops, phones, accessories…"
+            placeholder={t('Search laptops, phones, accessories…')}
             className="h-10 w-full rounded-full border border-line-strong bg-sunken pl-9 pr-4 text-base
               text-heading placeholder:text-faint"
           />
@@ -158,14 +164,14 @@ export default function Header({ variant = 'storefront' }) {
           {showDropdown && (
             <div className="absolute left-0 right-0 top-full z-40 mt-1 overflow-hidden rounded-md border border-line bg-raised shadow-md">
               <div className="flex items-center justify-between px-4 py-2">
-                <span className="text-caption font-medium text-muted">Recent searches</span>
+                <span className="text-caption font-medium text-muted">{t('Recent searches')}</span>
                 <button
                   type="button"
                   onClick={handleClearHistory}
                   className="flex items-center gap-1 text-caption text-muted hover:text-danger-strong"
                 >
                   <Trash2 size={12} aria-hidden />
-                  Clear
+                  {t('Clear')}
                 </button>
               </div>
               <ul>
@@ -187,11 +193,15 @@ export default function Header({ variant = 'storefront' }) {
         </form>
 
         <div className="ml-auto flex items-center gap-2 sm:ml-0">
+          <LanguageToggle />
+
           <Link
             to="/cart"
             className="relative inline-flex size-10 items-center justify-center rounded-sm text-body
               hover:bg-sunken"
-            aria-label={`Cart, ${totalQuantity} ${totalQuantity === 1 ? 'item' : 'items'}`}
+            aria-label={t(totalQuantity === 1 ? 'Cart, {count} item' : 'Cart, {count} items', {
+              count: totalQuantity,
+            })}
           >
             <ShoppingCart size={20} aria-hidden />
             {totalQuantity > 0 && (
@@ -214,7 +224,7 @@ export default function Header({ variant = 'storefront' }) {
               <button
                 type="button"
                 onClick={() => setMenuOpen(!menuOpen)}
-                aria-label="Account menu"
+                aria-label={t('Account menu')}
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
                 className="flex items-center gap-1.5 rounded-full p-0.5 pr-2 hover:bg-sunken"
@@ -231,7 +241,7 @@ export default function Header({ variant = 'storefront' }) {
                 >
                   <div className="border-b border-line px-4 py-3">
                     <p className="truncate text-sm font-semibold text-heading">
-                      {user.fullName || 'Customer'}
+                      {user.fullName || t('Customer')}
                     </p>
                     <p className="truncate text-caption text-muted">{user.email}</p>
                   </div>
@@ -257,18 +267,19 @@ export default function Header({ variant = 'storefront' }) {
                       text-sm text-danger-strong hover:bg-sunken"
                   >
                     <LogOut size={16} aria-hidden />
-                    Sign out
+                    {t('Sign out')}
                   </button>
                 </div>
               )}
             </div>
           ) : (
             <>
-              <LinkButton to="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">
-                Sign in
+              {/* max-sm:hidden chứ không phải hidden: lớp inline-flex của nút sẽ đè mất hidden. */}
+              <LinkButton to="/login" variant="ghost" size="sm" className="max-sm:hidden">
+                {t('Sign in')}
               </LinkButton>
               <LinkButton to="/register" variant="primary" size="sm">
-                Sign up
+                {t('Sign up')}
               </LinkButton>
             </>
           )}

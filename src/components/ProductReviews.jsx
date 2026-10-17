@@ -10,11 +10,13 @@ import Button, { LinkButton } from './ui/Button'
 import EmptyState from './ui/EmptyState'
 import Input from './ui/Input'
 import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
 import { formatDate } from '../utils/format'
 
 // Phần đánh giá ở cuối trang chi tiết sản phẩm.
 export default function ProductReviews({ productId }) {
   const { isLoggedIn, user } = useAuth()
+  const { t } = useLanguage()
 
   const [reviews, setReviews] = useState([])
   const [summary, setSummary] = useState(null)
@@ -85,7 +87,7 @@ export default function ProductReviews({ productId }) {
   }
 
   async function handleDelete(reviewId) {
-    if (!confirm('Delete this review?')) return
+    if (!confirm(t('Delete this review?'))) return
     try {
       await reviewApi.deleteReview(reviewId)
       resetForm()
@@ -101,7 +103,7 @@ export default function ProductReviews({ productId }) {
 
   return (
     <section className="mt-16">
-      <h2 className="text-h2">Customer reviews</h2>
+      <h2 className="text-h2">{t('Customer reviews')}</h2>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[320px_1fr]">
         <div className="space-y-6">
@@ -114,7 +116,7 @@ export default function ProductReviews({ productId }) {
                 <div>
                   <StarRating value={summary.averageRating} />
                   <p className="tabular mt-1 text-sm text-muted">
-                    {total} {total === 1 ? 'review' : 'reviews'}
+                    {t(total === 1 ? '{count} review' : '{count} reviews', { count: total })}
                   </p>
                 </div>
               </div>
@@ -139,52 +141,52 @@ export default function ProductReviews({ productId }) {
 
           {isLoggedIn && hasMyReview && !editingId ? (
             <div className="rounded-md border border-line bg-surface p-6 text-sm text-muted shadow-sm">
-              You have reviewed this product. Use Edit on your review to change it.
+              {t('You have reviewed this product. Use Edit on your review to change it.')}
             </div>
           ) : isLoggedIn ? (
             <form
               onSubmit={handleSubmit}
               className="space-y-4 rounded-md border border-line bg-surface p-6 shadow-sm"
             >
-              <p className="text-h4">{editingId ? 'Edit your review' : 'Write your review'}</p>
+              <p className="text-h4">{editingId ? t('Edit your review') : t('Write your review')}</p>
 
               <div>
-                <span className="mb-1.5 block text-sm font-medium text-heading">Your rating</span>
+                <span className="mb-1.5 block text-sm font-medium text-heading">{t('Your rating')}</span>
                 <StarRating value={rating} onChange={setRating} size={24} />
               </div>
 
               <Input
-                label="Title"
+                label={t('Title')}
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Sum it up in one line"
+                placeholder={t('Sum it up in one line')}
               />
 
               <Input
                 as="textarea"
                 rows={4}
-                label="Review"
+                label={t('Review')}
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
-                placeholder="How has this product worked for you?"
+                placeholder={t('How has this product worked for you?')}
               />
 
               {formError && <Alert>{formError}</Alert>}
 
               <Button type="submit" variant="primary" isLoading={submitting} fullWidth>
-                {editingId ? 'Save changes' : 'Submit review'}
+                {editingId ? t('Save changes') : t('Submit review')}
               </Button>
               {editingId && (
                 <Button type="button" variant="ghost" onClick={resetForm} fullWidth>
-                  Cancel
+                  {t('Cancel')}
                 </Button>
               )}
             </form>
           ) : (
             <div className="rounded-md border border-line bg-surface p-6 text-sm shadow-sm">
-              <p className="text-muted">Sign in to review this product.</p>
+              <p className="text-muted">{t('Sign in to review this product.')}</p>
               <LinkButton to="/login" variant="secondary" size="sm" className="mt-3">
-                Sign in
+                {t('Sign in')}
               </LinkButton>
             </div>
           )}
@@ -194,8 +196,8 @@ export default function ProductReviews({ productId }) {
           {reviews.length === 0 ? (
             <EmptyState
               icon={MessageSquareOff}
-              title="No reviews yet"
-              description="Be the first to share what you think of this product."
+              title={t('No reviews yet')}
+              description={t('Be the first to share what you think of this product.')}
             />
           ) : (
             <div className="space-y-4">
@@ -207,9 +209,9 @@ export default function ProductReviews({ productId }) {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-medium text-heading">
-                          {review.user?.name || 'Customer'}
+                          {review.user?.name || t('Customer')}
                         </span>
-                        {review.verifiedPurchase && <Badge tone="success">Verified purchase</Badge>}
+                        {review.verifiedPurchase && <Badge tone="success">{t('Verified purchase')}</Badge>}
                         <span className="ml-auto text-caption text-faint">
                           {formatDate(review.createdAt)}
                         </span>
@@ -227,7 +229,7 @@ export default function ProductReviews({ productId }) {
                       {user && review.user?.id === user.id && (
                         <div className="mt-2 flex gap-2">
                           <Button variant="ghost" size="sm" onClick={() => startEdit(review)}>
-                            Edit
+                            {t('Edit')}
                           </Button>
                           <Button
                             variant="ghost"
@@ -235,7 +237,7 @@ export default function ProductReviews({ productId }) {
                             onClick={() => handleDelete(review.id)}
                             className="!text-danger-strong"
                           >
-                            Delete my review
+                            {t('Delete my review')}
                           </Button>
                         </div>
                       )}

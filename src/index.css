@@ -137,25 +137,27 @@
 }
 
 @theme {
-  /* Ba vai trò chữ: Sora cho tiêu đề, Inter cho nội dung, mono cho dữ liệu.
-     Cả ba đóng gói cùng app qua @fontsource, không tải từ CDN. */
-  --font-display: 'Sora Variable', 'Segoe UI', system-ui, sans-serif;
+  /* Ba vai trò chữ: Be Vietnam Pro cho tiêu đề, Inter cho nội dung, mono cho dữ liệu.
+     Cả ba đóng gói cùng app qua @fontsource, không tải từ CDN. Sora trước đây không có
+     bộ ký tự tiếng Việt nên chữ có dấu bị mượn font khác, nhìn lệch nét. */
+  --font-display: 'Be Vietnam Pro', 'Segoe UI', system-ui, sans-serif;
   --font-body: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, Consolas, monospace;
 
   /* Thang chữ. Cỡ co giãn theo bề rộng màn hình bằng clamp(). */
   --text-display: clamp(2.75rem, 1.8rem + 3.4vw, 4rem);
-  --text-display--line-height: 1.05;
+  /* Dòng thưa hơn mức thường gặp để dấu chồng của tiếng Việt như ầ, ữ không chạm dòng trên. */
+  --text-display--line-height: 1.15;
   --text-display--letter-spacing: -0.02em;
   --text-display--font-weight: 700;
 
   --text-h1: clamp(2rem, 1.6rem + 1.4vw, 2.5rem);
-  --text-h1--line-height: 1.1;
+  --text-h1--line-height: 1.2;
   --text-h1--letter-spacing: -0.015em;
   --text-h1--font-weight: 700;
 
   --text-h2: clamp(1.625rem, 1.45rem + 0.6vw, 1.875rem);
-  --text-h2--line-height: 1.15;
+  --text-h2--line-height: 1.25;
   --text-h2--letter-spacing: -0.01em;
   --text-h2--font-weight: 600;
 
