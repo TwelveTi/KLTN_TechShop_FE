@@ -390,6 +390,14 @@ const vi = {
   'Password must be at least 8 characters and include upper case, lower case and a digit':
     'Mật khẩu cần ít nhất 8 ký tự, có chữ hoa, chữ thường và chữ số',
   'Please verify your email to use this feature': 'Bạn cần xác minh email để dùng tính năng này',
+  'Ward / Commune': 'Phường / Xã',
+  'The list of provinces could not be loaded, so type them in.':
+    'Không tải được danh sách tỉnh thành, bạn nhập tay giúp nhé.',
+  'Type to search a province or city': 'Chọn tỉnh / thành phố',
+  'Type to search a ward or commune': 'Chọn phường / xã',
+  'No matches': 'Không có kết quả phù hợp',
+  'Loading…': 'Đang tải…',
+  'Choose a province first': 'Chọn tỉnh / thành phố trước',
 }
 
 export default vi

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import authApi from '../api/authApi'
-import { clearToken, getToken, setToken } from '../api/axiosClient'
+import { clearToken, getToken, SESSION_ENDED_EVENT, setToken } from '../api/axiosClient'
 
 // Lưu thông tin người đăng nhập để mọi trang đều dùng được.
 const AuthContext = createContext(null)
@@ -32,6 +32,23 @@ export function AuthProvider({ children }) {
     }
     restoreSession()
   }, [])
+
+  // Phiên bị thu hồi từ máy khác: lời gọi API kế tiếp thất bại và báo về đây.
+  useEffect(() => {
+    const endSession = () => setUser(null)
+    window.addEventListener(SESSION_ENDED_EVENT, endSession)
+    return () => window.removeEventListener(SESSION_ENDED_EVENT, endSession)
+  }, [])
+
+  // Quay lại tab thì hỏi server một lần, để máy vừa bị thu hồi phiên thấy mình bị đăng xuất ngay.
+  useEffect(() => {
+    if (!user) return
+    function recheck() {
+      if (document.visibilityState === 'visible') authApi.getMe().catch(() => {})
+    }
+    document.addEventListener('visibilitychange', recheck)
+    return () => document.removeEventListener('visibilitychange', recheck)
+  }, [user])
 
   async function login(email, password) {
     const data = await authApi.login(email, password)

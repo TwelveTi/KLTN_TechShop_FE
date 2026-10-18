@@ -1,42 +1,26 @@
 import { useEffect, useState } from 'react'
 import { MapPinOff, Plus } from 'lucide-react'
 import userApi from '../api/userApi'
+import AddressForm from '../components/AddressForm'
 import ProfileTabs from '../components/ProfileTabs'
 import Alert from '../components/ui/Alert'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import EmptyState from '../components/ui/EmptyState'
-import Input from '../components/ui/Input'
 import Modal from '../components/ui/Modal'
 import { Skeleton } from '../components/ui/Skeleton'
 import { useLanguage } from '../context/LanguageContext'
-
-const FIELDS = [
-  ['receiverName', 'Recipient name'],
-  ['receiverPhone', 'Phone number'],
-  ['province', 'Province / City'],
-  ['district', 'District'],
-  ['ward', 'Ward'],
-  ['addressLine', 'House number and street'],
-]
-
-const EMPTY_FORM = {
-  receiverName: '',
-  receiverPhone: '',
-  province: '',
-  district: '',
-  ward: '',
-  addressLine: '',
-}
+import { formatAddress } from '../utils/vietnamLocations'
 
 export default function AddressPage() {
   const { t } = useLanguage()
   const [addresses, setAddresses] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [form, setForm] = useState(EMPTY_FORM)
   const [modalOpen, setModalOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  // Lỗi khi lưu hiện trong hộp thoại, không nằm khuất phía sau.
+  const [formError, setFormError] = useState('')
 
   useEffect(() => {
     loadAddresses()
@@ -54,18 +38,18 @@ export default function AddressPage() {
     }
   }
 
-  async function handleCreate(event) {
-    event.preventDefault()
+  async function handleCreate(form) {
     setSaving(true)
-    setError('')
+    setFormError('')
     try {
       // Địa chỉ đầu tiên tự động thành mặc định.
       await userApi.createAddress({ ...form, isDefault: addresses.length === 0 })
-      setForm(EMPTY_FORM)
       setModalOpen(false)
       loadAddresses()
+      return true
     } catch (err) {
-      setError(err.message)
+      setFormError(err.message)
+      return false
     } finally {
       setSaving(false)
     }
@@ -125,7 +109,7 @@ export default function AddressPage() {
                   {address.isDefault && <Badge tone="primary">{t('Default')}</Badge>}
                 </p>
                 <p className="mt-1 text-muted">
-                  {address.addressLine}, {address.ward}, {address.district}, {address.province}
+                  {formatAddress(address)}
                 </p>
               </div>
 
@@ -152,34 +136,23 @@ export default function AddressPage() {
       <Button
         variant="primary"
         leadingIcon={Plus}
-        onClick={() => setModalOpen(true)}
+        onClick={() => {
+          setFormError('')
+          setModalOpen(true)
+        }}
         className="mt-6"
       >
         {t('Add a new address')}
       </Button>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={t('Add a delivery address')}>
-        <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-2">
-          {FIELDS.map(([field, label]) => (
-            <Input
-              key={field}
-              label={t(label)}
-              required
-              value={form[field]}
-              onChange={(event) => setForm({ ...form, [field]: event.target.value })}
-              className={field === 'addressLine' ? 'sm:col-span-2' : ''}
-            />
-          ))}
-
-          <div className="flex gap-3 sm:col-span-2">
-            <Button type="submit" variant="primary" isLoading={saving}>
-              {t('Save address')}
-            </Button>
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
-              {t('Cancel')}
-            </Button>
-          </div>
-        </form>
+        <AddressForm
+          onSubmit={handleCreate}
+          onCancel={() => setModalOpen(false)}
+          submitLabel={t('Save address')}
+          saving={saving}
+          error={formError}
+        />
       </Modal>
     </div>
   )

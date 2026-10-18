@@ -17,7 +17,7 @@ vi.mock('axios', () => ({
   default: { create: () => mocks.instance, post: mocks.post },
 }))
 
-const { setToken, getToken, clearToken, getVisitorId } = await import('../src/api/axiosClient')
+const { setToken, getToken, clearToken, getVisitorId, SESSION_ENDED_EVENT } = await import('../src/api/axiosClient')
 
 beforeEach(() => {
   localStorage.clear()
@@ -115,6 +115,18 @@ describe('tự làm mới token khi gặp 401', () => {
 
     await expect(mocks.handlers.err(unauthorised())).rejects.toThrow()
     expect(getToken()).toBeNull()
+  })
+
+  test('làm mới thất bại thì báo phiên đã kết thúc để giao diện đăng xuất', async () => {
+    setToken('token-cu')
+    mocks.post.mockRejectedValue(new Error('phiên đã bị thu hồi'))
+    let ended = false
+    const onEnded = () => (ended = true)
+    window.addEventListener(SESSION_ENDED_EVENT, onEnded)
+
+    await expect(mocks.handlers.err(unauthorised())).rejects.toThrow()
+    window.removeEventListener(SESSION_ENDED_EVENT, onEnded)
+    expect(ended).toBe(true)
   })
 
   test('lỗi khác 401 thì không đụng tới token', async () => {

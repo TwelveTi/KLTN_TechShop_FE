@@ -115,6 +115,16 @@ export default function HomePage() {
         </ul>
       </section>
 
+      {/* Đã đăng nhập thì gợi ý riêng lên đầu: đây là phần khác biệt nhất so với khách
+          vãng lai, và là thứ người quay lại muốn thấy trước dải bán chạy chung. */}
+      {isLoggedIn && (
+        <RecommendationRail
+          title={t('Picked for you')}
+          description={t('Based on the products you have viewed and bought')}
+          mode="personal"
+        />
+      )}
+
       {error && (
         <div className="mt-10">
           <Alert title={t('Could not load the data')} onRetry={loadData}>
@@ -195,13 +205,8 @@ export default function HomePage() {
         </section>
       )}
 
-      {isLoggedIn ? (
-        <RecommendationRail
-          title={t('Picked for you')}
-          description={t('Based on the products you have viewed and bought')}
-          mode="personal"
-        />
-      ) : (
+      {/* Khách chưa đăng nhập: lời mời đăng nhập để cuối, không chắn việc xem hàng. */}
+      {!isLoggedIn && (
         <section className="pt-16">
           <div className="flex flex-wrap items-center justify-between gap-6 rounded-md border border-line bg-surface p-8">
             <div>

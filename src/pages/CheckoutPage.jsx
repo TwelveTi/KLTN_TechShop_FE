@@ -4,6 +4,7 @@ import { Banknote, CreditCard } from 'lucide-react'
 import authApi from '../api/authApi'
 import orderApi from '../api/orderApi'
 import userApi from '../api/userApi'
+import AddressForm from '../components/AddressForm'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -12,6 +13,7 @@ import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { useLanguage } from '../context/LanguageContext'
 import { formatPrice } from '../utils/format'
+import { formatAddress } from '../utils/vietnamLocations'
 
 const SHIPPING_FEE = 30000
 const FREE_SHIPPING_FROM = 1000000
@@ -30,24 +32,6 @@ const PAYMENT_METHODS = [
     detail: 'Domestic card, international card or VNPay wallet',
   },
 ]
-
-const ADDRESS_FIELDS = [
-  ['receiverName', 'Recipient name'],
-  ['receiverPhone', 'Phone number'],
-  ['province', 'Province / City'],
-  ['district', 'District'],
-  ['ward', 'Ward'],
-  ['addressLine', 'House number and street'],
-]
-
-const EMPTY_ADDRESS = {
-  receiverName: '',
-  receiverPhone: '',
-  province: '',
-  district: '',
-  ward: '',
-  addressLine: '',
-}
 
 export default function CheckoutPage() {
   const { items, subtotal, clearCart } = useCart()
@@ -71,7 +55,8 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const [newAddress, setNewAddress] = useState(EMPTY_ADDRESS)
+  const [savingAddress, setSavingAddress] = useState(false)
+  const [addressError, setAddressError] = useState('')
 
   useEffect(() => {
     async function loadAddresses() {
@@ -89,16 +74,19 @@ export default function CheckoutPage() {
     loadAddresses()
   }, [])
 
-  async function handleCreateAddress(event) {
-    event.preventDefault()
-    setError('')
+  async function handleCreateAddress(form) {
+    setSavingAddress(true)
+    setAddressError('')
     try {
-      const created = await userApi.createAddress({ ...newAddress, isDefault: true })
+      const created = await userApi.createAddress({ ...form, isDefault: true })
       setAddresses([...addresses, created])
       setAddressId(created.id)
-      setNewAddress(EMPTY_ADDRESS)
+      return true
     } catch (err) {
-      setError(err.message)
+      setAddressError(err.message)
+      return false
+    } finally {
+      setSavingAddress(false)
     }
   }
 
@@ -228,33 +216,24 @@ export default function CheckoutPage() {
                         {address.receiverName} · {address.receiverPhone}
                       </span>
                       <span className="mt-0.5 block text-muted">
-                        {address.addressLine}, {address.ward}, {address.district},{' '}
-                        {address.province}
+                        {formatAddress(address)}
                       </span>
                     </span>
                   </label>
                 ))}
               </div>
             ) : (
-              <form onSubmit={handleCreateAddress} className="mt-4 grid gap-4 sm:grid-cols-2">
-                <p className="text-sm text-muted sm:col-span-2">
+              <div className="mt-4">
+                <p className="mb-4 text-sm text-muted">
                   {t('You have no saved addresses. Enter a delivery address below.')}
                 </p>
-                {ADDRESS_FIELDS.map(([field, label]) => (
-                  <Input
-                    key={field}
-                    label={t(label)}
-                    required
-                    value={newAddress[field]}
-                    onChange={(event) =>
-                      setNewAddress({ ...newAddress, [field]: event.target.value })
-                    }
-                  />
-                ))}
-                <Button type="submit" variant="secondary" className="sm:col-span-2">
-                  {t('Save address')}
-                </Button>
-              </form>
+                <AddressForm
+                  onSubmit={handleCreateAddress}
+                  submitLabel={t('Save address')}
+                  saving={savingAddress}
+                  error={addressError}
+                />
+              </div>
             )}
           </section>
 

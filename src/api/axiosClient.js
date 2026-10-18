@@ -12,6 +12,9 @@ export const getToken = () => localStorage.getItem('accessToken')
 export const setToken = (token) => localStorage.setItem('accessToken', token)
 export const clearToken = () => localStorage.removeItem('accessToken')
 
+// Phát ra khi phiên đăng nhập không còn dùng được, AuthContext nghe để đưa về trạng thái khách.
+export const SESSION_ENDED_EVENT = 'techshop:session-ended'
+
 // Mỗi khách (kể cả chưa đăng nhập) có một id riêng để backend nhớ hội thoại AI.
 export function getVisitorId() {
   let id = localStorage.getItem('visitorId')
@@ -55,7 +58,9 @@ axiosClient.interceptors.response.use(
           return axiosClient(original)
         }
       } catch {
+        // Refresh cũng bị từ chối: phiên đã bị thu hồi hoặc hết hạn. Báo AuthContext đăng xuất.
         clearToken()
+        window.dispatchEvent(new Event(SESSION_ENDED_EVENT))
       }
     }
 

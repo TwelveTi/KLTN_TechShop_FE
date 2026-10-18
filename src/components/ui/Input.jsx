@@ -1,5 +1,8 @@
 import { useId } from 'react'
 
+// Ô chọn không ăn line-height như ô nhập, nên ghim chiều cao cho bằng nhau (43px).
+const SELECT_HEIGHT = 'h-[2.6875rem]'
+
 // Ô nhập liệu. Nhãn luôn nằm TRÊN ô, không dùng placeholder thay nhãn.
 export default function Input({
   label,
@@ -30,6 +33,7 @@ export default function Input({
         className={`w-full rounded-sm border bg-surface px-3 py-2 text-base text-heading
           placeholder:text-faint
           disabled:bg-sunken disabled:text-muted
+          ${as === 'select' ? SELECT_HEIGHT : ''}
           ${error ? 'border-danger' : 'border-line-strong'}`}
         {...props}
       >
