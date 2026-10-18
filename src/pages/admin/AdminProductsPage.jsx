@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, X } from 'lucide-react'
 import adminApi from '../../api/adminApi'
 import Pagination from '../../components/Pagination'
 import Alert from '../../components/ui/Alert'
@@ -249,6 +249,8 @@ export default function AdminProductsPage() {
 
   async function handleUploadImages(event) {
     const files = Array.from(event.target.files || [])
+    // Xoá lựa chọn để chọn lại đúng tệp vừa rồi vẫn kích hoạt onChange.
+    event.target.value = ''
     if (files.length === 0) return
 
     setUploading(true)
@@ -351,14 +353,18 @@ export default function AdminProductsPage() {
         <Button
           variant="primary"
           leadingIcon={Plus}
-          onClick={() => setForm({ ...EMPTY_PRODUCT })}
+          onClick={() => {
+            setError('')
+            setForm({ ...EMPTY_PRODUCT })
+          }}
           className="ml-auto"
         >
           Add product
         </Button>
       </div>
 
-      {error && (
+      {/* Đang mở form thì lỗi hiện trong hộp thoại, không nằm khuất phía sau. */}
+      {error && !form && (
         <div className="mb-5">
           <Alert>{error}</Alert>
         </div>
@@ -595,16 +601,37 @@ export default function AdminProductsPage() {
               {form.images.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {form.images.map((image, index) => (
-                    <img
-                      key={index}
-                      src={image.imageUrl}
-                      alt=""
-                      className="size-16 rounded-sm border border-line bg-sunken object-contain p-1"
-                    />
+                    <div key={image.publicId || image.imageUrl} className="relative">
+                      <img
+                        src={image.imageUrl}
+                        alt=""
+                        className="size-16 rounded-sm border border-line bg-sunken object-contain p-1"
+                      />
+                      {/* Bỏ ảnh khỏi form; chỉ thật sự gỡ khi bấm lưu. */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            images: prev.images.filter((_, i) => i !== index),
+                          }))
+                        }
+                        aria-label={`Remove image ${index + 1}`}
+                        className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full border border-line bg-raised text-muted shadow-sm hover:text-danger-strong"
+                      >
+                        <X size={12} aria-hidden />
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
             </div>
+
+            {error && (
+              <div className="sm:col-span-2">
+                <Alert>{error}</Alert>
+              </div>
+            )}
 
             <div className="flex gap-3 sm:col-span-2">
               <Button type="submit" variant="primary" isLoading={saving}>

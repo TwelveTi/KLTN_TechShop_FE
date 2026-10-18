@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PackageOpen } from 'lucide-react'
 import orderApi from '../api/orderApi'
 import ProfileTabs from '../components/ProfileTabs'
@@ -32,6 +33,9 @@ export default function MyOrdersPage() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  // Lỗi của một thao tác trên đơn (huỷ, thanh toán lại), khác lỗi tải danh sách.
+  const [actionError, setActionError] = useState('')
+  const [payingId, setPayingId] = useState(null)
 
   useEffect(() => {
     loadOrders()
@@ -52,11 +56,25 @@ export default function MyOrdersPage() {
 
   async function handleCancel(orderId) {
     if (!confirm(t('Are you sure you want to cancel this order?'))) return
+    setActionError('')
     try {
       await orderApi.cancelOrder(orderId, 'Cancelled by the customer')
       loadOrders()
     } catch (err) {
-      setError(err.message)
+      setActionError(err.message)
+    }
+  }
+
+  // Đơn VNPay chưa trả xong vẫn giữ hàng và voucher, nên cho khách trả lại thay vì đặt lại từ đầu.
+  async function handlePay(orderId) {
+    setActionError('')
+    setPayingId(orderId)
+    try {
+      const payment = await orderApi.createVnpayUrl(orderId)
+      window.location.href = payment.paymentUrl
+    } catch (err) {
+      setActionError(err.message)
+      setPayingId(null)
     }
   }
 
@@ -70,6 +88,12 @@ export default function MyOrdersPage() {
           <Alert title={t('Could not load your orders')} onRetry={loadOrders}>
             {error}
           </Alert>
+        </div>
+      )}
+
+      {actionError && (
+        <div className="mt-6">
+          <Alert>{actionError}</Alert>
         </div>
       )}
 
@@ -116,7 +140,13 @@ export default function MyOrdersPage() {
                     className="size-14 shrink-0 rounded-sm bg-sunken object-contain p-1"
                   />
                   <div className="min-w-0 flex-1 text-sm">
-                    <p className="text-heading">{item.productName}</p>
+                    {item.productId ? (
+                      <Link to={`/products/${item.productId}`} className="rounded-xs text-heading hover:text-primary">
+                        {item.productName}
+                      </Link>
+                    ) : (
+                      <p className="text-heading">{item.productName}</p>
+                    )}
                     <p className="tabular mt-0.5 text-muted">
                       {formatPrice(item.unitPrice)} × {item.quantity}
                     </p>
@@ -148,9 +178,21 @@ export default function MyOrdersPage() {
 
               {/* Chỉ đơn chưa xác nhận mới cho khách tự huỷ. */}
               {order.status === 'PENDING' && (
-                <Button variant="ghost" size="sm" onClick={() => handleCancel(order.id)} className="!text-danger-strong">
-                  {t('Cancel order')}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => handleCancel(order.id)} className="!text-danger-strong">
+                    {t('Cancel order')}
+                  </Button>
+                  {order.paymentMethod === 'VNPAY' && order.paymentStatus !== 'PAID' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      isLoading={payingId === order.id}
+                      onClick={() => handlePay(order.id)}
+                    >
+                      {t('Pay with VNPay')}
+                    </Button>
+                  )}
+                </div>
               )}
             </footer>
           </article>

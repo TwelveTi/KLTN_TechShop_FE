@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Banknote, CreditCard } from 'lucide-react'
+import authApi from '../api/authApi'
 import orderApi from '../api/orderApi'
 import userApi from '../api/userApi'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import { Skeleton } from '../components/ui/Skeleton'
+import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { useLanguage } from '../context/LanguageContext'
 import { formatPrice } from '../utils/format'
@@ -49,6 +51,10 @@ const EMPTY_ADDRESS = {
 
 export default function CheckoutPage() {
   const { items, subtotal, clearCart } = useCart()
+  const { user } = useAuth()
+  // Backend chặn đặt hàng khi email chưa xác minh; báo ngay từ đầu thay vì để khách điền xong mới lỗi.
+  const unverified = !user?.emailVerifiedAt
+  const [verifyNotice, setVerifyNotice] = useState('')
   const { t } = useLanguage()
   const navigate = useNavigate()
 
@@ -103,6 +109,15 @@ export default function CheckoutPage() {
     } catch (err) {
       setDiscount(null)
       setDiscountError(err.message)
+    }
+  }
+
+  async function handleResendVerification() {
+    try {
+      await authApi.resendVerification()
+      setVerifyNotice('The verification email is on its way. Check your spam folder too.')
+    } catch (err) {
+      setVerifyNotice(err.message)
     }
   }
 
@@ -171,6 +186,19 @@ export default function CheckoutPage() {
   return (
     <div className="mx-auto max-w-page px-4 py-10 sm:px-8">
       <h1 className="text-h1">{t('Checkout')}</h1>
+
+      {unverified && (
+        <div className="mt-6">
+          <Alert
+            tone="warning"
+            title={t('Email not verified')}
+            onRetry={handleResendVerification}
+            retryLabel={t('Resend verification email')}
+          >
+            {verifyNotice || t('You need to verify your email before placing an order.')}
+          </Alert>
+        </div>
+      )}
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
         <div className="space-y-6">
@@ -346,7 +374,7 @@ export default function CheckoutPage() {
             size="lg"
             fullWidth
             isLoading={submitting}
-            disabled={!addressId}
+            disabled={!addressId || unverified}
             onClick={handlePlaceOrder}
             className="mt-5"
           >

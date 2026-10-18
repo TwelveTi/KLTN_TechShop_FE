@@ -9,6 +9,13 @@ export default function Modal({ open, onClose, title, size = 'md', children }) {
   const panelRef = useRef(null)
   const { t } = useLanguage()
 
+  // Trang cha truyền onClose dạng arrow function, mỗi lần render là hàm mới. Giữ trong ref
+  // để effect dưới chỉ chạy khi mở/đóng, không giật focus khỏi ô đang gõ.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => {
+    onCloseRef.current = onClose
+  })
+
   useEffect(() => {
     if (!open) return
 
@@ -17,7 +24,7 @@ export default function Modal({ open, onClose, title, size = 'md', children }) {
     panelRef.current?.focus()
 
     function onKeyDown(event) {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') onCloseRef.current()
     }
     document.addEventListener('keydown', onKeyDown)
 
@@ -26,7 +33,7 @@ export default function Modal({ open, onClose, title, size = 'md', children }) {
       document.body.style.overflow = ''
       triggerRef.current?.focus?.()
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 

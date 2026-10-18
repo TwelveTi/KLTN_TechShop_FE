@@ -3,6 +3,15 @@ import { CheckCircle2, XCircle } from 'lucide-react'
 import { LinkButton } from '../components/ui/Button'
 import { useLanguage } from '../context/LanguageContext'
 
+// Mã lý do backend gửi về khi VNPay không thành công, đổi sang câu người đọc hiểu được.
+function failureMessage(reason) {
+  if (reason === 'gateway_24') return 'You cancelled the payment at VNPay.'
+  if (reason?.startsWith('gateway_')) return 'VNPay declined the payment.'
+  if (reason === 'order_not_payable') return 'This order can no longer be paid.'
+  if (reason === 'already_settled' || reason === 'duplicate_payment') return 'This payment was already processed.'
+  return 'We could not confirm the payment with VNPay.'
+}
+
 // Trang hiện sau khi đặt hàng xong, hoặc khi VNPay trả trình duyệt về.
 // URL có dạng /checkout/success hoặc /checkout/failed.
 // Không cần dọn giỏ ở đây: COD đã dọn trước khi chuyển trang, còn VNPay tải lại
@@ -42,7 +51,9 @@ export default function CheckoutResultPage() {
       <p className="mt-2 text-sm text-muted">
         {success
           ? t('We have received your order and will contact you to confirm it.')
-          : t(reason || 'The transaction was cancelled or declined. You can place this order again.')}
+          : `${t(failureMessage(reason))} ${t(
+              'Your order is kept with its items reserved. You can pay again or cancel it from My orders.',
+            )}`}
       </p>
 
       <div className="mt-8 flex justify-center gap-3">

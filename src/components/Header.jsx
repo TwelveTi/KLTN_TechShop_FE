@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
+  Bot,
   ChevronDown,
   Clock,
   LogOut,
@@ -135,13 +136,14 @@ export default function Header({ variant = 'storefront' }) {
 
   return (
     <header className="sticky top-0 z-30 border-b border-line bg-surface">
-      <div className="mx-auto flex h-16 max-w-page items-center gap-4 px-4 sm:px-8">
+      {/* Màn hình nhỏ: ô tìm kiếm rơi xuống hàng thứ hai thay vì biến mất. */}
+      <div className="mx-auto flex max-w-page flex-wrap items-center gap-x-2 gap-y-2 px-4 py-3 sm:gap-x-4 sm:h-16 sm:flex-nowrap sm:px-8 sm:py-0">
         <BrandMark />
 
         <form
           ref={searchRef}
           onSubmit={handleSearch}
-          className="relative hidden flex-1 sm:block"
+          className="relative order-last w-full sm:order-none sm:w-auto sm:flex-1"
         >
           <label htmlFor="header-search" className="sr-only">
             {t('Search products')}
@@ -192,7 +194,17 @@ export default function Header({ variant = 'storefront' }) {
           )}
         </form>
 
-        <div className="ml-auto flex items-center gap-2 sm:ml-0">
+        <div className="ml-auto flex items-center gap-1 sm:ml-0 sm:gap-2">
+          {/* Trợ lý AI là tính năng chính, nên có lối vào thường trực trên mọi trang. */}
+          <Link
+            to="/advisor"
+            aria-label={t('AI advisor')}
+            className="inline-flex h-10 items-center gap-1.5 rounded-sm px-2 text-sm font-medium text-body hover:bg-sunken"
+          >
+            <Bot size={20} aria-hidden />
+            <span className="max-md:hidden">{t('AI advisor')}</span>
+          </Link>
+
           <LanguageToggle />
 
           <Link
@@ -227,10 +239,10 @@ export default function Header({ variant = 'storefront' }) {
                 aria-label={t('Account menu')}
                 aria-expanded={menuOpen}
                 aria-haspopup="menu"
-                className="flex items-center gap-1.5 rounded-full p-0.5 pr-2 hover:bg-sunken"
+                className="flex items-center gap-1.5 rounded-full p-0.5 hover:bg-sunken sm:pr-2"
               >
                 <Avatar name={user.fullName || user.email} src={user.avatarUrl} />
-                <ChevronDown size={14} aria-hidden className="text-muted" />
+                <ChevronDown size={14} aria-hidden className="text-muted max-sm:hidden" />
               </button>
 
               {menuOpen && (

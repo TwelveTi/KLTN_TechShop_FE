@@ -57,10 +57,12 @@ export default function RegisterPage() {
   }
 
   const mismatch = form.confirmPassword !== '' && form.password !== form.confirmPassword
+  // Backend áp đúng ba điều kiện này, nên chặn từ đây cho khỏi gửi một lượt chắc chắn bị từ chối.
+  const weakPassword = !PASSWORD_RULES.every((rule) => rule.test(form.password))
 
   async function handleSubmit(event) {
     event.preventDefault()
-    if (mismatch) return
+    if (mismatch || weakPassword || emailIssue) return
 
     setLoading(true)
     setError('')
@@ -182,7 +184,14 @@ export default function RegisterPage() {
 
         {error && <Alert>{error}</Alert>}
 
-        <Button type="submit" variant="primary" size="lg" fullWidth isLoading={loading}>
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          fullWidth
+          isLoading={loading}
+          disabled={weakPassword || mismatch || !!emailIssue}
+        >
           {t('Create account')}
         </Button>
       </form>

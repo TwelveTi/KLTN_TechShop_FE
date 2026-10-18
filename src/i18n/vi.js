@@ -379,6 +379,17 @@ const vi = {
   'The link may have changed, or the product you were looking for is no longer sold.':
     'Đường dẫn có thể đã đổi, hoặc sản phẩm bạn tìm không còn bán nữa.',
   'Back to home': 'Về trang chủ',
+  'Your order is kept with its items reserved. You can pay again or cancel it from My orders.':
+    'Đơn hàng vẫn được giữ cùng số hàng đã đặt. Bạn có thể thanh toán lại hoặc huỷ đơn ở mục Đơn hàng của tôi.',
+  'Pay with VNPay': 'Thanh toán qua VNPay',
+  'You cancelled the payment at VNPay.': 'Bạn đã huỷ thanh toán ở cổng VNPay.',
+  'VNPay declined the payment.': 'VNPay đã từ chối giao dịch.',
+  'This order can no longer be paid.': 'Đơn hàng này không còn thanh toán được nữa.',
+  'This payment was already processed.': 'Giao dịch này đã được xử lý trước đó.',
+  'We could not confirm the payment with VNPay.': 'Chưa xác nhận được giao dịch với VNPay.',
+  'Password must be at least 8 characters and include upper case, lower case and a digit':
+    'Mật khẩu cần ít nhất 8 ký tự, có chữ hoa, chữ thường và chữ số',
+  'Please verify your email to use this feature': 'Bạn cần xác minh email để dùng tính năng này',
 }
 
 export default vi

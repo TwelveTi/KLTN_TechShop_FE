@@ -214,6 +214,19 @@ export default function AdvisorPage() {
         </aside>
 
         <div className="min-w-0">
+          {/* Màn hình nhỏ không có cột lịch sử, nên đưa nút mở hội thoại mới lên đây. */}
+          {messages.length > 0 && (
+            <Button
+              variant="secondary"
+              size="sm"
+              leadingIcon={Plus}
+              onClick={startNewChat}
+              className="mb-4 lg:hidden"
+            >
+              {t('New conversation')}
+            </Button>
+          )}
+
           <div className="mb-5 flex gap-2" role="tablist" aria-label={t('Assistant mode')}>
             {MODES.map((item) => (
               <button
