@@ -6,17 +6,18 @@ import axiosClient from './axiosClient'
 const ADVISOR_TIMEOUT_MS = 120000
 
 const aiApi = {
-  ask: (message, conversationId) =>
+  // `language`: ngôn ngữ giao diện đang chọn, AI trả lời theo ngôn ngữ này.
+  ask: (message, conversationId, language) =>
     axiosClient.post(
       '/ai/advisor',
-      { message, conversationId },
+      { message, conversationId, language },
       { timeout: ADVISOR_TIMEOUT_MS },
     ),
 
-  compare: (message, conversationId) =>
+  compare: (message, conversationId, language) =>
     axiosClient.post(
       '/ai/compare',
-      { message, conversationId },
+      { message, conversationId, language },
       { timeout: ADVISOR_TIMEOUT_MS },
     ),
 

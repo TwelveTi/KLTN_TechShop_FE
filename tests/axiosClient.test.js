@@ -21,6 +21,7 @@ const { setToken, getToken, clearToken, getVisitorId, SESSION_ENDED_EVENT } = aw
 
 beforeEach(() => {
   localStorage.clear()
+  clearToken()
   mocks.post.mockReset()
   mocks.instance.mockReset()
 })
@@ -112,21 +113,38 @@ describe('tự làm mới token khi gặp 401', () => {
   test('làm mới thất bại thì xoá token, không để lại phiên nửa vời', async () => {
     setToken('token-cu')
     mocks.post.mockRejectedValue(new Error('refresh token hết hạn'))
+    mocks.instance.mockResolvedValue({})
 
-    await expect(mocks.handlers.err(unauthorised())).rejects.toThrow()
+    await mocks.handlers.err(unauthorised())
     expect(getToken()).toBeNull()
   })
 
   test('làm mới thất bại thì báo phiên đã kết thúc để giao diện đăng xuất', async () => {
     setToken('token-cu')
     mocks.post.mockRejectedValue(new Error('phiên đã bị thu hồi'))
+    mocks.instance.mockResolvedValue({})
     let ended = false
     const onEnded = () => (ended = true)
     window.addEventListener(SESSION_ENDED_EVENT, onEnded)
 
-    await expect(mocks.handlers.err(unauthorised())).rejects.toThrow()
+    await mocks.handlers.err(unauthorised())
     window.removeEventListener(SESSION_ENDED_EVENT, onEnded)
     expect(ended).toBe(true)
+  })
+
+  test('làm mới thất bại thì gửi lại một lần dưới tư cách khách, không kèm token', async () => {
+    // Trang không bắt đăng nhập (danh mục, Advisor) vẫn chạy tiếp; trang bắt đăng nhập nhận 401 như cũ.
+    setToken('token-cu')
+    mocks.post.mockRejectedValue(new Error('refresh token hết hạn'))
+    mocks.instance.mockResolvedValue({ guest: true })
+
+    const result = await mocks.handlers.err(unauthorised({ headers: { Authorization: 'Bearer token-cu' } }))
+
+    const [retried] = mocks.instance.mock.calls[0]
+    expect(mocks.instance).toHaveBeenCalledOnce()
+    expect(retried.headers.Authorization).toBeUndefined()
+    expect(retried._retry).toBe(true)
+    expect(result).toEqual({ guest: true })
   })
 
   test('lỗi khác 401 thì không đụng tới token', async () => {
@@ -140,12 +158,29 @@ describe('tự làm mới token khi gặp 401', () => {
   })
 })
 
-describe('quản lý token trong localStorage', () => {
+describe('quản lý access token trong bộ nhớ', () => {
   test('ghi, đọc, xoá', () => {
     expect(getToken()).toBeNull()
     setToken('x')
     expect(getToken()).toBe('x')
     clearToken()
     expect(getToken()).toBeNull()
+  })
+
+  test('không bao giờ ghi access token vào localStorage hay sessionStorage', () => {
+    setToken('bi-mat')
+    const stored = [...Object.values(localStorage), ...Object.values(sessionStorage)]
+    expect(stored).not.toContain('bi-mat')
+    expect(localStorage.getItem('accessToken')).toBeNull()
+  })
+
+  test('refresh thành công cũng chỉ giữ token mới trong bộ nhớ', async () => {
+    mocks.post.mockResolvedValue({ data: { data: { accessToken: 'token-refresh' } } })
+    mocks.instance.mockResolvedValue({ ok: true })
+
+    await mocks.handlers.err({ config: { url: '/cart', headers: {} }, response: { status: 401 } })
+
+    expect(getToken()).toBe('token-refresh')
+    expect(localStorage.getItem('accessToken')).toBeNull()
   })
 })

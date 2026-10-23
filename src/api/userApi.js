@@ -21,7 +21,11 @@ const userApi = {
   getRecentKeywords: (limit = 10) =>
     axiosClient.get('/search-history/me/keywords', { params: { limit } }),
 
-  clearSearchHistory: () => axiosClient.delete('/search-history/me'),
+  // Từng lượt tìm kiếm kèm id, dùng khi cần xoá lẻ từng mục.
+  getSearchHistory: (limit = 50) =>
+    axiosClient.get('/search-history/me', { params: { limit } }),
+
+  clearSearchHistory:() => axiosClient.delete('/search-history/me'),
 
   deleteSearchEntry: (id) => axiosClient.delete(`/search-history/me/${id}`),
 }

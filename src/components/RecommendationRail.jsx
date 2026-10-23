@@ -28,11 +28,12 @@ export default function RecommendationRail({
   limit = 8,
 }) {
   const { isLoggedIn } = useAuth()
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
-  // Lời giải thích của AI, lưu theo itemId để bấm lại không phải gọi API nữa.
+  // Lời giải thích của AI, khoá theo `ngôn ngữ:itemId` để bấm lại không phải gọi API nữa.
   const [explanations, setExplanations] = useState({})
+  const explanationKey = (itemId) => `${lang}:${itemId}`
   const [explaining, setExplaining] = useState(null)
 
   useEffect(() => {
@@ -50,7 +51,10 @@ export default function RecommendationRail({
         // Lời giải thích đã lưu ở server thì hiện ngay, F5 không phải hỏi lại AI.
         const stored = {}
         loaded.forEach((item) => {
-          if (item.itemId && item.reasonMetadata?.explanation) stored[item.itemId] = item.reasonMetadata.explanation
+          const metadata = item.reasonMetadata || {}
+          if (!item.itemId) return
+          if (metadata.explanation) stored[`vi:${item.itemId}`] = metadata.explanation
+          if (metadata.explanationEn) stored[`en:${item.itemId}`] = metadata.explanationEn
         })
         setExplanations(stored)
       } catch {
@@ -72,13 +76,14 @@ export default function RecommendationRail({
   }
 
   async function handleExplain(item) {
-    if (!item.itemId || explanations[item.itemId]) return
+    const key = explanationKey(item.itemId)
+    if (!item.itemId || explanations[key]) return
     setExplaining(item.itemId)
     try {
-      const data = await recommendationApi.explain(item.itemId)
-      setExplanations((prev) => ({ ...prev, [item.itemId]: data?.explanation || '' }))
+      const data = await recommendationApi.explain(item.itemId, lang)
+      setExplanations((prev) => ({ ...prev, [key]: data?.explanation || '' }))
     } catch {
-      setExplanations((prev) => ({ ...prev, [item.itemId]: t('No explanation available right now.') }))
+      setExplanations((prev) => ({ ...prev, [key]: t('No explanation available right now.') }))
     } finally {
       setExplaining(null)
     }
@@ -108,8 +113,8 @@ export default function RecommendationRail({
             <div className="px-1">
               <Badge tone="primary">{t(REASON_LABEL[item.reasonCode] || 'Picked for you')}</Badge>
 
-              {explanations[item.itemId] ? (
-                <p className="mt-1.5 text-caption text-muted">{explanations[item.itemId]}</p>
+              {explanations[explanationKey(item.itemId)] ? (
+                <p className="mt-1.5 text-caption text-muted">{explanations[explanationKey(item.itemId)]}</p>
               ) : (
                 // Chỉ người đã đăng nhập mới hỏi được AI vì sao được gợi ý.
                 isLoggedIn && item.itemId && (

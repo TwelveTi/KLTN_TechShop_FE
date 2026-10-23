@@ -5,6 +5,7 @@ import authApi from '../api/authApi'
 import orderApi from '../api/orderApi'
 import userApi from '../api/userApi'
 import AddressForm from '../components/AddressForm'
+import VoucherList from '../components/VoucherList'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
@@ -90,10 +91,12 @@ export default function CheckoutPage() {
     }
   }
 
-  async function handleApplyDiscount() {
+  // `code` truyền vào khi khách bấm một mã trong danh sách, còn không thì lấy mã đang gõ.
+  async function handleApplyDiscount(code = discountCode) {
     setDiscountError('')
+    setDiscountCode(code)
     try {
-      setDiscount(await orderApi.validateDiscount(discountCode.trim(), subtotal))
+      setDiscount(await orderApi.validateDiscount(code.trim(), subtotal))
     } catch (err) {
       setDiscount(null)
       setDiscountError(err.message)
@@ -311,11 +314,13 @@ export default function CheckoutPage() {
                 placeholder={t('Discount code')}
                 aria-label={t('Discount code')}
               />
-              <Button variant="secondary" onClick={handleApplyDiscount} className="mt-0 self-start">
+              <Button variant="secondary" onClick={() => handleApplyDiscount()} className="mt-0 self-start">
                 {t('Apply')}
               </Button>
             </div>
             {discountError && <p className="mt-1.5 text-sm text-danger">{t(discountError)}</p>}
+
+            <VoucherList subtotal={subtotal} appliedCode={discount?.code} onApply={handleApplyDiscount} />
           </div>
 
           <dl className="mt-5 space-y-3 border-t border-line pt-5 text-sm">

@@ -10,7 +10,9 @@ const recommendationApi = {
     axiosClient.get(`/recommendations/products/${productId}/similar`, { params: { limit } }),
 
   // Hỏi AI "vì sao tôi được gợi ý sản phẩm này". Chỉ gọi khi khách bấm nút.
-  explain: (itemId) => axiosClient.post(`/ai/recommendations/${itemId}/explain`),
+  // `language` chọn ngôn ngữ lời giải thích; server lưu riêng bản của từng ngôn ngữ.
+  explain: (itemId, language) =>
+    axiosClient.post(`/ai/recommendations/${itemId}/explain`, { language }),
 
   // Báo về server là gợi ý đã được bấm — số liệu để tính CTR ở chương đánh giá.
   recordOutcome: (itemId, outcome) =>

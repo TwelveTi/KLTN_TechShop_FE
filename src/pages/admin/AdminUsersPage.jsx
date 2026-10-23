@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
 import adminApi from '../../api/adminApi'
 import Pagination from '../../components/Pagination'
 import Alert from '../../components/ui/Alert'
@@ -15,6 +15,16 @@ import { formatDate } from '../../utils/format'
 const ROLES = ['CUSTOMER', 'ADMIN']
 const STATUSES = ['ACTIVE', 'INACTIVE', 'BLOCKED']
 
+// Form tạo mới không có id; BE bắt buộc email, mật khẩu và họ tên.
+const EMPTY_USER = {
+  email: '',
+  password: '',
+  fullName: '',
+  phone: '',
+  role: 'CUSTOMER',
+  status: 'ACTIVE',
+}
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([])
   const [pagination, setPagination] = useState(null)
@@ -27,6 +37,7 @@ export default function AdminUsersPage() {
   const [error, setError] = useState('')
   const [form, setForm] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
   // Tăng số này để tải lại danh sách sau khi sửa/xoá.
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -54,21 +65,28 @@ export default function AdminUsersPage() {
 
   const reloadUsers = () => setReloadKey((key) => key + 1)
 
+  function openForm(user) {
+    setFormError('')
+    setForm(user)
+  }
+
   async function handleSave(event) {
     event.preventDefault()
     setSaving(true)
-    setError('')
+    setFormError('')
+    const payload = {
+      fullName: form.fullName,
+      phone: form.phone,
+      role: form.role,
+      status: form.status,
+    }
     try {
-      await adminApi.updateUser(form.id, {
-        fullName: form.fullName,
-        phone: form.phone,
-        role: form.role,
-        status: form.status,
-      })
+      if (form.id) await adminApi.updateUser(form.id, payload)
+      else await adminApi.createUser({ ...payload, email: form.email, password: form.password })
       setForm(null)
       reloadUsers()
     } catch (err) {
-      setError(err.message)
+      setFormError(err.message)
     } finally {
       setSaving(false)
     }
@@ -128,6 +146,15 @@ export default function AdminUsersPage() {
             ))}
           </select>
         </label>
+
+        <Button
+          variant="primary"
+          leadingIcon={Plus}
+          onClick={() => openForm({ ...EMPTY_USER })}
+          className="ml-auto"
+        >
+          Add user
+        </Button>
       </div>
 
       {error && (
@@ -176,7 +203,7 @@ export default function AdminUsersPage() {
                   </Td>
                   <Td className="text-muted">{formatDate(user.createdAt || user.created_at)}</Td>
                   <RowActions>
-                    <Button variant="ghost" size="sm" onClick={() => setForm(user)}>
+                    <Button variant="ghost" size="sm" onClick={() => openForm(user)}>
                       Edit
                     </Button>
                     <Button
@@ -197,12 +224,43 @@ export default function AdminUsersPage() {
 
       <Pagination page={page} totalPages={pagination?.totalPages} onChange={setPage} />
 
-      <Modal open={!!form} onClose={() => setForm(null)} title="Edit user">
+      <Modal
+        open={!!form}
+        onClose={() => setForm(null)}
+        title={form?.id ? 'Edit user' : 'Add user'}
+      >
         {form && (
           <form onSubmit={handleSave} className="space-y-4">
-            <Input label="Email" value={form.email} disabled readOnly />
+            {formError && <Alert>{formError}</Alert>}
+            {form.id ? (
+              <Input label="Email" value={form.email} disabled readOnly />
+            ) : (
+              <>
+                <Input
+                  label="Email"
+                  type="email"
+                  required
+                  autoComplete="off"
+                  value={form.email}
+                  onChange={(event) => setForm({ ...form, email: event.target.value })}
+                />
+                <Input
+                  label="Password"
+                  type="password"
+                  required
+                  minLength={6}
+                  maxLength={72}
+                  autoComplete="new-password"
+                  hint="At least 6 characters."
+                  value={form.password}
+                  onChange={(event) => setForm({ ...form, password: event.target.value })}
+                />
+              </>
+            )}
             <Input
               label="Full name"
+              required
+              maxLength={150}
               value={form.fullName || ''}
               onChange={(event) => setForm({ ...form, fullName: event.target.value })}
             />
@@ -238,7 +296,7 @@ export default function AdminUsersPage() {
 
             <div className="flex gap-3">
               <Button type="submit" variant="primary" isLoading={saving}>
-                Save changes
+                {form.id ? 'Save changes' : 'Create user'}
               </Button>
               <Button type="button" variant="secondary" onClick={() => setForm(null)}>
                 Cancel

@@ -1,9 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bot, BookOpen, ChevronDown, Database, MessageSquare, Package, Plus, Send } from 'lucide-react'
+import {
+  Bot,
+  BookOpen,
+  ChevronDown,
+  Database,
+  MessageSquare,
+  Package,
+  Plus,
+  Send,
+  Trash2,
+} from 'lucide-react'
 import aiApi from '../api/aiApi'
 import ProductCard from '../components/ProductCard'
 import Alert from '../components/ui/Alert'
 import Button from '../components/ui/Button'
+import { useAuth } from '../context/AuthContext'
 import { useLanguage } from '../context/LanguageContext'
 
 // Trang hỏi đáp với trợ lý AI. Hai chế độ dùng chung một giao diện:
@@ -33,6 +44,20 @@ function renderBold(text) {
     .split('**')
     .map((part, index) => (index % 2 === 1 ? <strong key={index}>{part}</strong> : part))
 }
+
+const CURRENT_CONVERSATION_KEY = 'advisorConversationId'
+
+// Dữ liệu một hội thoại từ API → tab chế độ và danh sách tin nhắn để hiển thị.
+const toMode = (data) =>
+  data.conversation?.conversationType === 'PRODUCT_COMPARISON' ? 'comparison' : 'advisor'
+
+const toChatMessages = (data) =>
+  (data.messages || []).map((message) => ({
+    role: message.role?.toLowerCase() === 'user' ? 'user' : 'assistant',
+    content: message.content || '',
+    products: message.products || [],
+    sources: message.sources || [],
+  }))
 
 const SOURCE_ICONS = {
   POLICY: BookOpen,
@@ -91,7 +116,8 @@ function SourceCards({ sources }) {
 }
 
 export default function AdvisorPage() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
+  const { user, loading: authLoading } = useAuth()
   const [mode, setMode] = useState('advisor')
   const [messages, setMessages] = useState([])
   const [conversationId, setConversationId] = useState(null)
@@ -100,12 +126,37 @@ export default function AdvisorPage() {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [historyError, setHistoryError] = useState('')
 
   const bottomRef = useRef(null)
 
+  // Chờ khôi phục phiên đăng nhập xong mới tải lịch sử, và tải lại khi đổi tài khoản.
+  // F5 thì mở lại hội thoại đang dở; không còn quyền xem thì bắt đầu hội thoại mới.
   useEffect(() => {
-    loadConversations()
-  }, [])
+    if (authLoading) return
+
+    aiApi
+      .getConversations()
+      .then((data) => setConversations(data?.items || []))
+      .catch(() => setConversations([]))
+
+    async function restoreCurrent() {
+      const savedId = sessionStorage.getItem(CURRENT_CONVERSATION_KEY)
+      try {
+        if (!savedId) throw new Error('No saved conversation')
+        const data = await aiApi.getConversation(savedId)
+        setConversationId(savedId)
+        setMode(toMode(data))
+        setMessages(toChatMessages(data))
+      } catch {
+        sessionStorage.removeItem(CURRENT_CONVERSATION_KEY)
+        setConversationId(null)
+        setMessages([])
+      }
+      setError('')
+    }
+    restoreCurrent()
+  }, [authLoading, user?.id])
 
   // Tự cuộn xuống tin nhắn mới nhất.
   useEffect(() => {
@@ -125,24 +176,38 @@ export default function AdvisorPage() {
     setError('')
     try {
       const data = await aiApi.getConversation(id)
-      setConversationId(id)
-      setMessages(
-        (data.messages || []).map((message) => ({
-          role: message.role?.toLowerCase() === 'user' ? 'user' : 'assistant',
-          content: message.content || '',
-          products: message.products || [],
-          sources: message.sources || [],
-        })),
-      )
+      rememberConversation(id)
+      setMode(toMode(data))
+      setMessages(toChatMessages(data))
     } catch (err) {
       setError(err.message)
     }
   }
 
+  // Giữ id hội thoại đang mở trong sessionStorage để F5 không mất.
+  function rememberConversation(id) {
+    setConversationId(id)
+    if (id) sessionStorage.setItem(CURRENT_CONVERSATION_KEY, id)
+    else sessionStorage.removeItem(CURRENT_CONVERSATION_KEY)
+  }
+
   function startNewChat() {
-    setConversationId(null)
+    rememberConversation(null)
     setMessages([])
     setError('')
+  }
+
+  // BE chỉ đóng hội thoại (CLOSED) chứ không xoá tin nhắn; đang mở đúng nó thì về hội thoại mới.
+  async function handleDeleteConversation(id) {
+    if (!confirm(t('Delete this conversation?'))) return
+    setHistoryError('')
+    try {
+      await aiApi.closeConversation(id)
+      setConversations((prev) => prev.filter((conversation) => conversation.id !== id))
+      if (conversationId === id) startNewChat()
+    } catch (err) {
+      setHistoryError(err.message)
+    }
   }
 
   async function handleSend(event, presetText) {
@@ -159,10 +224,10 @@ export default function AdvisorPage() {
       // Một lượt hỏi có thể mất vài chục giây vì backend gọi model nhiều vòng.
       const data =
         mode === 'comparison'
-          ? await aiApi.compare(text, conversationId)
-          : await aiApi.ask(text, conversationId)
+          ? await aiApi.compare(text, conversationId, lang)
+          : await aiApi.ask(text, conversationId, lang)
 
-      setConversationId(data.conversationId)
+      rememberConversation(data.conversationId)
       setMessages((prev) => [
         ...prev,
         {
@@ -196,10 +261,10 @@ export default function AdvisorPage() {
           ) : (
             <ul className="space-y-0.5">
               {conversations.map((conversation) => (
-                <li key={conversation.id}>
+                <li key={conversation.id} className="flex items-center gap-1">
                   <button
                     onClick={() => openConversation(conversation.id)}
-                    className={`block w-full truncate rounded-sm px-3 py-2 text-left text-sm ${
+                    className={`block min-w-0 flex-1 truncate rounded-sm px-3 py-2 text-left text-sm ${
                       conversationId === conversation.id
                         ? 'bg-primary-soft font-medium text-primary'
                         : 'text-muted hover:bg-sunken hover:text-body'
@@ -207,9 +272,25 @@ export default function AdvisorPage() {
                   >
                     {conversation.title || t('Conversation')}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteConversation(conversation.id)}
+                    aria-label={t('Delete conversation')}
+                    title={t('Delete conversation')}
+                    className="grid size-8 shrink-0 place-items-center rounded-sm text-faint
+                      hover:bg-sunken hover:text-danger-strong"
+                  >
+                    <Trash2 size={16} aria-hidden />
+                  </button>
                 </li>
               ))}
             </ul>
+          )}
+
+          {historyError && (
+            <p role="alert" className="mt-2 text-sm text-danger">
+              {t(historyError)}
+            </p>
           )}
         </aside>
 
@@ -330,7 +411,7 @@ export default function AdvisorPage() {
 
           {error && (
             <div className="mt-4">
-              <Alert title={t('No answer came back')}>{error}</Alert>
+              <Alert title={t('No answer came back')}>{t(error)}</Alert>
             </div>
           )}
 

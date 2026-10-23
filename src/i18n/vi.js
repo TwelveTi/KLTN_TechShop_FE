@@ -46,6 +46,8 @@ const vi = {
   'Search laptops, phones, accessories…': 'Tìm laptop, điện thoại, phụ kiện…',
   'Recent searches': 'Tìm kiếm gần đây',
   Clear: 'Xoá',
+  'Remove from history': 'Xoá khỏi lịch sử',
+  'Remove “{keyword}” from history': 'Xoá “{keyword}” khỏi lịch sử',
   'Cart, {count} item': 'Giỏ hàng, {count} món',
   'Cart, {count} items': 'Giỏ hàng, {count} món',
   'Account menu': 'Menu tài khoản',
@@ -362,6 +364,8 @@ const vi = {
   'New conversation': 'Cuộc trò chuyện mới',
   History: 'Lịch sử',
   'No conversations yet.': 'Chưa có cuộc trò chuyện nào.',
+  'Delete conversation': 'Xoá cuộc trò chuyện',
+  'Delete this conversation?': 'Xoá cuộc trò chuyện này?',
   Conversation: 'Cuộc trò chuyện',
   'Assistant mode': 'Chế độ trợ lý',
   'The advisor answers from the real specifications of products in stock, so it will not talk about products the store does not sell.':
@@ -370,6 +374,27 @@ const vi = {
   'Looked up {count} sources': 'Đã tra {count} nguồn',
   'The advisor is looking things up and writing an answer…': 'Trợ lý đang tra cứu và viết câu trả lời…',
   'No answer came back': 'Không nhận được câu trả lời',
+  // Danh sách mã giảm giá ở trang thanh toán
+  'Available vouchers': 'Mã giảm giá dùng được',
+  '{value}% off, up to {max}': 'Giảm {value}%, tối đa {max}',
+  '{value}% off': 'Giảm {value}%',
+  '{amount} off': 'Giảm {amount}',
+  'Orders from {amount}': 'Đơn từ {amount}',
+  'Ends {date}': 'Hết hạn {date}',
+  'Add {amount} more to use this code': 'Mua thêm {amount} để dùng mã này',
+  Applied: 'Đã áp dụng',
+  'Show {count} more': 'Xem thêm {count} mã',
+
+  // Lỗi trợ lý AI do backend trả về
+  "The advisor has used up today's free questions. Please come back tomorrow.":
+    'Trợ lý đã dùng hết lượt hỏi miễn phí trong ngày hôm nay. Bạn quay lại vào ngày mai nhé.',
+  'The advisor is receiving too many questions. Please wait about a minute and try again.':
+    'Trợ lý đang nhận quá nhiều câu hỏi. Bạn đợi khoảng một phút rồi hỏi lại nhé.',
+  'The advisor is not configured correctly on this server': 'Trợ lý chưa được cấu hình đúng trên máy chủ này',
+  'The advisor is overloaded. Please try again in a moment.': 'Trợ lý đang quá tải. Bạn thử lại sau một chút nhé.',
+  'AI advisor is not configured on this server': 'Trợ lý AI chưa được cấu hình trên máy chủ này',
+  'Too many questions, please wait a moment': 'Bạn hỏi nhanh quá, đợi một chút rồi hỏi tiếp nhé',
+  'Conversation is closed': 'Hội thoại này đã đóng',
   'Your question': 'Câu hỏi của bạn',
   'Type your question…': 'Nhập câu hỏi…',
   Send: 'Gửi',
@@ -393,8 +418,8 @@ const vi = {
   'Ward / Commune': 'Phường / Xã',
   'The list of provinces could not be loaded, so type them in.':
     'Không tải được danh sách tỉnh thành, bạn nhập tay giúp nhé.',
-  'Type to search a province or city': 'Chọn tỉnh / thành phố',
-  'Type to search a ward or commune': 'Chọn phường / xã',
+  'Choose a province or city': 'Chọn tỉnh / thành phố',
+  'Choose a ward or commune': 'Chọn phường / xã',
   'No matches': 'Không có kết quả phù hợp',
   'Loading…': 'Đang tải…',
   'Choose a province first': 'Chọn tỉnh / thành phố trước',

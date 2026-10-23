@@ -70,11 +70,17 @@ export default function Header({ variant = 'storefront' }) {
     return () => document.removeEventListener('mousedown', onPointerDown)
   }, [searchFocused])
 
+  // Một từ khoá có thể nằm ở nhiều lượt tìm kiếm, nên gom id theo từ khoá để xoá lẻ được.
   async function loadRecentKeywords() {
     if (!isLoggedIn) return
     try {
-      const data = await userApi.getRecentKeywords(8)
-      setRecentKeywords(data?.items || [])
+      const data = await userApi.getSearchHistory(50)
+      const groups = new Map()
+      for (const entry of data?.items || []) {
+        if (!groups.has(entry.keyword)) groups.set(entry.keyword, { keyword: entry.keyword, ids: [] })
+        groups.get(entry.keyword).ids.push(entry.id)
+      }
+      setRecentKeywords([...groups.values()].slice(0, 8))
     } catch {
       // Search history might not exist; silently ignore.
     }
@@ -103,6 +109,16 @@ export default function Header({ variant = 'storefront' }) {
       setRecentKeywords([])
     } catch {
       // Ignore
+    }
+  }
+
+  async function handleDeleteKeyword(item) {
+    try {
+      await Promise.all(item.ids.map((id) => userApi.deleteSearchEntry(id)))
+      setRecentKeywords((prev) => prev.filter((entry) => entry.keyword !== item.keyword))
+    } catch {
+      // Lỗi thì tải lại để danh sách khớp với dữ liệu thật.
+      loadRecentKeywords()
     }
   }
 
@@ -178,14 +194,24 @@ export default function Header({ variant = 'storefront' }) {
               </div>
               <ul>
                 {recentKeywords.map((item) => (
-                  <li key={item.keyword}>
+                  <li key={item.keyword} className="flex items-center hover:bg-sunken">
                     <button
                       type="button"
                       onClick={() => handlePickKeyword(item.keyword)}
-                      className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-body hover:bg-sunken"
+                      className="flex min-w-0 flex-1 items-center gap-2.5 py-2 pl-4 text-sm text-body"
                     >
                       <Clock size={14} aria-hidden className="shrink-0 text-faint" />
                       <span className="truncate">{item.keyword}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteKeyword(item)}
+                      aria-label={t('Remove “{keyword}” from history', { keyword: item.keyword })}
+                      title={t('Remove from history')}
+                      className="mr-2 grid size-8 shrink-0 place-items-center rounded-sm text-faint
+                        hover:text-danger-strong"
+                    >
+                      <X size={14} aria-hidden />
                     </button>
                   </li>
                 ))}

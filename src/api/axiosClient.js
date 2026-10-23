@@ -7,10 +7,23 @@ const axiosClient = axios.create({
   timeout: 60000,
 })
 
-// Đọc / ghi access token trong localStorage.
-export const getToken = () => localStorage.getItem('accessToken')
-export const setToken = (token) => localStorage.setItem('accessToken', token)
-export const clearToken = () => localStorage.removeItem('accessToken')
+// Access token chỉ giữ trong bộ nhớ, không ghi vào localStorage để script lạ không đọc được.
+// Tải lại trang thì mất, AuthContext đổi cookie refresh HttpOnly lấy token mới.
+let accessToken = null
+export const getToken = () => accessToken
+export const setToken = (token) => {
+  accessToken = token || null
+}
+export const clearToken = () => {
+  accessToken = null
+}
+
+// Dọn token do bản cũ để lại trong localStorage.
+try {
+  localStorage.removeItem('accessToken')
+} catch {
+  // Trình duyệt chặn localStorage thì không có gì để dọn.
+}
 
 // Phát ra khi phiên đăng nhập không còn dùng được, AuthContext nghe để đưa về trạng thái khách.
 export const SESSION_ENDED_EVENT = 'techshop:session-ended'
@@ -61,6 +74,9 @@ axiosClient.interceptors.response.use(
         // Refresh cũng bị từ chối: phiên đã bị thu hồi hoặc hết hạn. Báo AuthContext đăng xuất.
         clearToken()
         window.dispatchEvent(new Event(SESSION_ENDED_EVENT))
+        // Gửi lại dưới tư cách khách, để các trang không bắt đăng nhập vẫn chạy tiếp.
+        delete original.headers.Authorization
+        return axiosClient(original)
       }
     }
 

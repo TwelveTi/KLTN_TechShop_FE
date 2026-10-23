@@ -17,6 +17,10 @@ const orderApi = {
 
   validateDiscount: (code, subtotal) =>
     axiosClient.post('/discounts/validate', { code, subtotal }),
+
+  // Mã khách đang dùng được; gửi kèm tạm tính để biết mã nào đủ điều kiện, giảm bao nhiêu.
+  getAvailableDiscounts: (subtotal) =>
+    axiosClient.get('/discounts/available', { params: { subtotal } }),
 }
 
 export default orderApi

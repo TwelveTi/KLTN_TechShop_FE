@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import authApi from '../api/authApi'
-import { clearToken, getToken, SESSION_ENDED_EVENT, setToken } from '../api/axiosClient'
+import { clearToken, SESSION_ENDED_EVENT, setToken } from '../api/axiosClient'
 
 // Lưu thông tin người đăng nhập để mọi trang đều dùng được.
 const AuthContext = createContext(null)
@@ -9,20 +9,14 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Mở lại trang thì khôi phục phiên đăng nhập theo hai đường.
+  // Mở lại trang thì access token trong bộ nhớ đã mất, đổi cookie refresh lấy token mới.
+  // Đường này cũng dùng cho lúc quay về từ Google hoặc từ link xác minh email.
   useEffect(() => {
     async function restoreSession() {
       try {
-        if (getToken()) {
-          // Có token sẵn thì chỉ cần hỏi server xem còn dùng được không.
-          setUser(await authApi.getMe())
-        } else {
-          // Không có token nhưng có thể vừa quay về từ Google hoặc từ link xác
-          // minh email — hai luồng đó chỉ đặt cookie refresh, phải đổi lấy token.
-          const data = await authApi.refresh()
-          setToken(data.accessToken)
-          setUser(data.user)
-        }
+        const data = await authApi.refresh()
+        setToken(data.accessToken)
+        setUser(data.user)
       } catch {
         // Khách chưa đăng nhập cũng rơi vào đây, không có gì để dọn ngoài token hỏng.
         clearToken()
