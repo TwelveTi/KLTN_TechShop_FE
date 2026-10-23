@@ -1,0 +1,210 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Check, X } from 'lucide-react'
+import authApi from '../api/authApi'
+import Alert from '../components/ui/Alert'
+import Button from '../components/ui/Button'
+import Input from '../components/ui/Input'
+import OAuthButton, { OrDivider } from '../components/ui/OAuthButton'
+import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
+
+// Điều kiện mật khẩu, hiện thành danh sách tick để người dùng biết còn thiếu gì.
+const PASSWORD_RULES = [
+  { label: 'At least 8 characters', test: (value) => value.length >= 8 },
+  { label: 'Upper and lower case letters', test: (value) => /[a-z]/.test(value) && /[A-Z]/.test(value) },
+  { label: 'At least one digit', test: (value) => /\d/.test(value) },
+]
+
+export default function RegisterPage() {
+  const { register } = useAuth()
+  const { t } = useLanguage()
+
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  // Lỗi email báo từ BE khi đang gõ: đã có tài khoản, hoặc email dùng một lần.
+  const [emailIssue, setEmailIssue] = useState('')
+  // Địa chỉ vừa đăng ký. Có giá trị là chuyển sang màn "kiểm tra hộp thư".
+  const [sentTo, setSentTo] = useState('')
+
+  // Ngừng gõ 600ms mới hỏi BE; gõ tiếp thì cleanup huỷ lượt hỏi cũ.
+  useEffect(() => {
+    const email = form.email.trim()
+    if (!email || !/\S+@\S+\.\S+/.test(email)) return
+
+    const timer = setTimeout(async () => {
+      try {
+        const data = await authApi.checkEmail(email)
+        if (data?.status === 'taken' || data?.status === 'disposable') setEmailIssue(data.message)
+      } catch {
+        // Endpoint might fail; don't block registration.
+      }
+    }, 600)
+
+    return () => clearTimeout(timer)
+  }, [form.email])
+
+  function handleChange(event) {
+    if (event.target.name === 'email') setEmailIssue('')
+    setForm({ ...form, [event.target.name]: event.target.value })
+  }
+
+  const mismatch = form.confirmPassword !== '' && form.password !== form.confirmPassword
+  // Backend áp đúng ba điều kiện này, nên chặn từ đây cho khỏi gửi một lượt chắc chắn bị từ chối.
+  const weakPassword = !PASSWORD_RULES.every((rule) => rule.test(form.password))
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    if (mismatch || weakPassword || emailIssue) return
+
+    setLoading(true)
+    setError('')
+    try {
+      const user = await register({
+        fullName: form.fullName,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+      })
+      setSentTo(user?.email || form.email.trim())
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Đăng ký xong thì dừng ở đây, không đá về trang chủ: tài khoản đã tạo nhưng
+  // chưa có phiên nào, và email phải được xác minh trước khi đặt hàng.
+  if (sentTo) {
+    return (
+      <div role="status">
+        <h1 className="text-h1">{t('Verify your email')}</h1>
+        <p className="mt-2 text-sm text-muted">
+          {t('We sent a verification link to')} <span className="text-body">{sentTo}</span>.{' '}
+          {t('Open it to finish setting up your account. The link works once and expires after 24 hours.')}
+        </p>
+
+        <div className="mt-6">
+          <Alert tone="info" title={t('You can look around first')}>
+            {t('Browsing and building a cart need no verification. Placing an order does.')}
+          </Alert>
+        </div>
+
+        <p className="mt-6 text-center text-sm text-muted">
+          {t('Already verified?')}{' '}
+          <Link to="/login" className="rounded-xs text-primary hover:underline">
+            {t('Sign in')}
+          </Link>
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <h1 className="text-h1">{t('Create an account')}</h1>
+      <p className="mt-2 text-sm text-muted">{t('It takes less than a minute.')}</p>
+
+      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+        <Input
+          name="fullName"
+          label={t('Full name')}
+          required
+          autoComplete="name"
+          value={form.fullName}
+          onChange={handleChange}
+        />
+        <Input
+          name="email"
+          type="email"
+          label="Email"
+          required
+          autoComplete="email"
+          value={form.email}
+          onChange={handleChange}
+          error={t(emailIssue)}
+          hint={emailIssue ? '' : t('Used for your verification code and order updates.')}
+        />
+        <Input
+          name="phone"
+          type="tel"
+          label={t('Phone number')}
+          required
+          autoComplete="tel"
+          value={form.phone}
+          onChange={handleChange}
+        />
+
+        <div>
+          <Input
+            name="password"
+            type="password"
+            label={t('Password')}
+            required
+            autoComplete="new-password"
+            value={form.password}
+            onChange={handleChange}
+          />
+          <ul className="mt-2 space-y-1">
+            {PASSWORD_RULES.map((rule) => {
+              const passed = rule.test(form.password)
+              return (
+                <li
+                  key={rule.label}
+                  className={`flex items-center gap-1.5 text-caption ${
+                    passed ? 'text-success-strong' : 'text-muted'
+                  }`}
+                >
+                  {passed ? <Check size={13} aria-hidden /> : <X size={13} aria-hidden />}
+                  {t(rule.label)}
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+
+        <Input
+          name="confirmPassword"
+          type="password"
+          label={t('Confirm password')}
+          required
+          autoComplete="new-password"
+          value={form.confirmPassword}
+          onChange={handleChange}
+          error={mismatch ? t('The two passwords do not match.') : ''}
+        />
+
+        {error && <Alert>{error}</Alert>}
+
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          fullWidth
+          isLoading={loading}
+          disabled={weakPassword || mismatch || !!emailIssue}
+        >
+          {t('Create account')}
+        </Button>
+      </form>
+
+      <OrDivider />
+      <OAuthButton />
+
+      <p className="mt-5 text-center text-sm text-muted">
+        {t('Already have an account?')}{' '}
+        <Link to="/login" className="rounded-xs text-primary hover:underline">
+          {t('Sign in')}
+        </Link>
+      </p>
+    </>
+  )
+}

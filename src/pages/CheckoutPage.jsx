@@ -1,0 +1,377 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Banknote, CreditCard } from 'lucide-react'
+import authApi from '../api/authApi'
+import orderApi from '../api/orderApi'
+import userApi from '../api/userApi'
+import AddressForm from '../components/AddressForm'
+import VoucherList from '../components/VoucherList'
+import Alert from '../components/ui/Alert'
+import Button from '../components/ui/Button'
+import Input from '../components/ui/Input'
+import { Skeleton } from '../components/ui/Skeleton'
+import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
+import { useLanguage } from '../context/LanguageContext'
+import { formatPrice } from '../utils/format'
+import { formatAddress } from '../utils/vietnamLocations'
+
+const SHIPPING_FEE = 30000
+const FREE_SHIPPING_FROM = 1000000
+
+const PAYMENT_METHODS = [
+  {
+    value: 'COD',
+    icon: Banknote,
+    label: 'Cash on delivery',
+    detail: 'Pay the courier in cash when the order arrives',
+  },
+  {
+    value: 'VNPAY',
+    icon: CreditCard,
+    label: 'Pay online with VNPay',
+    detail: 'Domestic card, international card or VNPay wallet',
+  },
+]
+
+export default function CheckoutPage() {
+  const { items, subtotal, clearCart } = useCart()
+  const { user } = useAuth()
+  // Backend chặn đặt hàng khi email chưa xác minh; báo ngay từ đầu thay vì để khách điền xong mới lỗi.
+  const unverified = !user?.emailVerifiedAt
+  const [verifyNotice, setVerifyNotice] = useState('')
+  const { t } = useLanguage()
+  const navigate = useNavigate()
+
+  const [addresses, setAddresses] = useState([])
+  const [addressId, setAddressId] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('COD')
+  const [note, setNote] = useState('')
+
+  const [discountCode, setDiscountCode] = useState('')
+  const [discount, setDiscount] = useState(null)
+  const [discountError, setDiscountError] = useState('')
+
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const [savingAddress, setSavingAddress] = useState(false)
+  const [addressError, setAddressError] = useState('')
+
+  useEffect(() => {
+    async function loadAddresses() {
+      try {
+        const data = await userApi.getAddresses()
+        setAddresses(data || [])
+        const preferred = data?.find((item) => item.isDefault) || data?.[0]
+        if (preferred) setAddressId(preferred.id)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadAddresses()
+  }, [])
+
+  async function handleCreateAddress(form) {
+    setSavingAddress(true)
+    setAddressError('')
+    try {
+      const created = await userApi.createAddress({ ...form, isDefault: true })
+      setAddresses([...addresses, created])
+      setAddressId(created.id)
+      return true
+    } catch (err) {
+      setAddressError(err.message)
+      return false
+    } finally {
+      setSavingAddress(false)
+    }
+  }
+
+  // `code` truyền vào khi khách bấm một mã trong danh sách, còn không thì lấy mã đang gõ.
+  async function handleApplyDiscount(code = discountCode) {
+    setDiscountError('')
+    setDiscountCode(code)
+    try {
+      setDiscount(await orderApi.validateDiscount(code.trim(), subtotal))
+    } catch (err) {
+      setDiscount(null)
+      setDiscountError(err.message)
+    }
+  }
+
+  async function handleResendVerification() {
+    try {
+      await authApi.resendVerification()
+      setVerifyNotice('The verification email is on its way. Check your spam folder too.')
+    } catch (err) {
+      setVerifyNotice(err.message)
+    }
+  }
+
+  async function handlePlaceOrder() {
+    if (!addressId) {
+      setError('Choose a delivery address before placing the order.')
+      return
+    }
+
+    setSubmitting(true)
+    setError('')
+    try {
+      const order = await orderApi.createOrder({
+        addressId,
+        paymentMethod,
+        deliveryMethodId: 'standard',
+        note: note || undefined,
+        discountCode: discount?.code || undefined,
+        items: items.map((item) => ({
+          productId: item.productId,
+          variantId: item.variantId || null,
+          quantity: item.quantity,
+        })),
+      })
+
+      // VNPay thì chuyển sang cổng thanh toán, COD thì xong ngay.
+      if (paymentMethod === 'VNPAY') {
+        const payment = await orderApi.createVnpayUrl(order.id)
+        window.location.href = payment.paymentUrl
+        return
+      }
+
+      await clearCart()
+      navigate(`/checkout/success?orderCode=${order.orderCode}`)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-page space-y-4 px-4 py-10 sm:px-8">
+        <Skeleton className="h-9 w-48" />
+        <Skeleton className="h-40" />
+        <Skeleton className="h-40" />
+      </div>
+    )
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="mx-auto max-w-page px-4 py-20 text-center text-muted sm:px-8">
+        {t('Your cart is empty, there is nothing to order.')}
+      </div>
+    )
+  }
+
+  const shippingFee = subtotal >= FREE_SHIPPING_FROM ? 0 : SHIPPING_FEE
+  const discountAmount = discount?.discountAmount || 0
+  const total = subtotal + shippingFee - discountAmount
+
+  const sectionClass = 'rounded-md border border-line bg-surface p-6 shadow-sm'
+
+  return (
+    <div className="mx-auto max-w-page px-4 py-10 sm:px-8">
+      <h1 className="text-h1">{t('Checkout')}</h1>
+
+      {unverified && (
+        <div className="mt-6">
+          <Alert
+            tone="warning"
+            title={t('Email not verified')}
+            onRetry={handleResendVerification}
+            retryLabel={t('Resend verification email')}
+          >
+            {verifyNotice || t('You need to verify your email before placing an order.')}
+          </Alert>
+        </div>
+      )}
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_380px]">
+        <div className="space-y-6">
+          <section className={sectionClass}>
+            <h2 className="text-h4">1. {t('Delivery address')}</h2>
+
+            {addresses.length > 0 ? (
+              <div className="mt-4 space-y-2">
+                {addresses.map((address) => (
+                  <label
+                    key={address.id}
+                    className={`flex cursor-pointer gap-3 rounded-sm border p-4 text-sm ${
+                      addressId === address.id
+                        ? 'border-primary bg-primary-soft'
+                        : 'border-line hover:bg-sunken'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="address"
+                      checked={addressId === address.id}
+                      onChange={() => setAddressId(address.id)}
+                      className="mt-1 accent-[var(--color-primary)]"
+                    />
+                    <span>
+                      <span className="block font-medium text-heading">
+                        {address.receiverName} · {address.receiverPhone}
+                      </span>
+                      <span className="mt-0.5 block text-muted">
+                        {formatAddress(address)}
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4">
+                <p className="mb-4 text-sm text-muted">
+                  {t('You have no saved addresses. Enter a delivery address below.')}
+                </p>
+                <AddressForm
+                  onSubmit={handleCreateAddress}
+                  submitLabel={t('Save address')}
+                  saving={savingAddress}
+                  error={addressError}
+                />
+              </div>
+            )}
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className="text-h4">2. {t('Payment method')}</h2>
+
+            <div className="mt-4 space-y-2">
+              {PAYMENT_METHODS.map(({ value, icon: Icon, label, detail }) => (
+                <label
+                  key={value}
+                  className={`flex cursor-pointer items-center gap-3 rounded-sm border p-4 text-sm ${
+                    paymentMethod === value
+                      ? 'border-primary bg-primary-soft'
+                      : 'border-line hover:bg-sunken'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked={paymentMethod === value}
+                    onChange={() => setPaymentMethod(value)}
+                    className="accent-[var(--color-primary)]"
+                  />
+                  <Icon size={20} aria-hidden className="text-muted" />
+                  <span>
+                    <span className="block font-medium text-heading">{t(label)}</span>
+                    <span className="text-muted">{t(detail)}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </section>
+
+          <section className={sectionClass}>
+            <h2 className="text-h4">3. {t('Notes')}</h2>
+            <Input
+              as="textarea"
+              rows={3}
+              className="mt-4"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder={t('For example: deliver outside office hours, call before arriving…')}
+              hint={t('Optional.')}
+            />
+          </section>
+        </div>
+
+        <aside className="h-fit rounded-md border border-line bg-surface p-6 shadow-sm lg:sticky lg:top-24">
+          <h2 className="text-h4">{t('Your order')}</h2>
+
+          <ul className="mt-4 space-y-2 text-sm">
+            {items.map((item) => (
+              <li key={item.id} className="flex justify-between gap-3">
+                <span className="line-clamp-1 text-muted">
+                  {item.name} × {item.quantity}
+                </span>
+                <span className="tabular shrink-0 text-heading">
+                  {formatPrice(item.unitPrice * item.quantity)}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-5 border-t border-line pt-5">
+            <div className="flex gap-2">
+              <Input
+                className="flex-1"
+                value={discountCode}
+                onChange={(event) => setDiscountCode(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== 'Enter') return
+                  event.preventDefault()
+                  handleApplyDiscount()
+                }}
+                placeholder={t('Discount code')}
+                aria-label={t('Discount code')}
+              />
+              <Button variant="secondary" onClick={() => handleApplyDiscount()} className="mt-0 self-start">
+                {t('Apply')}
+              </Button>
+            </div>
+            {discountError && <p className="mt-1.5 text-sm text-danger">{t(discountError)}</p>}
+
+            <VoucherList subtotal={subtotal} appliedCode={discount?.code} onApply={handleApplyDiscount} />
+          </div>
+
+          <dl className="mt-5 space-y-3 border-t border-line pt-5 text-sm">
+            <div className="flex justify-between">
+              <dt className="text-muted">{t('Subtotal')}</dt>
+              <dd className="tabular text-heading">{formatPrice(subtotal)}</dd>
+            </div>
+            <div className="flex justify-between">
+              <dt className="text-muted">{t('Delivery')}</dt>
+              <dd className="tabular text-heading">
+                {shippingFee === 0 ? t('Free') : formatPrice(shippingFee)}
+              </dd>
+            </div>
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-success-strong">
+                <dt>{t('Discount ({code})', { code: discount.code })}</dt>
+                <dd className="tabular">−{formatPrice(discountAmount)}</dd>
+              </div>
+            )}
+          </dl>
+
+          <div className="mt-5 flex items-baseline justify-between border-t border-line pt-5">
+            <span className="font-semibold text-heading">{t('Total')}</span>
+            <span className="tabular text-h3 text-heading">{formatPrice(total)}</span>
+          </div>
+
+          {error && (
+            <div className="mt-5">
+              <Alert>{error}</Alert>
+            </div>
+          )}
+
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            isLoading={submitting}
+            disabled={!addressId || unverified}
+            onClick={handlePlaceOrder}
+            className="mt-5"
+          >
+            {t('Place order')}
+          </Button>
+
+          <p className="mt-3 text-center text-caption text-muted">
+            {t(
+              'The server recalculates the total when the order is created, so the final figure always follows the real price at the time you order.',
+            )}
+          </p>
+        </aside>
+      </div>
+    </div>
+  )
+}

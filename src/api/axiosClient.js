@@ -1,0 +1,90 @@
+import axios from 'axios'
+
+// Kết nối tới backend. Mọi lời gọi API trong app đều đi qua file này.
+const axiosClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  withCredentials: true, // để trình duyệt gửi kèm cookie refresh token
+  timeout: 60000,
+})
+
+// Access token chỉ giữ trong bộ nhớ, không ghi vào localStorage để script lạ không đọc được.
+// Tải lại trang thì mất, AuthContext đổi cookie refresh HttpOnly lấy token mới.
+let accessToken = null
+export const getToken = () => accessToken
+export const setToken = (token) => {
+  accessToken = token || null
+}
+export const clearToken = () => {
+  accessToken = null
+}
+
+// Dọn token do bản cũ để lại trong localStorage.
+try {
+  localStorage.removeItem('accessToken')
+} catch {
+  // Trình duyệt chặn localStorage thì không có gì để dọn.
+}
+
+// Phát ra khi phiên đăng nhập không còn dùng được, AuthContext nghe để đưa về trạng thái khách.
+export const SESSION_ENDED_EVENT = 'techshop:session-ended'
+
+// Mỗi khách (kể cả chưa đăng nhập) có một id riêng để backend nhớ hội thoại AI.
+export function getVisitorId() {
+  let id = localStorage.getItem('visitorId')
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem('visitorId', id)
+  }
+  return id
+}
+
+// Interceptor request: tự gắn token và visitor id vào mọi request.
+axiosClient.interceptors.request.use((config) => {
+  const token = getToken()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  config.headers['X-Session-Id'] = getVisitorId()
+  return config
+})
+
+// Interceptor response: bóc lớp vỏ { code, message, data } của backend,
+// và khi gặp 401 thì xin token mới một lần rồi gửi lại request.
+axiosClient.interceptors.response.use(
+  (response) => response.data?.data,
+  async (error) => {
+    const original = error.config
+
+    // Chính lời gọi refresh hỏng thì không xin refresh lần nữa, tránh gọi đôi.
+    const isRefreshCall = original?.url?.includes('/auth/refresh')
+
+    if (error.response?.status === 401 && !original._retry && !isRefreshCall) {
+      original._retry = true
+      try {
+        const res = await axios.post(
+          `${import.meta.env.VITE_API_BASE_URL}/auth/refresh`,
+          {},
+          { withCredentials: true },
+        )
+        const newToken = res.data?.data?.accessToken
+        if (newToken) {
+          setToken(newToken)
+          original.headers.Authorization = `Bearer ${newToken}`
+          return axiosClient(original)
+        }
+      } catch {
+        // Refresh cũng bị từ chối: phiên đã bị thu hồi hoặc hết hạn. Báo AuthContext đăng xuất.
+        clearToken()
+        window.dispatchEvent(new Event(SESSION_ENDED_EVENT))
+        // Gửi lại dưới tư cách khách, để các trang không bắt đăng nhập vẫn chạy tiếp.
+        delete original.headers.Authorization
+        return axiosClient(original)
+      }
+    }
+
+    // Ném ra thông báo lỗi của backend để màn hình hiển thị đúng nguyên nhân.
+    const message =
+      error.response?.data?.message || error.message || 'Could not reach the server'
+    return Promise.reject(new Error(message))
+  },
+)
+
+export default axiosClient

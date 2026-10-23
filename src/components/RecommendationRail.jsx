@@ -1,0 +1,139 @@
+import { useEffect, useState } from 'react'
+import { Sparkles } from 'lucide-react'
+import recommendationApi from '../api/recommendationApi'
+import { useAuth } from '../context/AuthContext'
+import { useLanguage } from '../context/LanguageContext'
+import ProductCard from './ProductCard'
+import Badge from './ui/Badge'
+import SectionHead from './ui/SectionHead'
+import { ProductGridSkeleton } from './ui/Skeleton'
+
+// Nhãn hiển thị cho lý do gợi ý. Các mã này do backend sinh ra trong
+// recommendationService.REASON_CODES, sửa ở đây phải sửa kèm bên đó.
+const REASON_LABEL = {
+  MATCHES_YOUR_TASTE: 'Matches your taste',
+  MATCHES_YOUR_SEARCH: 'Matches a recent search',
+  LIKE_WHAT_YOU_BOUGHT: 'Like something you bought',
+  SIMILAR_TO_VIEWED: 'Like something you viewed',
+  SIMILAR_TO_THIS: 'Similar to this product',
+  POPULAR_NOW: 'Selling well right now',
+}
+
+// Dải sản phẩm gợi ý. mode = 'personal' (cho tôi) hoặc 'similar' (tương tự).
+export default function RecommendationRail({
+  title,
+  description,
+  mode = 'personal',
+  productId,
+  limit = 8,
+}) {
+  const { isLoggedIn } = useAuth()
+  const { t, lang } = useLanguage()
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  // Lời giải thích của AI, khoá theo `ngôn ngữ:itemId` để bấm lại không phải gọi API nữa.
+  const [explanations, setExplanations] = useState({})
+  const explanationKey = (itemId) => `${lang}:${itemId}`
+  const [explaining, setExplaining] = useState(null)
+
+  useEffect(() => {
+    if (mode === 'similar' && !productId) return
+
+    async function loadItems() {
+      setLoading(true)
+      try {
+        const data =
+          mode === 'similar'
+            ? await recommendationApi.getSimilar(productId, limit)
+            : await recommendationApi.getForMe(limit)
+        const loaded = data?.items || []
+        setItems(loaded)
+        // Lời giải thích đã lưu ở server thì hiện ngay, F5 không phải hỏi lại AI.
+        const stored = {}
+        loaded.forEach((item) => {
+          const metadata = item.reasonMetadata || {}
+          if (!item.itemId) return
+          if (metadata.explanation) stored[`vi:${item.itemId}`] = metadata.explanation
+          if (metadata.explanationEn) stored[`en:${item.itemId}`] = metadata.explanationEn
+        })
+        setExplanations(stored)
+      } catch {
+        setItems([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadItems()
+    // Tải lại khi đăng nhập hoặc đăng xuất để dải thuộc đúng tài khoản đang xem.
+  }, [mode, productId, limit, isLoggedIn])
+
+  // Bấm vào một gợi ý thì gửi hai tín hiệu khác nhau về server:
+  //  - recordOutcome: gắn vào đúng dòng gợi ý đã sinh ra cú bấm, dùng để ĐO CTR
+  //  - reportClick:   thêm một sự kiện hành vi, dùng để HỌC sở thích
+  function handleClick(item) {
+    if (item.itemId) recommendationApi.recordOutcome(item.itemId, 'CLICK').catch(() => {})
+    recommendationApi.reportClick(item.product.id).catch(() => {})
+  }
+
+  async function handleExplain(item) {
+    const key = explanationKey(item.itemId)
+    if (!item.itemId || explanations[key]) return
+    setExplaining(item.itemId)
+    try {
+      const data = await recommendationApi.explain(item.itemId, lang)
+      setExplanations((prev) => ({ ...prev, [key]: data?.explanation || '' }))
+    } catch {
+      setExplanations((prev) => ({ ...prev, [key]: t('No explanation available right now.') }))
+    } finally {
+      setExplaining(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <section className="pt-16">
+        <SectionHead title={title} description={description} />
+        <ProductGridSkeleton count={4} />
+      </section>
+    )
+  }
+
+  // Không có gợi ý nào thì giấu cả khối, không hiện khung trống.
+  if (items.length === 0) return null
+
+  return (
+    <section className="pt-16">
+      <SectionHead title={title} description={description} />
+
+      <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4">
+        {items.map((item) => (
+          <div key={item.product.id} className="flex flex-col gap-2">
+            <ProductCard product={item.product} onClick={() => handleClick(item)} />
+
+            <div className="px-1">
+              <Badge tone="primary">{t(REASON_LABEL[item.reasonCode] || 'Picked for you')}</Badge>
+
+              {explanations[explanationKey(item.itemId)] ? (
+                <p className="mt-1.5 text-caption text-muted">{explanations[explanationKey(item.itemId)]}</p>
+              ) : (
+                // Chỉ người đã đăng nhập mới hỏi được AI vì sao được gợi ý.
+                isLoggedIn && item.itemId && (
+                  <button
+                    type="button"
+                    onClick={() => handleExplain(item)}
+                    disabled={explaining === item.itemId}
+                    className="mt-1.5 inline-flex items-center gap-1 rounded-xs text-caption text-muted
+                      hover:text-primary disabled:opacity-60"
+                  >
+                    <Sparkles size={12} aria-hidden />
+                    {explaining === item.itemId ? t('Asking the AI…') : t('Why this product?')}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}

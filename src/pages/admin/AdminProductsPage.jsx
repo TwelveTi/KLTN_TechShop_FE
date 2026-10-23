@@ -1,0 +1,649 @@
+import { useEffect, useState } from 'react'
+import { Plus, Search, X } from 'lucide-react'
+import adminApi from '../../api/adminApi'
+import Pagination from '../../components/Pagination'
+import Alert from '../../components/ui/Alert'
+import Badge from '../../components/ui/Badge'
+import Button from '../../components/ui/Button'
+import Input from '../../components/ui/Input'
+import Modal from '../../components/ui/Modal'
+import { Skeleton } from '../../components/ui/Skeleton'
+import { RowActions, Table, TableEmpty, Td, Th, Tr } from '../../components/ui/Table'
+import { formatPrice, PLACEHOLDER_IMAGE } from '../../utils/format'
+import VariantManager from './VariantManager'
+
+const EMPTY_PRODUCT = {
+  name: '',
+  sku: '',
+  categoryId: '',
+  brandId: '',
+  basePrice: '',
+  salePrice: '',
+  stockQuantity: '',
+  shortDescription: '',
+  description: '',
+  status: 'ACTIVE',
+  isFeatured: false,
+  images: [],
+  // { [definitionId]: { value, text } }, xem toSpecValues.
+  specValues: {},
+}
+
+const STATUS_OPTIONS = ['DRAFT', 'ACTIVE', 'INACTIVE', 'OUT_OF_STOCK']
+
+const STATUS_TONE = {
+  ACTIVE: 'success',
+  DRAFT: 'neutral',
+  INACTIVE: 'neutral',
+  OUT_OF_STOCK: 'warning',
+}
+
+// Đổi thông số đã lưu của sản phẩm thành giá trị cho ô nhập, theo kiểu dữ liệu.
+// NUMBER giữ hai phần: con số để lọc/so sánh, và chữ hiển thị cho khách.
+function toSpecValues(specifications = []) {
+  const values = {}
+  specifications.forEach((spec) => {
+    const type = spec.definition?.dataType
+    let value = spec.valueText ?? ''
+    // Cột DECIMAL về dưới dạng chuỗi "32.0000", đổi qua Number để ô hiện 32.
+    if (type === 'NUMBER') value = spec.valueNumber == null ? '' : Number(spec.valueNumber)
+    if (type === 'BOOLEAN') value = spec.valueBoolean === true ? 'yes' : spec.valueBoolean === false ? 'no' : ''
+    if (type === 'JSON') value = spec.valueJson ? JSON.stringify(spec.valueJson) : ''
+    values[spec.specificationDefinitionId] = {
+      value: String(value),
+      text: type === 'NUMBER' ? spec.valueText || '' : '',
+    }
+  })
+  return values
+}
+
+// Ngược lại: chỉ gửi ô đã điền, gắn definitionId để backend không tạo định nghĩa trùng.
+function toSpecPayload(definitions, specValues) {
+  return definitions
+    .map((definition) => {
+      const entry = specValues[definition.id] || { value: '', text: '' }
+      const value = String(entry.value).trim()
+      const text = String(entry.text || '').trim()
+      const base = { definitionId: definition.id, name: definition.name }
+
+      if (definition.dataType === 'BOOLEAN') {
+        return value ? { ...base, value: value === 'yes' } : null
+      }
+      if (definition.dataType === 'NUMBER') {
+        if (value) return { ...base, value: Number(value), ...(text ? { valueText: text } : {}) }
+        // Chỉ điền chữ thì để backend tự tách số, ví dụ "16 GB".
+        return text ? { ...base, value: text } : null
+      }
+      return value ? { ...base, value } : null
+    })
+    .filter(Boolean)
+}
+
+// Một ô cho mỗi định nghĩa thông số của danh mục, kiểu ô theo dataType.
+function SpecificationFields({ definitions, values, onChange }) {
+  if (definitions.length === 0) {
+    return (
+      <p className="text-sm text-muted">
+        This category has no specification fields yet. Add them under Specifications.
+      </p>
+    )
+  }
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      {definitions.map((definition) => {
+        const entry = values[definition.id] || { value: '', text: '' }
+        const label = definition.unit ? `${definition.name} (${definition.unit})` : definition.name
+
+        if (definition.dataType === 'BOOLEAN') {
+          return (
+            <Input
+              key={definition.id}
+              as="select"
+              label={label}
+              value={entry.value}
+              onChange={(event) => onChange(definition.id, 'value', event.target.value)}
+            >
+              <option value="">—</option>
+              <option value="yes">Yes</option>
+              <option value="no">No</option>
+            </Input>
+          )
+        }
+
+        if (definition.dataType === 'NUMBER') {
+          return (
+            <div key={definition.id} className="grid grid-cols-[7rem_1fr] gap-2">
+              <Input
+                type="number"
+                step="any"
+                label={label}
+                value={entry.value}
+                onChange={(event) => onChange(definition.id, 'value', event.target.value)}
+              />
+              <Input
+                label="Shown as"
+                placeholder="e.g. 16GB DDR5"
+                value={entry.text}
+                onChange={(event) => onChange(definition.id, 'text', event.target.value)}
+              />
+            </div>
+          )
+        }
+
+        return (
+          <Input
+            key={definition.id}
+            label={label}
+            value={entry.value}
+            onChange={(event) => onChange(definition.id, 'value', event.target.value)}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+export default function AdminProductsPage() {
+  const [products, setProducts] = useState([])
+  const [pagination, setPagination] = useState(null)
+  const [categories, setCategories] = useState([])
+  const [brands, setBrands] = useState([])
+
+  const [page, setPage] = useState(1)
+  const [search, setSearch] = useState('')
+  const [appliedSearch, setAppliedSearch] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  // form = null nghĩa là đang không mở form. Có dữ liệu nghĩa là đang thêm/sửa.
+  const [form, setForm] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  // Tăng số này để tải lại danh sách sau khi thêm/sửa/xoá.
+  const [reloadKey, setReloadKey] = useState(0)
+  // Định nghĩa thông số của danh mục đang chọn trong form. Lưu kèm categoryId để
+  // không hiện nhầm định nghĩa của danh mục cũ trong lúc đang tải danh mục mới.
+  const [specDefs, setSpecDefs] = useState({ categoryId: '', items: [] })
+
+  useEffect(() => {
+    adminApi.getCategories().then(setCategories).catch(() => {})
+    adminApi.getBrands().then(setBrands).catch(() => {})
+  }, [])
+
+  const formCategoryId = form?.categoryId || ''
+  const hasVariants = (form?.variants?.length || 0) > 0
+
+  // Lưới biến thể lưu xong thì cập nhật form: danh sách mới và tồn kho tổng do backend tính.
+  function handleVariantsChanged(product) {
+    setForm((prev) => ({ ...prev, variants: product.variants || [], stockQuantity: product.stockQuantity }))
+    reloadProducts()
+  }
+
+  useEffect(() => {
+    if (!formCategoryId) return
+    async function loadDefinitions() {
+      try {
+        const data = await adminApi.getSpecifications(formCategoryId)
+        const items = (Array.isArray(data) ? data : []).sort((a, b) => a.sortOrder - b.sortOrder)
+        setSpecDefs({ categoryId: formCategoryId, items })
+      } catch {
+        setSpecDefs({ categoryId: formCategoryId, items: [] })
+      }
+    }
+    loadDefinitions()
+  }, [formCategoryId])
+
+  // null = chưa tải xong, lúc đó không gửi specifications để khỏi đè thông số đang có.
+  const definitions = formCategoryId && specDefs.categoryId === formCategoryId ? specDefs.items : null
+
+  function handleSpecChange(definitionId, field, value) {
+    setForm((prev) => ({
+      ...prev,
+      specValues: {
+        ...prev.specValues,
+        [definitionId]: { ...(prev.specValues[definitionId] || { value: '', text: '' }), [field]: value },
+      },
+    }))
+  }
+
+  useEffect(() => {
+    async function loadProducts() {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await adminApi.getProducts({
+          page,
+          limit: 10,
+          keyword: appliedSearch || undefined,
+        })
+        setProducts(data.items || [])
+        setPagination(data.pagination)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadProducts()
+  }, [page, appliedSearch, reloadKey])
+
+  const reloadProducts = () => setReloadKey((key) => key + 1)
+
+  // Mở form sửa: phải gọi API chi tiết vì danh sách không trả về thông số kỹ thuật.
+  async function openEditForm(productId) {
+    setError('')
+    try {
+      const product = await adminApi.getProduct(productId)
+      setForm({
+        ...EMPTY_PRODUCT,
+        ...product,
+        salePrice: product.salePrice ?? '',
+        images: product.images || [],
+        specValues: toSpecValues(product.specifications),
+      })
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleUploadImages(event) {
+    const files = Array.from(event.target.files || [])
+    // Xoá lựa chọn để chọn lại đúng tệp vừa rồi vẫn kích hoạt onChange.
+    event.target.value = ''
+    if (files.length === 0) return
+
+    setUploading(true)
+    setError('')
+    try {
+      const uploaded = await adminApi.uploadProductImages(files)
+      // Giữ cả publicId: backend bắt buộc có nó để quản lý ảnh trên Cloudinary.
+      setForm((prev) => ({
+        ...prev,
+        images: [
+          ...prev.images,
+          ...uploaded.map((image) => ({ imageUrl: image.imageUrl, publicId: image.publicId })),
+        ],
+      }))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  async function handleSave(event) {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+
+    // Chỉ gửi đúng những trường backend nhận. Nếu trải nguyên form thì các
+    // trường đọc-thêm như category, brand, createdAt cũng bị gửi lên theo.
+    const payload = {
+      name: form.name,
+      sku: form.sku || null,
+      categoryId: form.categoryId,
+      brandId: form.brandId,
+      basePrice: Number(form.basePrice),
+      salePrice: form.salePrice === '' ? null : Number(form.salePrice),
+      // Có biến thể thì tồn kho do biến thể quyết định, không gửi ô tồn kho của sản phẩm.
+      ...(hasVariants ? {} : { stockQuantity: Number(form.stockQuantity) }),
+      shortDescription: form.shortDescription || null,
+      description: form.description || null,
+      status: form.status,
+      isFeatured: !!form.isFeatured,
+      images: form.images.map((image) => ({
+        imageUrl: image.imageUrl,
+        publicId: image.publicId,
+        isPrimary: !!image.isPrimary,
+      })),
+      // Backend thay toàn bộ thông số khi nhận mảng khác rỗng, nên chỉ gửi khi đã
+      // có danh sách định nghĩa; mảng rỗng thì backend giữ nguyên thông số cũ.
+      ...(definitions ? { specifications: toSpecPayload(definitions, form.specValues) } : {}),
+    }
+
+    try {
+      if (form.id) await adminApi.updateProduct(form.id, payload)
+      else await adminApi.createProduct(payload)
+      setForm(null)
+      reloadProducts()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id, name) {
+    if (!confirm(`Delete the product “${name}”? This cannot be undone.`)) return
+    try {
+      await adminApi.deleteProduct(id)
+      reloadProducts()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            setPage(1)
+            setAppliedSearch(search)
+          }}
+          className="flex gap-2"
+        >
+          <label htmlFor="product-search" className="sr-only">
+            Search products
+          </label>
+          <input
+            id="product-search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search by product name…"
+            className="h-10 w-64 rounded-sm border border-line-strong bg-surface px-3 text-base text-heading placeholder:text-faint"
+          />
+          <Button type="submit" variant="secondary" leadingIcon={Search}>
+            Search
+          </Button>
+        </form>
+
+        <Button
+          variant="primary"
+          leadingIcon={Plus}
+          onClick={() => {
+            setError('')
+            setForm({ ...EMPTY_PRODUCT })
+          }}
+          className="ml-auto"
+        >
+          Add product
+        </Button>
+      </div>
+
+      {/* Đang mở form thì lỗi hiện trong hộp thoại, không nằm khuất phía sau. */}
+      {error && !form && (
+        <div className="mb-5">
+          <Alert>{error}</Alert>
+        </div>
+      )}
+
+      {loading ? (
+        <Skeleton className="h-96 rounded-md" />
+      ) : (
+        <Table>
+          <thead>
+            <tr>
+              <Th>Product</Th>
+              <Th>Category</Th>
+              <Th align="right">Price</Th>
+              <Th align="right">Stock</Th>
+              <Th>Status</Th>
+              <Th align="right">Actions</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {products.length === 0 ? (
+              <TableEmpty colSpan={6}>
+                {appliedSearch
+                  ? `No products match “${appliedSearch}”.`
+                  : 'No products in stock yet.'}
+              </TableEmpty>
+            ) : (
+              products.map((product) => (
+                <Tr key={product.id}>
+                  <Td>
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={product.images?.[0]?.imageUrl || PLACEHOLDER_IMAGE}
+                        alt=""
+                        className="size-10 shrink-0 rounded-sm bg-sunken object-contain p-1"
+                      />
+                      <span className="line-clamp-1 font-medium text-heading">{product.name}</span>
+                    </div>
+                  </Td>
+                  <Td className="text-muted">{product.category?.name}</Td>
+                  <Td numeric className="text-heading">
+                    {formatPrice(product.basePrice)}
+                  </Td>
+                  <Td numeric className="text-heading">
+                    {product.stockQuantity}
+                  </Td>
+                  <Td>
+                    <Badge tone={STATUS_TONE[product.status] || 'neutral'}>{product.status}</Badge>
+                  </Td>
+                  <RowActions>
+                    <Button variant="ghost" size="sm" onClick={() => openEditForm(product.id)}>
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(product.id, product.name)}
+                      className="!text-danger-strong"
+                    >
+                      Delete
+                    </Button>
+                  </RowActions>
+                </Tr>
+              ))
+            )}
+          </tbody>
+        </Table>
+      )}
+
+      <Pagination page={page} totalPages={pagination?.totalPages} onChange={setPage} />
+
+      <Modal
+        open={!!form}
+        onClose={() => setForm(null)}
+        size="lg"
+        title={form?.id ? 'Edit product' : 'Add product'}
+      >
+        {form && (
+          <form onSubmit={handleSave} className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Product name"
+              required
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              className="sm:col-span-2"
+            />
+
+            <Input
+              label="SKU"
+              value={form.sku || ''}
+              onChange={(event) => setForm({ ...form, sku: event.target.value })}
+            />
+
+            <Input
+              as="select"
+              label="Status"
+              value={form.status}
+              onChange={(event) => setForm({ ...form, status: event.target.value })}
+            >
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </Input>
+
+            <Input
+              as="select"
+              label="Category"
+              required
+              value={form.categoryId || ''}
+              onChange={(event) => setForm({ ...form, categoryId: event.target.value })}
+            >
+              <option value="">— Choose a category —</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </Input>
+
+            <Input
+              as="select"
+              label="Brand"
+              required
+              value={form.brandId || ''}
+              onChange={(event) => setForm({ ...form, brandId: event.target.value })}
+            >
+              <option value="">— Choose a brand —</option>
+              {brands.map((brand) => (
+                <option key={brand.id} value={brand.id}>
+                  {brand.name}
+                </option>
+              ))}
+            </Input>
+
+            <Input
+              type="number"
+              label="Base price (VND)"
+              required
+              value={form.basePrice}
+              onChange={(event) => setForm({ ...form, basePrice: event.target.value })}
+            />
+
+            <Input
+              type="number"
+              label="Sale price (VND)"
+              hint="Leave empty if the product is not on sale."
+              value={form.salePrice}
+              onChange={(event) => setForm({ ...form, salePrice: event.target.value })}
+            />
+
+            <Input
+              type="number"
+              label="Stock quantity"
+              required={!hasVariants}
+              disabled={hasVariants}
+              hint={hasVariants ? 'Sum of the variants below. Edit stock per variant.' : undefined}
+              value={form.stockQuantity}
+              onChange={(event) => setForm({ ...form, stockQuantity: event.target.value })}
+            />
+
+            <label className="flex items-center gap-2 self-end pb-2 text-sm text-body">
+              <input
+                type="checkbox"
+                checked={!!form.isFeatured}
+                onChange={(event) => setForm({ ...form, isFeatured: event.target.checked })}
+                className="size-4 accent-[var(--color-primary)]"
+              />
+              Featured product
+            </label>
+
+            <Input
+              as="textarea"
+              rows={2}
+              label="Short description"
+              value={form.shortDescription || ''}
+              onChange={(event) => setForm({ ...form, shortDescription: event.target.value })}
+              className="sm:col-span-2"
+            />
+
+            <Input
+              as="textarea"
+              rows={5}
+              label="Full description"
+              value={form.description || ''}
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              className="sm:col-span-2"
+            />
+
+            <fieldset className="sm:col-span-2 rounded-md border border-line p-4">
+              <legend className="px-1 text-sm font-medium text-heading">Specifications</legend>
+              <p className="mb-4 text-sm text-muted">
+                The AI advisor and product comparison read these values, so fill in numbers where a
+                field has a unit.
+              </p>
+              {!formCategoryId && (
+                <p className="text-sm text-muted">Choose a category to see its specification fields.</p>
+              )}
+              {formCategoryId && !definitions && <Skeleton className="h-24" />}
+              {definitions && (
+                <SpecificationFields
+                  definitions={definitions}
+                  values={form.specValues}
+                  onChange={handleSpecChange}
+                />
+              )}
+            </fieldset>
+
+            {/* Chỉ sản phẩm đã có id mới thêm biến thể được, vì mỗi biến thể lưu riêng theo id sản phẩm. */}
+            {form.id && (
+              <fieldset className="sm:col-span-2 rounded-md border border-line p-4">
+                <legend className="px-1 text-sm font-medium text-heading">Variants</legend>
+                <VariantManager
+                  key={form.id}
+                  productId={form.id}
+                  variants={form.variants || []}
+                  onChanged={handleVariantsChanged}
+                />
+              </fieldset>
+            )}
+
+            <div className="sm:col-span-2">
+              <span className="mb-1.5 block text-sm font-medium text-heading">Images</span>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleUploadImages}
+                className="text-sm text-muted"
+              />
+              {uploading && <p className="mt-2 text-sm text-muted">Uploading images…</p>}
+
+              {form.images.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {form.images.map((image, index) => (
+                    <div key={image.publicId || image.imageUrl} className="relative">
+                      <img
+                        src={image.imageUrl}
+                        alt=""
+                        className="size-16 rounded-sm border border-line bg-sunken object-contain p-1"
+                      />
+                      {/* Bỏ ảnh khỏi form; chỉ thật sự gỡ khi bấm lưu. */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm((prev) => ({
+                            ...prev,
+                            images: prev.images.filter((_, i) => i !== index),
+                          }))
+                        }
+                        aria-label={`Remove image ${index + 1}`}
+                        className="absolute -right-1.5 -top-1.5 grid size-5 place-items-center rounded-full border border-line bg-raised text-muted shadow-sm hover:text-danger-strong"
+                      >
+                        <X size={12} aria-hidden />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {error && (
+              <div className="sm:col-span-2">
+                <Alert>{error}</Alert>
+              </div>
+            )}
+
+            <div className="flex gap-3 sm:col-span-2">
+              <Button type="submit" variant="primary" isLoading={saving}>
+                {form.id ? 'Save changes' : 'Create product'}
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => setForm(null)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+    </div>
+  )
+}
